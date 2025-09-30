@@ -55,7 +55,7 @@ async def init_mysql_pool():
             host=os.environ.get('MYSQL_HOST', 'mysql'),
             port=int(os.environ.get('MYSQL_PORT', 3306)),
             user=os.environ.get('MYSQL_USER', 'tg2em'),
-            password=os.environ.get('MYSQL_PASSWORD', '1989hewei'),
+            password=os.environ.get('MYSQL_PASSWORD', 'tg2em2025'),
             db=os.environ.get('MYSQL_DATABASE', 'tg2em'),
             minsize=1,
             maxsize=10,

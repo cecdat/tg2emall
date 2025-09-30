@@ -62,7 +62,7 @@ mysql:
   host: "mysql"
   port: 3306
   user: "tg2em"
-  password: "1989hewei"
+  password: "tg2em2025"
   database: "tg2em"
 
 # 图片上传接口配置

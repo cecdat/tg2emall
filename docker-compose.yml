@@ -33,10 +33,10 @@ services:
     restart: always
     environment:
       TZ: "Asia/Shanghai"
-      MYSQL_ROOT_PASSWORD: "1989hewei"
+      MYSQL_ROOT_PASSWORD: "tg2em2025"
       MYSQL_DATABASE: "tg2em"
       MYSQL_USER: "tg2em"
-      MYSQL_PASSWORD: "1989hewei"
+      MYSQL_PASSWORD: "tg2em2025"
       # Nginx Proxy Manager 数据库配置
       MYSQL_DATABASE_NPM: "npm"
       MYSQL_USER_NPM: "npm"
@@ -73,7 +73,7 @@ services:
       MYSQL_HOST: "mysql"
       MYSQL_DATABASE: "tg2em"
       MYSQL_USER: "tg2em"
-      MYSQL_PASSWORD: "1989hewei"
+      MYSQL_PASSWORD: "tg2em2025"
       SECRET_KEY: "tg2emall-secret-key-2024"
     depends_on:
       mysql:
@@ -118,7 +118,7 @@ services:
       MYSQL_HOST: "mysql"
       MYSQL_DATABASE: "tg2em"
       MYSQL_USER: "tg2em"
-      MYSQL_PASSWORD: "1989hewei"
+      MYSQL_PASSWORD: "tg2em2025"
       API_ID: "${API_ID}"
       API_HASH: "${API_HASH}"
       TGSTATE_URL: "http://tgstate:8088"
