@@ -1,0 +1,265 @@
+{% extends "admin/base.html" %}
+
+{% block title %}仪表盘{% endblock %}
+
+{% block page_header %}
+<div class="page-header py-3">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h3 mb-0"><i class="fas fa-tachometer-alt me-2"></i>仪表盘</h1>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 text-uppercase">总消息数</h6>
+                        <h2 class="mb-0">{{ stats.total_messages or 0 }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-file-alt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 text-uppercase">今日消息</h6>
+                        <h2 class="mb-0">{{ stats.today_count or 0 }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 text-uppercase">活跃频道</h6>
+                        <h2 class="mb-0">{{ stats.active_channels or 0 }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-broadcast-tower fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 text-uppercase">置顶消息</h6>
+                        <h2 class="mb-0">{{ stats.pinned_messages or 0 }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-thumbtack fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最新消息 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>最新消息</h5>
+                <a href="{{ url_for('admin_messages') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_messages %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>标题</th>
+                                    <th>分类</th>
+                                    <th>创建时间</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for message in recent_messages %}
+                                <tr>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;" title="{{ message.title }}">
+                                            {{ message.title }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ message.sort_id or '未分类' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ message.created_at[:16] if message.created_at else '' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if message.is_pinned %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-thumbtack me-1"></i>置顶
+                                            </span>
+                                        {% elif message.is_deleted %}
+                                            <span class="badge bg-danger">已删除</span>
+                                        {% else %}
+                                            <span class="badge bg-success">正常</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin_message_detail', message_id=message.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if message.is_pinned %}
+                                            <button class="btn btn-sm btn-outline-warning toggle-pin" 
+                                                    data-id="{{ message.id }}" data-pin="false">
+                                                <i class="fas fa-thumbtack"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-secondary toggle-pin" 
+                                                    data-id="{{ message.id }}" data-pin="true">
+                                                <i class="fas fa-thumbtack"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <div>暂无消息</div>
+                        </li>
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快速操作 -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin_messages') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-2"></i>管理消息
+                    </a>
+                    <a href="{{ url_for('admin_advertisements') }}" class="btn btn-outline-success">
+                        <i class="fas fa-bullhorn me-2"></i>管理广告
+                    </a>
+                    <a href="{{ url_for('admin_profile') }}" class="btn btn-outline-info">
+                        <i class="fas fa-user-cog me-2"></i>个人资料
+                    </a>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshStatistics()">
+                        <i class="fas fa-sync-alt me-1"></i>刷新统计
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 系统信息 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>系统信息</h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <div class="d-flex justify-content-between">
+                        <span>数据库表数:</span>
+                        <span>{{ stats.total_categories or 0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>活跃广告:</span>
+                        <span>{{ stats.active_ads or 0 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>采集服务:</span>
+                        <span class="text-success">运行中</span>
+                    </div>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function refreshStatistics() {
+    $.get('/api/admin/statistics', function(data) {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+$(document).ready(function() {
+    // 切换置顶状态
+    $('.toggle-pin').click(function() {
+        var messageId = $(this).data('id');
+        var pinStatus = $(this).data('pin');
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/admin/messages/' + messageId + '/toggle_pin',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    // 更新按钮状态
+                    button.data('pin', data.is_pinned);
+                    if (data.is_pinned) {
+                        button.removeClass('btn-outline-secondary').addClass('btn-outline-warning');
+                    } else {
+                        button.removeClass('btn-outline-warning').addClass('btn-outline-secondary');
+                    }
+                    
+                    // 更新页面
+                    location.reload();
+                } else {
+                    alert('操作失败: ' + data.message);
+                }
+            },
+            error: function() {
+                alert('网络错误，请重试。');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

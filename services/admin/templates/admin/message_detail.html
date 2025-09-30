@@ -1,0 +1,271 @@
+{% extends "admin/base.html" %}
+
+{% block title %}消息详情{% endblock %}
+
+{% block page_header %}
+<div class="page-header py-3">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h3 mb-0"><i class="fas fa-file-alt me-2"></i>消息详情</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('admin_messages') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>返回列表
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- 消息内容 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>消息信息</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th width="100">ID:</th>
+                        <td><span class="badge bg-secondary">#{{ message.id }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>标题:</th>
+                        <td>{{ message.title }}</td>
+                    </tr>
+                    <tr>
+                        <th>分类:</th>
+                        <td>
+                            {% if message.sort_id %}
+                                <span class="badge bg-primary">{{ message.sort_id }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">未分类</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>标签:</th>
+                        <td>
+                            {% if message.tags %}
+                                <div class="tags">
+                                    {% for tag in message.tags.split(',') %}
+                                        <span class="badge bg-info me-1">{{ tag.strip() }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <small class="text-muted">无标签</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>状态:</th>
+                        <td>
+                            {% if message.is_pinned %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-thumbtack me-1"></i>置顶
+                                </span>
+                            {% elif message.is_deleted %}
+                                <span class="badge bg-danger">已删除</span>
+                            {% else %}
+                                <span class="badge bg-success">正常</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>创建时间:</th>
+                        <td><small class="text-muted">{{ message.created_at }}</small></td>
+                    </tr>
+                    {% if message.updated_at and message.updated_at != message.created_at %}
+                    <tr>
+                        <th>更新时间:</th>
+                        <td><small class="text-warning">{{ message.updated_at }}</small></td>
+                    </tr>
+                    {% endif %}
+                </table>
+      
+                <!-- 消息内容 -->
+                {% if message.image_url %}
+                <div class="mb-3">
+                    <h6><i class="fas fa-image me-2"></i>图片:</h6>
+                    <img src="{{ message.image_url }}" class="img-fluid rounded" alt="消息图片" style="max-width: 500px;">
+                </div>
+                {% endif %}
+                
+                <div class="mb-0">
+                    <h6><i class="fas fa-file-alt me-2"></i>内容:</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit;">{{ message.content }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- 编辑表单 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit me-2"></i>编辑消息</h5>
+            </div>
+            <div class="card-body">
+                <form id="editForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">标题 *</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               value="{{ message.title }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sort_id" class="form-label">分类ID</label>
+                        <input type="number" class="form-control" id="sort_id" name="sort_id" 
+                               value="{{ message.sort_id or '' }}" placeholder="可选">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">标签</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               value="{{ message.tags or '' }}" 
+                               placeholder="用逗号分隔，如: 技术,教程,PHP">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">内容 *</label>
+                        <textarea class="form-control" id="content" name="content" rows="10" 
+                                  placeholder="请输入消息内容..." required>{{ message.content }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_pinned" name="is_pinned" 
+                                   {% if message.is_pinned %}checked{% endif %}>
+                            <label class="form-check-label" for="is_pinned">
+                                置顶消息
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>保存更改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>快速操作</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if not message.is_deleted %}
+                        {% if message.is_pinned %}
+                            <button class="btn btn-warning toggle-pin" 
+                                    data-id="{{ message.id }}" data-pin="false">
+                                <i class="fas fa-thumbtack me-1"></i>取消置顶
+                            </button>
+                        {% else %}
+                            <button class="btn btn-outline-warning toggle-pin" 
+                                    data-id="{{ message.id }}" data-pin="true">
+                                <i class="fas fa-thumbtack me-1"></i>置顶消息
+                            </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-outline-danger delete-message" 
+                                data-id="{{ message.id }}">
+                            <i class="fas fa-trash me-1"></i>删除消息
+                        </button>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <a href="{{ url_for('admin_messages') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i>返回列表
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(document).ready(function() {
+    // 编辑表单提交
+    $('#editForm').submit(function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        
+        $.ajax({
+            url: '/admin/messages/{{ message.id }}/edit',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                if (data.success) {
+                    alert('保存成功！');
+                    location.reload();
+                } else {
+                    alert('保存失败: ' + data.message);
+                }
+            },
+            error: function() {
+                alert('网络错误，请重试。');
+            }
+        });
+    });
+    
+    // 切换置顶状态
+    $('.toggle-pin').click(function() {
+        var messageId = $(this).data('id');
+        var pinStatus = $(this).data('pin');
+        var button = $(this);
+        
+        $.ajax({
+            url: '/api/admin/messages/' + messageId + '/toggle_pin',
+            method: 'POST',
+            success: function(data) {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败: ' + data.message);
+                }
+            },
+            error: function() {
+                alert('网络错误，请重试。');
+            }
+        });
+    });
+    
+    // 删除消息
+    $('.delete-message').click(function() {
+        var messageId = $(this).data('id');
+        
+        if (confirm('确定要删除这条消息吗？删除后不可恢复。')) {
+            $.ajax({
+                url: '/admin/messages/' + messageId + '/delete',
+                method: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        alert('删除成功！');
+                        window.location.href = '{{ url_for("admin_messages") }}';
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                },
+                error: function() {
+                    alert('网络错误，请重试。');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

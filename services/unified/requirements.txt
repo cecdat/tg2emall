@@ -1,0 +1,12 @@
+# 前端服务依赖
+Flask==2.3.3
+pymysql==1.1.0
+PyYAML==6.0.1
+
+# 采集服务依赖
+telethon==1.31.1
+pillow==10.0.1
+requests==2.31.0
+
+# 进程管理依赖
+psutil==5.9.6

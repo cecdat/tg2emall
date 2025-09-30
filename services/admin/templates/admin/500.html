@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+
+{% block title %}500 - 服务器错误{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-server fa-5x text-danger mb-4"></i>
+                    <h1 class="display-4 text-dark">500</h1>
+                    <h2 class="mb-4">服务器内部错误</h2>
+                    <p class="lead text-muted mb-4">
+                        抱歉，服务器遇到了一个错误。<br>
+                        我们的技术团队正在处理这个问题。
+                    </p>
+                    <div class="alert alert-danger mb-4">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <strong>错误信息：</strong>
+                        <code>{{ error.description if error else '未知错误' }}</code>
+                    </div>
+                    <p class="text-muted mb-4">
+                        您可以尝试：
+                    </p>
+                    <ul class="list-unstyled text-muted mb-4">
+                        <li>• 刷新页面重试</li>
+                        <li>• 稍后再次访问</li>
+                        <li>• 检查网络连接</li>
+                        <li>• 联系技术支持</li>
+                    </ul>
+                    <div class="mb-4">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-3">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回上页
+                        </button>
+                        <button onclick="location.reload()" class="btn btn-outline-primary">
+                            <i class="fas fa-sync-alt"></i> 刷新重试
+                        </button>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i>
+                        错误时间: {{ current_time.strftime('%Y-%m-%d %H:%M:%S') if current_time else '未知时间' }}<br>
+                        <i class="fas fa-info-circle"></i>
+                        如需帮助，请联系系统管理员
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

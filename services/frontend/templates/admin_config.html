@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置管理 - tg2emall</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- CSRF保护将通过Flask-WTF实现 -->
+    
+    <style>
+        .admin-sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .admin-sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: #fff;
+            background-color: #495057;
+        }
+        .config-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .config-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .config-body {
+            padding: 20px;
+        }
+        .config-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .config-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .icon-tgstate { background-color: #28a745; color: white; }
+        .icon-telegram { background-color: #007bff; color: white; }
+        .icon-service { background-color: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 admin-sidebar p-0">
+                <div class="p-3">
+                    <h5 class="text-white mb-4">
+                        <i class="fas fa-cogs"></i> 
+                        管理中心
+                    </h5>
+                    <nav class="nav flex-column">
+                        <h6 class="text-light mb-2">主要功能</h6>
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            控制台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                            <i class="fas fa-list me-2"></i>
+                            文章管理
+                        </a>
+                        <a class="nav-link active" href="{{ url_for('admin_config') }}">
+                            <i class="fas fa-cogs me-2"></i>
+                            配置管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_services') }}">
+                            <i class="fas fa-server me-2 me-2"></i>
+                            服务管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_index') }}">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            数据统计
+                        </a>
+                        
+                        <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-2"></i>
+                            返回前台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            退出登录
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="col-md-10 p-4">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>
+                            <i class="fas fa-cogs text-primary me-2"></i>
+                            系统配置管理
+                        </h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="/admin">控制台</a>
+                                </li>
+                                <li class="breadcrumb-item active">配置管理</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-3">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ session.username }}
+                        </span>
+                        <small class="text-muted me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </small>
+                        <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 配置说明 -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>配置说明</strong>：修改配置后需要重启相关服务才能生效。
+                            <a href="{{ url_for('admin_services') }}" class="alert-link">点击前往服务管理</a> 重启服务。
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('telegram_verification') }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fab fa-telegram me-1"></i>
+                                Telegram验证
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Telegram验证提示 -->
+                <div class="alert alert-warning mb-4" id="telegramVerificationAlert" style="display: none;">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <i class="fab fa-telegram me-2"></i>
+                            <strong>Telegram验证提醒</strong>：检测到需要Telegram验证码，请
+                            <a href="{{ url_for('telegram_verification') }}" class="alert-link">点击前往验证页面</a>
+                            输入验证码。
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="configForm">
+                    {% if config_groups %}
+                        {% for category, configs in config_groups.items() %}
+                        <div class="config-section">
+                            <div class="config-header">
+                                <div class="d-flex align-items-center">
+                                    <div class="category-icon icon-{{ category }}">
+                                        {% if category == 'tgstate' %}
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        {% elif category == 'telegram' %}
+                                            <i class="fab fa-telegram"></i>
+                                        {% elif category == 'service' %}
+                                            <i class="fas fa-server"></i>
+                                        {% else %}
+                                            <i class="fas fa-cog"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">
+                                            {% if category == 'tgstate' %}
+                                                tgState 图床配置
+                                            {% elif category == 'telegram' %}
+                                                Telegram 采集配置
+                                            {% elif category == 'service' %}
+                                                服务控制配置
+                                            {% else %}
+                                                {{ category|title }} 配置
+                                            {% endif %}
+                                        </h5>
+                                        <small class="text-muted">
+                                            {% if category == 'tgstate' %}
+                                                配置图片上传到 Telegram 频道服务的参数
+                                            {% elif category == 'telegram' %}
+                                                配置 Telegram API 和采集任务的参数
+                                            {% elif category == 'service' %}
+                                                控制系统服务的启动和运行
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="config-body">
+                                {% for config in configs %}
+                                <div class="config-item">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold">{{ config.config_key }}</label>
+                                            <p class="small text-muted mb-2">{{ config.description }}</p>
+                                            {% if config.config_type == 'boolean' %}
+                                                {% set checked = 'checked' if config.config_value.lower() == 'true' else '' %}
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" 
+                                                           type="checkbox" 
+                                                           id="{{ config.config_key }}"
+                                                           name="{{ config.config_key }}"
+                                                           value="true"
+                                                           {{ checked }}>
+                                                    <label class="form-check-label" for="{{ config.config_key }}">
+                                                        {% if config.config_value.lower() == 'true' %}启用{% else %}禁用{% endif %}
+                                                    </label>
+                                                </div>
+                                            {% else %}
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash'] %}
+                                                    <input type="password" 
+                                                           class="form-control" 
+                                                           id="{{ config.config_key }}"
+                                                           name="{{ config.config_key }}"
+                                                           value="{{ config.config_value }}"
+                                                           placeholder="请输入 {{ config.config_key }}">
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-eye me-1"></i>
+                                                        点击右侧按钮查看/隐藏敏感信息
+                                                    </small>
+                                                {% elif config.config_key == 'scrape_channels' %}
+                                                    <textarea class="form-control" 
+                                                              id="{{ config.config_key }}"
+                                                              name="config.config_key }}"
+                                                              rows="3"
+                                                              placeholder="JSON 格式，例如：['@channel1', '@channel2']">{{ config.config_value }}</textarea>
+                                                    <small class="form-text text-muted">JSON 格式的频道列表</small>
+                                                {% else %}
+                                                    <input type="text" 
+                                                           class="form-control" 
+                                                           id="{{ config.config_key }}"
+                                                           name="{{ config.config_key }}"
+                                                           value="{{ config.config_value }}"
+                                                           placeholder="请输入 {{ config.config_key }}">
+                                                    {% if config.config_type == 'number' %}
+                                                        <small class="form-text text-muted">数字类型</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <span class="config-status status-success">
+                                                        <i class="fas fa-check-circle me-1"></i>
+                                                        {{ config.config_type|upper }}
+                                                    </span>
+                                                    {% if config.updated_at %}
+                                                    <small class="text-muted ms-2">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        更新于 {{ config.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                                    </small>
+                                                    {% endif %}
+                                                </div>
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash'] %}
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePassword('{{ config.config_key }}')">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- 操作按钮 -->
+                        <div class="text-center mt-4">
+                            <button type="button" class="btn btn-outline-secondary me-3" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>
+                                重置为初始值
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i>
+                                保存所有配置
+                            </button>
+                        </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-cogs text-muted mb-3" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted">暂无配置数据</h5>
+                        <p class="text-muted mb-0">系统初始化后会显示配置选项</p>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 保存原始值用于重置
+        const originalValues = {};
+        
+        {% if config_groups %}
+        {% for category, configs in config_groups.items() %}
+        {% for config in configs %}
+        originalValues['{{ config.config_key }}'] = '{{ config.config_value }}';
+        {% endfor %}
+        {% endfor %}
+        {% endif %}
+        
+        // 切换密码显示
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling.querySelector('button');
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+        
+        // 重置表单
+        function resetForm() {
+            if (confirm('确定要重置所有配置为初始值吗？')) {
+                {% if config_groups %}
+                {% for category, configs in config_groups.items() %}
+                {% for config in configs %}
+                const input{{ config.config_key }} = document.getElementById('{{ config.config_key }}');
+                if (input{{ config.config_key }}) {
+                    {% if config.config_type == 'boolean' %}
+                    input{{ config.config_key }}.checked = {{ config.config_value|lower }} == 'true';
+                    {% else %}
+                    input{{ config.config_key }}.value = '{{ config.config_value }}';
+                    {% endif %}
+                }
+                {% endfor %}
+                {% endfor %}
+                {% endif %}
+            }
+        }
+        
+        // 表单提交
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const configData = {};
+            
+            // 收集表单数据
+            {% if config_groups %}
+            {% for category, configs in config_groups.items() %}
+            {% for config in configs %}
+            const input{{ config.config_key }} = document.getElementById('{{ config.config_key }}');
+            if (input{{ config.config_key }}) {
+                {% if config.config_type == 'boolean' %}
+                configData['{{ config.config_key }}'] = input{{ config.config_key }}.checked ? 'true' : 'false';
+                {% else %}
+                configData['{{ config.config_key }}'] = input{{ config.config_key }}.value.trim();
+                {% endif %}
+            }
+            {% endfor %}
+            {% endfor %}
+            {% endif %}
+            
+            // 显示加载状态
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>保存中...';
+            submitBtn.disabled = true;
+            
+            // 发送请求
+            fetch('{{ url_for("admin_config_update") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(configData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('配置保存成功！');
+                    
+                    // 更新原始值
+                    Object.assign(originalValues, configData);
+                    
+                    // 刷新页面以显示更新时间
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    alert('保存失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('保存失败，请重试');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+        
+        // 内容变化检测
+        function checkChanges() {
+            let hasChanges = false;
+            
+            {% if config_groups %}
+            {% for category, config in config_groups.items() %}
+            {% for config in configs %}
+            const input{{ config.config_key }} = document.getElementById('{{ config.config_key }}');
+            if (input{{ config.config_key }}) {
+                {% if config.config_type == 'boolean' %}
+                const currentValue = input{{ config.config_key }}.checked ? 'true' : 'false';
+                {% else %}
+                const currentValue = input{{ config.config_key }}.value.trim();
+                {% endif %}
+                
+                if (currentValue !== originalValues['{{ config.config_key }}']) {
+                    hasChanges = true;
+                }
+            }
+            {% endfor %}
+            {% endfor %}
+            {% endif %}
+            
+            if (hasChanges) {
+                document.title = '(未保存) 配置管理 - tg2emall';
+            } else {
+                document.title = '配置管理 - tg2emall';
+            }
+        }
+        
+        // 监听输入变化
+        document.addEventListener('input', checkChanges);
+        document.addEventListener('change', checkChanges);
+        
+        // 监听离开页面事件
+        window.addEventListener('beforeunload', function(e) {
+            const form = document.getElementById('configForm');
+            if (form) {
+                const hasChanges = false; // 检查是否有变化
+                if (hasChanges) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            }
+        });
+        
+        // 检查Telegram验证状态
+        function checkTelegramVerificationStatus() {
+            fetch('/admin/telegram/verification/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.needs_verification) {
+                        document.getElementById('telegramVerificationAlert').style.display = 'block';
+                    } else {
+                        document.getElementById('telegramVerificationAlert').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('检查Telegram验证状态失败:', error);
+                });
+        }
+        
+        // 页面加载时检查验证状态
+        document.addEventListener('DOMContentLoaded', function() {
+            checkTelegramVerificationStatus();
+            // 每30秒检查一次
+            setInterval(checkTelegramVerificationStatus, 30000);
+        });
+    </script>
+</body>
+</html>

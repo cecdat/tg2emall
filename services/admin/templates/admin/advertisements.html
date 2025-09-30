@@ -1,0 +1,270 @@
+{% extends "admin/base.html" %}
+
+{% block title %}广告管理{% endblock %}
+
+{% block page_header %}
+<div class="page-header py-3">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="h3 mb-0"><i class="fas fa-bullhorn me-2"></i>广告管理</h1>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAdModal">
+                <i class="fas fa-plus me-1"></i>添加广告
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- 广告列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>广告列表</h5>
+        <div>
+            <button class="btn btn-success btn-sm" onclick="refreshList()">
+                <i class="fas fa-sync-alt me-1"></i>刷新
+            </button>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if advertisements %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="5%">ID</th>
+                            <th width="20%">广告名称</th>
+                            <th width="15%">位置</th>
+                            <th width="20%">广告代码预览</th>
+                            <th width="10%">排序</th>
+                            <th width="10%">状态</th>
+                            <th width="10%">创建时间</th>
+                            <th width="15%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ad in advertisements %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">#{{ ad.id }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ ad.name }}</strong>
+                            </td>
+                            <td>
+                                {% if ad.position == 'search_list' %}
+                                    <span class="badge bg-info">搜索列表页</span>
+                                {% elif ad.position == 'article_detail' %}
+                                    <span class="badge bg-warning">详情页</span>
+                                {% elif ad.position == 'both' %}
+                                    <span class="badge bg-primary">搜索列表页 + 详情页</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ ad.ad_code[:100] }}{% if ad.ad_code|length > 100 %}...{% endif %}">
+                                    <small class="text-muted">{{ ad.ad_code[:50] }}{% if ad.ad_code|length > 50 %}...{% endif %}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ ad.sort_order }}</span>
+                            </td>
+                            <td>
+                                {% if ad.is_active %}
+                                    <span class="badge bg-success">启用</span>
+                                {% else %}
+                                    <span class="badge bg-danger">禁用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ ad.created_at[:10] if ad.created_at else '' }}
+                                </small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-primary edit-ad" 
+                                            data-ad="{{ ad|tojson }}" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger delete-ad" 
+                                            data-id="{{ ad.id }}" title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-ad fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无广告</h5>
+                <p class="text-muted">点击"添加广告"按钮创建第一个广告</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 创建/编辑广告模态框 -->
+<div class="modal fade" id="createAdModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adModalTitle">添加广告</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="adForm">
+                <div class="modal-body">
+                    <input type="hidden" id="adId" name="ad_id">
+                    
+                    <div class="mb-3">
+                        <label for="adName" class="form-label">广告名称 *</label>
+                        <input type="text" class="form-control" id="adName" name="name" 
+                               placeholder="请输入广告名称" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adPosition" class="form-label">广告位置 *</label>
+                        <select class="form-select" id="adPosition" name="position" required>
+                            <option value="">请选择广告位置</option>
+                            <option value="search_list">搜索列表页</option>
+                            <option value="article_detail">详情页</option>
+                            <option value="both">搜索列表页 + 详情页</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adCode" class="form-label">广告代码 *</label>
+                        <textarea class="form-control" id="adCode" name="ad_code" rows="8" 
+                                  placeholder="请输入广告HTML代码..." required></textarea>
+                        <div class="form-text">支持HTML代码，包括JavaScript和CSS</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sortOrder" class="form-label">排序</label>
+                        <input type="number" class="form-control" id="sortOrder" name="sort_order" 
+                               value="0" placeholder="数字越大排序越靠前">
+                    </div>
+                    
+                    <div class="mb-3" id="activeField" style="display: none;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive" name="is_active">
+                            <label class="form-check-label" for="isActive">
+                                启用广告
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function refreshList() {
+    location.reload();
+}
+
+$(document).ready(function() {
+    var modal = $('#createAdModal');
+    var form = $('#adForm');
+    
+    // 新的 "添加广告" 按钮
+    $('[data-bs-target="#createAdModal"]').click(function() {
+        resetModal();
+        $('#adModalTitle').text('添加广告');
+        $('#activeField').hide();
+    });
+    
+    // 编辑广告按钮
+    $('.edit-ad').click(function() {
+        var ad = JSON.parse($(this).data('ad'));
+        fillModal(ad);
+        $('#adModalTitle').text('编辑广告');
+        $('#activeField').show();
+        modal.modal('show');
+    });
+    
+    // 删除广告按钮
+    $('.delete-ad').click(function() {
+        var adId = $(this).data('id');
+        
+        if (confirm('确定要删除这个广告吗？删除后不可恢复。')) {
+            $.ajax({
+                url: '/admin/advertisements/' + adId + '/delete',
+                method: 'POST',
+                success: function(data) {
+                    if (data.success) {
+                        alert('删除成功！');
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + data.message);
+                    }
+                },
+                error: function() {
+                    alert('网络错误的请重试。');
+                }
+            });
+        }
+    });
+    
+    // 表单提交
+    form.submit(function(e) {
+        e.preventDefault();
+        
+        var adId = $('#adId').val();
+        var url = adId ? '/admin/advertisements/' + adId + '/edit' : '/admin/advertisements/create';
+        var method = 'POST';
+        
+        $.ajax({
+            url: url,
+            method: method,
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                if (data.success) {
+                    modal.modal('hide');
+                    location.reload();
+                } else {
+                    alert('操作失败: ' + data.message);
+                }
+            },
+            error: function() {
+                alert('网络错误，请重试。');
+            }
+        });
+    });
+    
+    // 重置模态框
+    function resetModal() {
+        form[0].reset();
+        $('#adId').val('');
+        $('#activeField').hide();
+    }
+    
+    // 填充模态框
+    function fillModal(ad) {
+        $('#adId').val(ad.id);
+        $('#adName').val(ad.name);
+        $('#adPosition').val(ad.position);
+        $('#adCode').val(ad.ad_code);
+        $('#sortOrder').val(ad.sort_order);
+        $('#isActive').prop('checked', ad.is_active);
+    }
+});
+</script>
+{% endblock %}

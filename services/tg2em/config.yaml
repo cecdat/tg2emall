@@ -1,0 +1,81 @@
+# Telegram 相关配置
+telegram:
+  api_id: 19089950
+  api_hash: "10d7322d62ce3aa8dec17c69ac0ec847"
+  phone_number: "+12282078999"
+  # two_factor_password: "your_2fa_password"  # 可选的两步验证密码
+  channel_urls:
+    # 支持频道URL方式
+    - url: "https://t.me/yunpanshare"
+      limit: 25  # 每个频道单独指定采集消息数量
+    - url: "https://t.me/shareAliyun"
+      limit: 10  # 高活跃频道，采集更多消息
+    - url: "https://t.me/BaiduCloudDisk"
+      limit: 10  # 低活跃频道，采集较少消息
+    - url: "https://t.me/yunpan139"  # 未指定 limit，使用默认值
+      limit: 10
+    # 支持频道ID方式 (示例)
+    - id: -1002726412745
+      limit: 15
+    # - id: -1001234567891
+    #   limit: 20
+
+# 日志相关配置
+logging:
+  scrape:
+    filename: "./logs/scrape.log"
+    level: INFO
+    format: "%(asctime)s - %(levelname)s - %(message)s"
+    max_bytes: 10485760  # 10MB
+    backup_count: 5
+
+# 抓取任务相关配置
+task:
+  collect:
+    interval_minutes: 5  # 采集间隔（分钟）
+    default_limit: 25    # 默认采集数量，适用于未指定 limit 的频道
+    blocked_tags:        # 需要移除的标签
+      - "百度"
+      - "quark"
+      - "ali"
+      - "移动"
+    retention_days: 7    # processed_messages 表记录保留天数
+
+# 链接映射配置
+link_mapping:
+  quark.cn: "夸克网盘"
+  aliyundrive.com: "阿里云盘"
+  alipan.com: "阿里云盘"
+  baidu.com: "百度网盘"
+  139.com: "移动云盘"
+
+# 文章分类 ID 映射配置
+category_mapping:
+  quark.cn: 1
+  aliyundrive.com: 2
+  alipan.com: 2
+  baidu.com: 3
+  139.com: 4
+
+# MySQL 相关配置
+mysql:
+  host: "mysql"
+  port: 3306
+  user: "tg2em"
+  password: "1989hewei"
+  database: "tg2em"
+
+# 图片上传接口配置
+image_upload:
+  api_url: "http://tgstate:8088/api"
+  base_url: "http://tgstate:8088"
+
+# 图片相关配置
+image:
+  upload_dir: "./upload"  #图片保存目录
+
+# 图片压缩配置
+image_compression:
+  quality: 50    # 图片压缩质量，范围 1-95
+  format: "webp" # 压缩格式，支持 webp 或 jpeg
+  lossless: false # 使用有损压缩以减小文件大小

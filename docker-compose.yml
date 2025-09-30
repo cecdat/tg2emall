@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  app:
+  # Nginx Proxy Manager - 反向代理管理
+  nginx-proxy-manager:
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: nginx-proxy-manager
     restart: always
@@ -11,110 +12,134 @@ services:
       - '443:443'
     environment:
       TZ: "Asia/Shanghai"
-      DB_MYSQL_HOST: "db"
+      DB_MYSQL_HOST: "mysql"
       DB_MYSQL_PORT: "3306"
       DB_MYSQL_USER: "npm"
       DB_MYSQL_PASSWORD: "npm"
       DB_MYSQL_NAME: "npm"
     volumes:
-      - ./data:/data
-      - ./letsencrypt:/etc/letsencrypt
+      - ./data/npm:/data
+      - ./data/letsencrypt:/etc/letsencrypt
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
     networks:
-      - tg2em-bot
+      - tg2em-network
 
-  db:
-    image: mysql:5.7
-    container_name: npm_db
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: tg2em-mysql
     restart: always
     environment:
       TZ: "Asia/Shanghai"
       MYSQL_ROOT_PASSWORD: "1989hewei"
-      MYSQL_DATABASE: "npm"
-      MYSQL_USER: "npm"
-      MYSQL_PASSWORD: "npm"
+      MYSQL_DATABASE: "tg2em"
+      MYSQL_USER: "tg2em"
+      MYSQL_PASSWORD: "1989hewei"
+      # Nginx Proxy Manager 数据库配置
+      MYSQL_DATABASE_NPM: "npm"
+      MYSQL_USER_NPM: "npm"
+      MYSQL_PASSWORD_NPM: "npm"
     volumes:
-      - ./mysql:/var/lib/mysql
+      - ./data/mysql:/var/lib/mysql
+      # 只在数据库不存在时执行初始化脚本
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./init-npm.sql:/docker-entrypoint-initdb.d/init-npm.sql:ro
     command:
       - '--character-set-server=utf8mb4'
       - '--collation-server=utf8mb4_unicode_ci'
       - '--max_connections=1000'
+      - '--default-authentication-plugin=mysql_native_password'
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 10
     networks:
-      - tg2em-bot
+      - tg2em-network
 
-  emlog:
-    image: emlog:latest
-    container_name: emlog
-    volumes:
-      - ./emlog:/var/www/html
+  # 前端展示系统
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: tg2em-frontend
+    restart: always
+    ports:
+      - "5000:5000"
     environment:
       TZ: "Asia/Shanghai"
-      MYSQL_HOST: "db"
+      MYSQL_HOST: "mysql"
       MYSQL_DATABASE: "tg2em"
       MYSQL_USER: "tg2em"
       MYSQL_PASSWORD: "1989hewei"
+      SECRET_KEY: "tg2emall-secret-key-2024"
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
     networks:
-      - tg2em-bot
+      - tg2em-network
 
-  scrape:
-    image: tg2em:latest
-    container_name: tg2em_scrape
-    command: ["python", "scrape.py"]
-    stdin_open: true
-    tty: true
-    volumes:
-      - telegram-data:/app/session
-      - ./logs:/app/logs
-      - ./upload:/app/upload
+  # tgState 图片上传服务
+  tgstate:
+    build:
+      context: ./services/tgstate
+      dockerfile: Dockerfile
+    container_name: tg2em-tgstate
+    restart: always
+    ports:
+      - "8088:8088"
     environment:
       TZ: "Asia/Shanghai"
-      PYTHONUNBUFFERED: "1"
-      MYSQL_HOST: "db"
+      # tgState 配置参数
+      TOKEN: "${TGSTATE_TOKEN:-}"
+      TARGET: "${TGSTATE_TARGET:-}"
+      PASS: "${TGSTATE_PASS:-none}"
+      MODE: "${TGSTATE_MODE:-p}"
+      URL: "${TGSTATE_URL:-http://localhost:8088}"
+      PORT: "8088"
+    volumes:
+      - ./data/uploads:/app/upload
+    networks:
+      - tg2em-network
+
+  # Telegram 采集服务
+  tg2em-scrape:
+    build:
+      context: ./services/tg2em
+      dockerfile: Dockerfile
+    container_name: tg2em-scrape
+    restart: always
+    ports:
+      - "5001:5001"  # 管理接口端口
+    environment:
+      TZ: "Asia/Shanghai"
+      MYSQL_HOST: "mysql"
       MYSQL_DATABASE: "tg2em"
       MYSQL_USER: "tg2em"
       MYSQL_PASSWORD: "1989hewei"
+      API_ID: "${API_ID}"
+      API_HASH: "${API_HASH}"
+      TGSTATE_URL: "http://tgstate:8088"
+    volumes:
+      - ./data/uploads:/app/upload
+      - ./data/telegram-sessions:/app/sessions
     depends_on:
-      db:
+      mysql:
         condition: service_healthy
+      tgstate:
+        condition: service_started
     networks:
-      - tg2em-bot
+      - tg2em-network
 
-  publish:
-    image: tg2em:latest
-    container_name: tg2em_publish
-    command: ["python", "publish.py"]
-    volumes:
-      - telegram-data:/app/session
-      - ./logs:/app/logs
-      - ./upload:/app/upload
-    environment:
-      TZ: "Asia/Shanghai"
-      PYTHONUNBUFFERED: "1"
-      MYSQL_HOST: "db"
-      MYSQL_DATABASE: "tg2em"
-      MYSQL_USER: "tg2em"
-      MYSQL_PASSWORD: "1989hewei"
-    depends_on:
-      - scrape
-    networks:
-      - tg2em-bot
+
 
 volumes:
-  telegram-data:
-  data:
-  letsencrypt:
-  mysql:
+  telegram-sessions:
+  logs:
+  upload:
 
 networks:
-  tg2em-bot:
+  tg2em-network:
     driver: bridge

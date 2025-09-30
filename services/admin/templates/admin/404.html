@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+
+{% block title %}404 - 页面未找到{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-5x text-warning mb-4"></i>
+                    <h1 class="display-4 text-dark">404</h1>
+                    <h2 class="mb-4">页面未找到</h2>
+                    <p class="lead text-muted mb-4">
+                        抱歉，您访问的页面不存在。<br>
+                        可能的原因：
+                    </p>
+                    <ul class="list-unstyled text-muted mb-4">
+                        <li>• 页面地址输入错误</li>
+                        <li>• 页面已被移动或删除</li>
+                        <li>• 您没有访问该页面的权限</li>
+                    </ul>
+                    <div class="mb-4">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary me-3">
+                            <i class="fas fa-home"></i> 返回首页
+                        </a>
+                        <button onclick="history.back()" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回上页
+                        </button>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        如果问题持续存在，请联系系统管理员
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}服务器错误 - tg2emall{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="error-page">
+        <h1 class="display-1 text-muted">500</h1>
+        <h2 class="mb-4">服务器内部错误</h2>
+        <p class="lead text-muted mb-4">
+            抱歉，服务器遇到了一个错误，请稍后再试。
+        </p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-home"></i> 返回首页
+            </a>
+            <button onclick="location.reload()" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-refresh"></i> 重新加载
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

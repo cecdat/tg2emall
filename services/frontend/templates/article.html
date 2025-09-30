@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - tg2emall{% endblock %}
+
+{% block description %}{{ article.content[:160] }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 左侧内容区域 -->
+    <div class="col-lg-8">
+        <!-- 文章内容 -->
+        <article class="article-content">
+            <!-- 文章头部 -->
+            <header class="article-header mb-4">
+                <h1 class="article-title">{{ article.title }}</h1>
+                <div class="article-meta">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="meta-left">
+                            <span class="text-muted me-3">
+                                <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%Y年%m月%d日 %H:%M') }}
+                            </span>
+                            {% if article.tags %}
+                            <div class="tags d-inline">
+                                {% for tag in article.tags.split(',') %}
+                                <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="meta-right">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="shareArticle()">
+                                <i class="fas fa-share"></i> 分享
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 文章图片 -->
+            {% if article.image_url %}
+            <div class="article-image mb-4">
+                <img src="{{ article.image_url }}" 
+                     class="img-fluid rounded shadow" 
+                     alt="{{ article.title }}"
+                     style="max-height: 400px; object-fit: cover;">
+            </div>
+            {% endif %}
+
+            <!-- 文章正文 -->
+            <div class="article-body">
+                <div class="content-text">
+                    {{ article.content|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+
+            <!-- 文章底部 -->
+            <footer class="article-footer mt-5">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="card-title">
+                                    <i class="fas fa-info-circle text-primary"></i> 资源信息
+                                </h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>发布时间:</strong> {{ article.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                                    <li><strong>资源ID:</strong> {{ article.id }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="card-title">
+                                    <i class="fas fa-share-alt text-primary"></i> 分享链接
+                                </h6>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="share-url" 
+                                           value="{{ request.url }}"
+                                           readonly>
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            onclick="copyShareUrl()">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </article>
+
+        <!-- 相关资源推荐 -->
+        <div class="related-articles mt-5">
+            <h4 class="mb-4">
+                <i class="fas fa-thumbs-up text-primary"></i> 相关推荐
+            </h4>
+            <div class="row" id="related-articles">
+                <!-- 通过 AJAX 加载相关文章 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧边栏 -->
+    <div class="col-lg-4">
+        <!-- 目录导航 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list text-primary"></i> 快速导航
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('index') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-home"></i> 返回首页
+                    </a>
+                    <a href="{{ url_for('search') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-search"></i> 搜索资源
+                    </a>
+                    {% if article.tags %}
+                    {% for tag in article.tags.split(',')[:3] %}
+                    <a href="{{ url_for('search', q=tag.strip()) }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-tag"></i> {{ tag.strip() }}
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类功能已移除 -->
+
+        <!-- 最新资源 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-fire text-primary"></i> 最新资源
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_articles %}
+                <div class="list-group list-group-flush">
+                    {% for article in recent_articles %}
+                    <a href="{{ url_for('article_detail', article_id=article.id) }}" 
+                       class="list-group-item list-group-item-action p-2">
+                        <div class="mb-1">
+                            <h6 class="mb-1 text-truncate">{{ article.title }}</h6>
+                            {% if article.tags %}
+                            <div class="mb-1">
+                                {% for tag in article.tags.split(',')[:2] %}
+                                <span class="badge bg-secondary me-1 small">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%m-%d') }}
+                            </small>
+                            {% if article.source_channel %}
+                            <small class="text-info">
+                                <i class="fas fa-source"></i> {{ article.source_channel }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center">暂无最新资源</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 分享文章
+function shareArticle() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ article.title }}',
+            text: '{{ article.content[:100] }}...',
+            url: window.location.href
+        });
+    } else {
+        copyShareUrl();
+    }
+}
+
+// 复制分享链接
+function copyShareUrl() {
+    const shareUrl = document.getElementById('share-url');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    
+    // 显示提示
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+    }, 2000);
+}
+
+// 加载相关文章
+document.addEventListener('DOMContentLoaded', function() {
+    // 这里可以添加加载相关文章的逻辑
+    // 暂时显示占位内容
+    const relatedContainer = document.getElementById('related-articles');
+    relatedContainer.innerHTML = `
+        <div class="col-12 text-center py-3">
+            <p class="text-muted">暂无相关推荐</p>
+        </div>
+    `;
+});
+</script>
+{% endblock %}

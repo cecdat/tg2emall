@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>编辑文章 - tg2emall</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .admin-sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .admin-sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: #fff;
+            background-color: #495057;
+        }
+        .content-editor {
+            min-height: 400px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 admin-sidebar p-0">
+                <div class="p-3">
+                    <h5 class="text-white mb-4">
+                        <i class="fas fa-cogs"></i> 
+                        管理中心
+                    </h5>
+                    <nav class="nav flex-column">
+                        <h6 class="text-light mb-2">主要功能</h6>
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            控制台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                            <i class="fas fa-list me-2"></i>
+                            文章管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_index') }}">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            数据统计
+                        </a>
+                        
+                        <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-2"></i>
+                            返回前台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            退出登录
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="col-md-10 p-4">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>
+                            <i class="fas fa-edit text-primary me-2"></i>
+                            编辑文章
+                        </h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="{{ url_for('admin_articles') }}">文章管理</a>
+                                </li>
+                                <li class="breadcrumb-item active">编辑文章</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-3">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ session.username }}
+                        </span>
+                        <small class="text-muted me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </small>
+                        <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 文章信息 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            文章信息
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <small class="text-muted">文章ID</small>
+                                <p class="mb-0 font-weight-bold">{{ article.id }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">来源频道</small>
+                                <p class="mb-0">{{ article.source_channel or '未标注' }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">标签</small>
+                                <p class="mb-0">{{ article.tags or '无标签' }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">创建时间</small>
+                                <p class="mb-0">{{ article.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 编辑表单 -->
+                <form id="articleForm">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-edit text-primary me-2"></i>
+                                编辑文章内容
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">
+                                    <i class="fas fa-heading me-1"></i>
+                                    文章标题
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="title" 
+                                       name="title" 
+                                       value="{{ article.title }}" 
+                                       required
+                                       placeholder="请输入文章标题">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="content" class="form-label">
+                                    <i class="fas fa-file-alt me-1"></i>
+                                    文章内容
+                                </label>
+                                <textarea class="form-control content-editor" 
+                                          id="content" 
+                                          name="content" 
+                                          required
+                                          placeholder="请输入文章内容">{{ article.content }}</textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    支持 Markdown 格式
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button type="button" 
+                                            class="btn btn-outline-secondary me-2"
+                                            onclick="window.location.href='{{ url_for('article_detail', article_id=article.id) }}'">
+                                        <i class="fas fa-eye me-1"></i>
+                                        预览文章
+                                    </button>
+                                    <button type="button" 
+                                            class="btn btn-outline-info me-2"
+                                            onclick="window.location.href='{{ url_for('admin_articles') }}'">
+                                        <i class="fas fa-arrow-left me-1"></i>
+                                        返回列表
+                                    </button>
+                                </div>
+                                <div>
+                                    <button type="button" 
+                                            class="xport btn-outline-primary"
+                                            onclick="resetForm()">
+                                        <i class="fas fa-undo me-1"></i>
+                                        重置
+                                    </button>
+                                    <button type="submit" 
+                                            class="btn btn-success ms-2">
+                                        <i class="fas fa-save me-1"></i>
+                                        保存修改
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.getElementById("articleForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById("title").value.trim();
+            const content = document.getElementById("content").value.trim();
+            
+            if (!title) {
+                alert('请输入文章标题');
+                document.getElementById("title").focus();
+                return;
+            }
+            
+            if (!content) {
+                alert('请输入文章内容');
+                document.getElementById("content").focus();
+                return;
+            }
+            
+            // 显示加载状态
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>保存中...';
+            submitBtn.disabled = true;
+            
+            // 提交表单
+            fetch('{{ url_for("admin_article_update", article_id=article.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `title=${encodeURIComponent(title)}&content=${encodeURIComponent(content)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('保存成功！');
+                    // 可以重定向到文章列表或刷新页面
+                    // window.location.href = '{{ url_for("admin_articles") }}';
+                } else {
+                    alert('保存失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('保存失败，请重试');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+        
+        function resetForm() {
+            document.getElementById("title").value = "{{ article.title }}";
+            document.getElementById("content").value = "{{ article.content }}";
+        }
+        
+        // 内容变化检测
+        let originalTitle = document.getElementById("title").value;
+        let originalContent = document.getElementById("content").value;
+        
+        function checkChanges() {
+            const currentTitle = document.getElementById("title").value;
+            const currentContent = document.getElementById("content").value;
+            
+            if (currentTitle !== originalTitle || currentContent !== originalContent) {
+                document.title = '(未保存) 编辑文章 - tg2emall';
+            } else {
+                document.title = '编辑文章 - tg2emall';
+            }
+        }
+        
+        document.getElementById("title").addEventListener("input", checkChanges);
+        document.getElementById("content").addEventListener("input", checkChanges);
+        
+        // 监听离开页面事件
+        window.addEventListener('beforeunload', function(e) {
+            const currentTitle = document.getElementById("title").value;
+            const currentContent = document.getElementById("content").value;
+            
+            if (currentTitle !== originalTitle || currentContent !== originalContent) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

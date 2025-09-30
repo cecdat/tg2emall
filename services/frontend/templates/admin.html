@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台管理中心 - tg2emall</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- 自定义样式 -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    
+    <style>
+        .admin-sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .admin-sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: #fff;
+            background-color: #495057;
+        }
+        .stats-card {
+            transition: transform 0.2s;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 admin-sidebar p-0">
+                <div class="p-3">
+                    <h5 class="text-white mb-4">
+                        <i class="fas fa-cogs"></i> 
+                        管理中心
+                    </h5>
+                    <nav class="nav flex-column">
+                        <h6 class="text-light mb-2">主要功能</h6>
+                        <a class="nav-link active" href="/admin">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            控制台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                            <i class="fas fa-list me-2"></i>
+                            文章管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_config') }}">
+                            <i class="fas fa-cogs me-2"></i>
+                            配置管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_services') }}">
+                            <i class="fas fa-server me-2"></i>
+                            服务管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_index') }}">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            数据统计
+                        </a>
+                        
+                        <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-2"></i>
+                            返回前台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            退出登录
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="col-md-10 p-4">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>
+                        <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                        控制台
+                    </h2>
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <span class="badge bg-success me-2">
+                                <i class="fas fa-user-circle me-1"></i>
+                                {{ session.username }}
+                            </span>
+                        </div>
+                        <small class="text-muted me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </small>
+                        <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 基础统计卡片 -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card stats-card bg-primary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ stats.total_articles or 0 }}</h4>
+                                        <p class="mb-0">总文章数</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-file-alt"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card stats-card bg-success text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ stats.today_articles or 0 }}</h4>
+                                        <p class="mb-0">今日新增</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-plus-circle"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card stats-card bg-warning text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ stats.yesterday_articles or 0 }}</h4>
+                                        <p class="mb-0">昨日新增</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-calendar-day"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card stats-card {% if stats.scrape_status == '运行中' %}bg-success{% else %}bg-danger{% endif %} text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ stats.scrape_status or '未知' }}</h6>
+                                        <p class="mb-0">采集状态</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 访问统计 -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="card stats-card bg-info text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ stats.daily_visitors or 0 }}</h4>
+                                        <p class="mb-0">当日访问IP</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="card stats-card bg-secondary text-white">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="mb-1">{{ stats.total_visitors or 0 }}</h4>
+                                        <p class="mb-0">总访问IP</p>
+                                    </div>
+                                    <div class="fs-1 opacity-50">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 访问来源统计 -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-pie text-primary me-2"></i>
+                                    访问来源统计
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                {% if stats.visit_sources %}
+                                <div class="row">
+                                    {% set cycle_classes = ['primary', 'success', 'warning', 'info'] %}
+                                    {% set cycle_icons = ['search', 'home', 'share-alt', 'question'] %}
+                                    {% for source in stats.visit_sources %}
+                                    {% set color_idx = loop.index0 % 4 %}
+                                    {% set bg_color = cycle_classes[color_idx] %}
+                                    {% set icon_name = cycle_icons[color_idx] %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-{{ bg_color }} text-white rounded-circle d-flex justify-content-center align-items-center me-3" 
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-{{ icon_name }}"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-1">{{ source.source }}</h6>
+                                                    <small class="text-muted">{{ source.count }}次访问</small>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-{{ bg_color }} fs-6">{{ source.count }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-chart-pie text-muted mb-3" style="font-size: 3rem;"></i>
+                                    <p class="text-muted mb-0">暂无访问统计数据</p>
+                                    <small class="text-muted">统计功能正在完善中</small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

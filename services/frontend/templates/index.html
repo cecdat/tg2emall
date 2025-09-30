@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}tg2emall - Telegram 资源分享平台{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 左侧内容区域 -->
+    <div class="col-lg-8">
+        <!-- Google 风格搜索框 -->
+        <div class="text-center mb-5">
+            <div class="search-container">
+                <h1 class="display-4 mb-4">
+                    <i class="fas fa-share-alt text-primary"></i> tg2emall
+                </h1>
+                <p class="lead text-muted mb-4">Telegram 频道资源分享平台</p>
+                
+                <!-- 搜索表单 -->
+                <form class="search-form" action="{{ url_for('search') }}" method="GET">
+                    <div class="input-group input-group-lg">
+                        <input type="text" 
+                               class="form-control search-input" 
+                               name="q" 
+                               placeholder="搜索资源..." 
+                               value="{{ request.args.get('q', '') }}"
+                               autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- 快捷搜索标签 -->
+                <div class="quick-search mt-3">
+                    <span class="text-muted me-2">热门搜索:</span>
+                    <a href="{{ url_for('search', q='百度网盘') }}" class="badge bg-light text-dark me-1">百度网盘</a>
+                    <a href="{{ url_for('search', q='阿里云盘') }}" class="badge bg-light text-dark me-1">阿里云盘</a>
+                    <a href="{{ url_for('search', q='夸克网盘') }}" class="badge bg-light text-dark me-1">夸克网盘</a>
+                    <a href="{{ url_for('search', q='移动云盘') }}" class="badge bg-light text-dark me-1">移动云盘</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近资源 -->
+        <div class="recent-resources">
+            <h3 class="mb-4">
+                <i class="fas fa-clock text-primary"></i> 最近资源
+                <small class="text-muted">(最近20条)</small>
+            </h3>
+            
+            {% if articles %}
+            <div class="row">
+                {% for article in articles %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        {% if article.image_url %}
+                        <img src="{{ article.image_url }}" class="card-img-top" alt="{{ article.title }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">
+                                <a href="{{ url_for('article_detail', article_id=article.id) }}" class="text-decoration-none">
+                                    {{ article.title[:50] }}{% if article.title|length > 50 %}...{% endif %}
+                                </a>
+                            </h5>
+                            <p class="card-text text-muted flex-grow-1">
+                                {{ article.content[:100] }}{% if article.content|length > 100 %}...{% endif %}
+                            </p>
+                            <div class="card-footer bg-transparent border-0 p-0 mt-auto">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </small>
+                                    {% if article.tags %}
+                                    <div class="tags">
+                                        {% for tag in article.tags.split(',')[:3] %}
+                                        <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted mb-3">暂无资源数据</h4>
+                <p class="text-muted mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    系统正在采集数据中，请稍后再查看
+                </p>
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <small>
+                                <i class="fas fa-clock mr-2"></i>
+                                采集服务每 5 分钟运行一次，数据会自动更新
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 右侧边栏 -->
+    <div class="col-lg-4">
+        <!-- 统计信息 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar text-primary"></i> 统计信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h4 class="text-primary mb-1" id="total-articles">-</h4>
+                            <small class="text-muted">总资源</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h4 class="text-success mb-1" id="today-articles">-</h4>
+                            <small class="text-muted">今日新增</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h4 class="text-info mb-1" id="total-categories">-</h4>
+                            <small class="text-muted">分类数</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类功能已移除 -->
+
+        <!-- 最新资源 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-fire text-primary"></i> 最新资源
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_articles %}
+                <div class="list-group list-group-flush">
+                    {% for article in recent_articles %}
+                    <a href="{{ url_for('article_detail', article_id=article.id) }}" 
+                       class="list-group-item list-group-item-action p-3">
+                        <div class="mb-2">
+                            <h6 class="mb-1 text-truncate">{{ article.title }}</h6>
+                            {% if article.tags %}
+                            <div class="mb-1">
+                                {% for tag in article.tags.split(',')[:3] %}
+                                <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%Y-%m-%d') }}
+                            </small>
+                            {% if article.source_channel %}
+                            <small class="text-info">
+                                <i class="fas fa-source"></i> {{ article.source_channel }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">暂无最新资源</p>
+                    <small class="text-muted">正在采集最新内容，请稍候...</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 加载统计信息
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('total-articles').textContent = data.data.total_articles;
+                document.getElementById('today-articles').textContent = data.data.today_articles;
+                document.getElementById('total-categories').textContent = data.data.total_categories;
+            }
+        })
+        .catch(error => console.error('Error loading stats:', error));
+});
+</script>
+{% endblock %}
