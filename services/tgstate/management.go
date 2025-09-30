@@ -280,7 +280,7 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
                     if (data.success) {
                         const status = data.data.status;
                         statusDiv.className = 'status ' + status;
-                        statusDiv.innerHTML = `状态: ${status} | PID: ${data.data.pid} | 启动时间: ${data.data.start_time}`;
+                        statusDiv.innerHTML = "状态: " + status + " | PID: " + data.data.pid + " | 启动时间: " + data.data.start_time;
                     }
                 });
         }
