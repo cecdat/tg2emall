@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `system_config` (
 
 -- 插入默认配置
 INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `description`, `category`) VALUES
--- tgState 配置
+-- tgState 图床配置
 ('tgstate_token', '', 'string', 'tgState 图床上传服务的 Telegram Bot Token', 'tgstate'),
 ('tgstate_target', '', 'string', 'tgState 图床上传的目标频道（@channel_name）', 'tgstate'),
 ('tgstate_pass', 'none', 'string', 'tgState 图床访问密码（设置访问保护）', 'tgstate'),
@@ -41,12 +41,7 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('telegram_session_name', 'tg2em_scraper', 'string', 'Telegram 会话文件名', 'telegram'),
 ('scrape_channels', '[]', 'json', '要采集的目标频道列表（JSON 格式）', 'telegram'),
 ('scrape_limit', '10', 'number', '每次采集的消息数量', 'telegram'),
-('scrape_interval', '300', 'number', '采集间隔时间（秒）', 'telegram'),
-
--- 服务控制配置
-('tgstate_enabled', 'true', 'boolean', '是否启用 tgState 图片上传服务', 'service'),
-('scraper_enabled', 'true', 'boolean', '是否启用 Telegram 采集服务', 'service'),
-('auto_start_services', 'true', 'boolean', '是否自动启动服务', 'service');
+('scrape_interval', '300', 'number', '采集间隔时间（秒）', 'telegram');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表
@@ -201,15 +196,8 @@ CREATE TABLE IF NOT EXISTS `advertisements` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='广告表';
 
 -- --------------------------------------------------------
--- 插入默认配置
+-- 插入默认配置（已在上方完成）
 -- --------------------------------------------------------
-
-INSERT IGNORE INTO `system_config` (`config_key`, `config_value`, `description`) VALUES
-('collect_interval', '300', '采集间隔（秒）'),
-('retention_days', '7', '数据保留天数'),
-('image_compression_quality', '50', '图片压缩质量'),
-('max_title_length', '200', '标题最大长度'),
-('max_content_length', '10000', '内容最大长度');
 
 -- --------------------------------------------------------
 -- 插入默认管理员用户

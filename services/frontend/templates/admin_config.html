@@ -269,7 +269,7 @@
                                                 {% elif config.config_key == 'scrape_channels' %}
                                                     <textarea class="form-control" 
                                                               id="{{ config.config_key }}"
-                                                              name="config.config_key }}"
+                                                              name="{{ config.config_key }}"
                                                               rows="3"
                                                               placeholder="JSON 格式，例如：['@channel1', '@channel2']">{{ config.config_value }}</textarea>
                                                     <small class="form-text text-muted">JSON 格式的频道列表</small>
@@ -456,7 +456,7 @@
             let hasChanges = false;
             
             {% if config_groups %}
-            {% for category, config in config_groups.items() %}
+            {% for category, configs in config_groups.items() %}
             {% for config in configs %}
             const input{{ config.config_key }} = document.getElementById('{{ config.config_key }}');
             if (input{{ config.config_key }}) {
