@@ -60,7 +60,7 @@ sleep 30
 
 # 3. 访问管理后台配置参数
 # http://your-server:5000/dm
-# 用户名: admin, 密码: 1989hewei, 验证码: 1989
+# 用户名: admin, 密码: admin, 验证码: 2025
 
 # 4. 启动业务服务（可选）
 docker-compose --profile services up -d tgstate tg2em-scrape
@@ -71,8 +71,8 @@ docker-compose --profile services up -d tgstate tg2em-scrape
 ### 🔐 **管理后台访问**
 - **访问地址**: `http://your-server:5000/dm`
 - **默认账号**: admin 
-- **默认密码**: 1989hewei
-- **验证码**: 1989 (固定验证码)
+- **默认密码**: admin
+- **验证码**: 2025 (固定验证码)
 
 ### 📱 **Telegram 配置**
 在管理后台"配置管理"页面配置：
@@ -99,10 +99,10 @@ tgstate_url:          http://localhost:8088
 
 ### 🗄️ **数据库配置**
 ```bash
-MYSQL_ROOT_PASSWORD=1989hewei
+MYSQL_ROOT_PASSWORD=tg2emall
 MYSQL_DATABASE=tg2em
-MYSQL_USER=tg2em
-MYSQL_PASSWORD=1989hewei
+MYSQL_USER=tg2emall
+MYSQL_PASSWORD=tg2emall
 ```
 
 ## 📱 Telegram 验证流程
@@ -162,7 +162,7 @@ docker volume rm tg2emall_mysql-data
 docker-compose up -d
 
 # 方案二：手动修复现有数据库
-docker exec -it tg2em-mysql mysql -u root -p1989hewei tg2em
+docker exec -it tg2em-mysql mysql -u root -ptg2emall tg2em
 # 在 MySQL 中执行：
 ALTER TABLE messages ADD COLUMN source_channel varchar(100) DEFAULT NULL COMMENT '来源频道';
 ```
@@ -216,7 +216,7 @@ docker-compose logs tgstate
 #### **数据库检查**
 ```bash
 # 连接数据库
-docker exec -it tg2em-mysql mysql -u tg2em -p1989hewei tg2em
+docker exec -it tg2em-mysql mysql -u tg2emall -ptg2emall tg2em
 
 # 检查表结构
 DESCRIBE messages;
@@ -278,7 +278,7 @@ docker system prune -f
 docker image prune -f
 
 # 备份数据库
-docker exec tg2em-mysql mysqldump -u root -p1989hewei tg2em > backup.sql
+docker exec tg2em-mysql mysqldump -u root -ptg2emall tg2em > backup.sql
 ```
 
 ## 🤝 **贡献指南**

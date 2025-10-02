@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS `advertisements` (
 -- --------------------------------------------------------
 
 INSERT IGNORE INTO `admin_users` (`username`, `password`, `is_active`) VALUES
-('admin', '$2b$12$r5B8oN5gJ9f2K8mL3xGWe.7vWQaZsBcDeFgHiJkLmNoPqRsTuVw', 1);
+('admin', '$2b$12$LQv3c1yqBWVHxkd0LQ4bCOYz1rnHxS57.LhiaqHc5JXgfqkjyOuUO', 1);
 
 -- --------------------------------------------------------
 -- 创建视图：统计信息视图

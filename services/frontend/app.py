@@ -149,7 +149,7 @@ app.secret_key = os.environ.get('SECRET_KEY', 'tg2emall-secret-key')
 
 # 管理员配置（应该在生产环境中使用环境变量）
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'tg2emall2024')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin')
 
 def login_required(f):
     """登录验证装饰器"""
@@ -474,7 +474,7 @@ def admin_login():
         captcha = request.form.get('captcha')
         
         # 验证验证码
-        if captcha != '1989':
+        if captcha != '2025':
             logger.warning(f"管理员登录失败: 验证码错误 - {username}")
             return render_template('admin_login.html', error='验证码错误')
         
