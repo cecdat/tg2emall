@@ -1,8 +1,8 @@
-# Telegram 相关配置
+# Telegram 相关配置 (这些值会从数据库动态获取)
 telegram:
-  api_id: 19089950
-  api_hash: "10d7322d62ce3aa8dec17c69ac0ec847"
-  phone_number: "+12282078999"
+  api_id: ""  # 将从数据库读取
+  api_hash: ""  # 将从数据库读取
+  phone_number: ""  # 将从数据库读取
   # two_factor_password: "your_2fa_password"  # 可选的两步验证密码
   channel_urls:
     # 支持频道URL方式

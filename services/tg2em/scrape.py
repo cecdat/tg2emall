@@ -339,7 +339,35 @@ async def scrape_channel():
         default_limit = config["task"]["collect"].get("default_limit", 25)
         await clean_processed_messages(retention_days)
 
-        for channel_config in config["telegram"]["channel_urls"]:
+        # 从数据库获取频道配置
+        channels_config = await get_config_from_db("scrape_channels") or ""
+        scrape_limit = int(await get_config_from_db("scrape_limit") or config["task"]["collect"]["default_limit"])
+        
+        # 解析频道配置
+        channel_urls = []
+        if channels_config:
+            for line in channels_config.strip().split('\n'):
+                line = line.strip()
+                if line:
+                    if line.startswith('http'):
+                        channel_urls.append({"url": line, "limit": scrape_limit})
+                    elif line.startswith('@') or line.startswith('-'):
+                        channel_urls.append({"id": line, "limit": scrape_limit})
+                    else:
+                        # 尝试作为频道ID处理
+                        try:
+                            channel_id = int(line)
+                            channel_urls.append({"id": channel_id, "limit": scrape_limit})
+                        except ValueError:
+                            channel_urls.append({"id": f"@{line}", "limit": scrape_limit})
+        
+        if not channel_urls:
+            logging.error("❌ 未配置采集频道，请在后台管理页面配置scrape_channels参数")
+            return
+        
+        logging.info(f"✅ 已配置 {len(channel_urls)} 个采集频道")
+        
+        for channel_config in channel_urls:
             limit = channel_config.get("limit", default_limit)
             
             # 支持频道URL和频道ID两种方式
@@ -558,9 +586,20 @@ async def main():
     try:
         await init_mysql_pool()
         
-        # 创建 TelegramClient 实例
-        api_id = config["telegram"]["api_id"]
-        api_hash = config["telegram"]["api_hash"]
+        # 从数据库动态获取 Telegram 配置
+        api_id = await get_config_from_db("telegram_api_id") or config["telegram"]["api_id"]
+        api_hash = await get_config_from_db("telegram_api_hash") or config["telegram"]["api_hash"]
+        phone_number = await get_config_from_db("telegram_phone") or config["telegram"]["phone_number"]
+        
+        if not api_id or not api_hash or not phone_number:
+            logging.error("❌ Telegram配置不完整，请在后台管理页面配置API ID、API Hash和手机号")
+            logging.error("必需的配置:")
+            logging.error(f"  - API ID: {'已配置' if api_id else '未配置'}")
+            logging.error(f"  - API Hash: {'已配置' if api_hash else '未配置'}")  
+            logging.error(f"  - 手机号: {'已配置' if phone_number else '未配置'}")
+            return
+        
+        logging.info("✅ 已从数据库获取Telegram配置")
         
         # 确保sessions目录存在
         sessions_dir = "/app/sessions"
@@ -571,7 +610,7 @@ async def main():
         client = TelegramClient(session_file, api_id, api_hash)
         
         # 改进的 Telegram 客户端启动方式
-        phone = config["telegram"]["phone_number"]
+        phone = phone_number  # 使用从数据库获取的手机号
         two_factor_password = config["telegram"].get("two_factor_password")
         
         # 检查是否存在会话文件
@@ -586,6 +625,18 @@ async def main():
             await client.start(phone=lambda: phone)
             if os.path.exists(session_file):
                 logging.info("✅ Telegram 客户端启动成功，使用已保存的会话")
+                
+                # 测试连接是否仍然有效
+                try:
+                    me = await client.get_me()
+                    logging.info(f"✅ Telegram连接验证成功，当前用户: {me.username or me.first_name}")
+                except Exception as test_error:
+                    logging.warning(f"会话可能已过期，需要重新验证: {test_error}")
+                    # 删除过期会话文件
+                    if os.path.exists(session_file):
+                        os.remove(session_file)
+                        logging.info("已删除过期会话文件")
+                    raise Exception("会话已过期，需要重新验证")
             else:
                 logging.info("✅ Telegram 客户端启动成功，首次验证完成")
         except Exception as start_error:
