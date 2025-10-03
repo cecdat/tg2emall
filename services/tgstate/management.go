@@ -426,9 +426,9 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
 </head>
 <body>
     <div class="container">
-        <h1>🖼️ tgState 图片上传服务</h1>
+    <h1>🖼️ tgState 图片上传服务</h1>
         
-        <div id="status" class="status">加载中...</div>
+    <div id="status" class="status">加载中...</div>
         
         <div class="controls">
             <button class="start-btn" onclick="startService()">启动服务</button>
@@ -539,40 +539,45 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             if (!document.getElementById('notification-container')) {
                 const notificationContainer = document.createElement('div');
                 notificationContainer.id = 'notification-container';
-                notificationContainer.style.cssText = \`
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 10000;
-                    max-width: 400px;
-                \`;
+                notificationContainer.style.cssText = 
+                    'position: fixed; ' +
+                    'top: 20px; ' +
+                    'right: 20px; ' +
+                    'z-index: 10000; ' +
+                    'max-width: 400px;';
                 document.body.appendChild(notificationContainer);
             }
             
             const notification = document.createElement('div');
-            notification.style.cssText = \`
-                background: \${type === 'success' ? 'linear-gradient(135deg, #28a745, #20c997)' : 
-                           type === 'error' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
-                           'linear-gradient(135deg, #17a2b8, #138496)'};
-                color: white;
-                padding: 15px 20px;
-                margin-bottom: 10px;
-                border-radius: 10px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                font-weight: 500;
-                cursor: pointer;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                animation: slideIn 0.3s ease forwards;
-            \`;
+            let bgColor = '';
+            if (type === 'success') {
+                bgColor = 'linear-gradient(135deg, #28a745, #20c997)';
+            } else if (type === 'error') {
+                bgColor = 'linear-gradient(135deg, #dc3545, #c82333)';
+            } else {
+                bgColor = 'linear-gradient(135deg, #17a2b8, #138496)';
+            }
             
-            notification.innerHTML = \`
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>\${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-                    <span style="flex: 1; margin: 0 10px;">\${message}</span>
-                    <span onclick="this.parentElement.parentElement.remove()" style="cursor: pointer; font-weight: bold;">×</span>
-                </div>
-            \`;
+            notification.style.cssText = 
+                'background: ' + bgColor + '; ' +
+                'color: white; ' +
+                'padding: 15px 20px; ' +
+                'margin-bottom: 10px; ' +
+                'border-radius: 10px; ' +
+                'box-shadow: 0 5px 15px rgba(0,0,0,0.2); ' +
+                'font-weight: 500; ' +
+                'cursor: pointer; ' +
+                'transform: translateX(100%); ' +
+                'transition: transform 0.3s ease; ' +
+                'animation: slideIn 0.3s ease forwards;';
+            
+            let icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            notification.innerHTML = 
+                '<div style="display: flex; align-items: center; justify-content: space-between;">' +
+                    '<span>' + icon + '</span>' +
+                    '<span style="flex: 1; margin: 0 10px;">' + message + '</span>' +
+                    '<span onclick="this.parentElement.parentElement.remove()" style="cursor: pointer; font-weight: bold;">×</span>' +
+                '</div>';
             
             document.getElementById('notification-container').appendChild(notification);
             
