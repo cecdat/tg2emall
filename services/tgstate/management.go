@@ -359,19 +359,14 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showUploadResult('✅ ' + data.message, 'success');
-                    if (data.result && data.result.tgstate_response) {
-                        const resp = data.result.tgstate_response;
-                        if (resp.url) {
-                            showUploadResult(
-                                '✅ ' + data.message + '\\n图片链接: ' + resp.url + 
-                                '\\n文件大小: ' + (resp.size || '未知'),
-                                'success'
-                            );
-                        }
+                    let message = '✅ ' + data.message;
+                    if (data.imgUrl) {
+                        message += '\\n图片地址: ' + data.imgUrl;
+                        message += '\\n路径: ' + (data.imgPath || '');
                     }
+                    showUploadResult(message, 'success');
                 } else {
-                    showUploadResult('❌ 上传失败: ' + data.error, 'error');
+                    showUploadResult('❌ 上传失败: ' + (data.error || '未知错误'), 'error');
                 }
             })
             .catch(error => {
@@ -470,29 +465,51 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// 测试上传到tgState服务
-	result, err := api.testUploadToTGState(tempFile, header.Filename)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	// 直接调用tgState的上传API
+	success, imgPath, imgUrl := api.uploadImageToTGState(tempFile, header.Filename)
+	if success {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "图片上传成功",
+			"imgUrl": imgUrl,
+			"imgPath": imgPath,
+		})
+	} else {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("上传失败: %v", err),
+			"error": imgPath, // 错误时imgPath存储错误信息
 		})
-		return
-	} else if !result["success"].(bool) {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"error": result["error"].(string),
-		})
-		return
 	}
+}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "图片上传测试成功",
-		"result": result,
-	})
+// uploadImageToTGState 直接上传图片到tgState
+func (api *ManagementAPI) uploadImageToTGState(tempFile, filename string) (success bool, imgPath, imgUrl string) {
+	// 检查tgState配置
+	if conf.BotToken == "" || conf.ChannelName == "" {
+		return false, "tgState未配置Bot Token或频道名称", ""
+	}
+	
+	// 读取文件
+	file, err := os.Open(tempFile)
+	if err != nil {
+		return false, fmt.Sprintf("打开文件失败: %v", err), ""
+	}
+	defer file.Close()
+	
+	// 上传到Telegram
+	finalPath := utils.UpDocument(utils.TgFileData(filename, file))
+	if finalPath == "" {
+		return false, "上传到Telegram失败", ""
+	}
+	
+	imgPath = conf.FileRoute + finalPath
+	baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
+	if baseUrl == "" {
+		baseUrl = "http://localhost:8088"
+	}
+	imgUrl = baseUrl + imgPath
+	
+	return true, imgPath, imgUrl
 }
 
 // testUploadToTGState 测试上传到tgState服务

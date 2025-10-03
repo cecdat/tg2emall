@@ -17,7 +17,7 @@ class ServiceController:
     def __init__(self, compose_dir: str = "/app/data"):
         self.service_urls = {
             'scraper': 'http://tg2em-scrape:5001',
-            'tgstate': 'http://tg2em-tgstate:8088',
+            'tgstate': 'http://tgstate:8088',
             'mysql': 'http://tg2em-mysql:3306',  # 外部服务，通过端口检查
             'nginx-proxy-manager': 'http://nginx-proxy-manager:80'  # 外部服务，通过端口检查
         }
