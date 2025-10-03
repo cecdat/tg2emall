@@ -84,7 +84,9 @@ check_config() {
         log_info "前端端口配置为: ${frontend_port}"
     else
         frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
-
+        log_info "前端端口已配置为: ${frontend_port}"
+    fi
+    
     log_success "配置文件检查完成"
 }
 
@@ -129,7 +131,7 @@ check_database_structure() {
     sleep 30
     
     # 检查数据库表是否存在
-    local table_check=$(docker exec tg2em-mysql mysql -u tg2em -p1989hewei tg2em -e "SHOW TABLES LIKE 'messages';" 2>/dev/null | grep -c "messages")
+    local table_check=$(docker exec tg2em-mysql mysql -u tg2emall -ptg2emall tg2em -e "SHOW TABLES LIKE 'messages';" 2>/dev/null | grep -c "messages")
     
     if [ "$table_check" -eq 0 ]; then
         log_warning "检测到数据库表不存在，需要初始化数据库结构"
@@ -199,7 +201,7 @@ init_database_structure() {
     log_info "执行数据库初始化脚本..."
     
     # 执行初始化脚本
-    if docker exec tg2em-mysql mysql -u root -p1989hewei -e "source /docker-entrypoint-initdb.d/init.sql" 2>/dev/null; then
+    if docker exec tg2em-mysql mysql -u root -ptg2emall -e "source /docker-entrypoint-initdb.d/init.sql" 2>/dev/null; then
         log_success "数据库结构初始化完成"
     else
         log_error "数据库结构初始化失败"
@@ -207,7 +209,7 @@ init_database_structure() {
     fi
     
     # 验证表是否创建成功
-    local table_count=$(docker exec tg2em-mysql mysql -u tg2em -p1989hewei tg2em -e "SHOW TABLES;" 2>/dev/null | grep -c "Tables_in_tg2em")
+    local table_count=$(docker exec tg2em-mysql mysql -u tg2emall -ptg2emall tg2em -e "SHOW TABLES;" 2>/dev null | grep -c "Tables_in_tg2em")
     
     if [ "$table_count" -ge 4 ]; then
         log_success "数据库表创建成功，共 $table_count 个表"
