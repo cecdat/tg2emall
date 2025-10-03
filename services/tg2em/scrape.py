@@ -179,15 +179,18 @@ def format_size(size_bytes):
 async def compress_image(input_path, output_path):
     """压缩图片，确保文件大小变小"""
     try:
-        image_config = config["image_compression"]
+        # 从数据库动态获取图片压缩配置
+        compression_quality = await get_tgstate_config('image_compression_quality') or '50'
+        compression_format = await get_tgstate_config('image_compression_format') or 'webp'
+        
         original_size_bytes = os.path.getsize(input_path)
         img = Image.open(input_path)
 
         max_size = (1024, 1024)
-        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        img.thumbnail(max_size, Image.Resampling.LANCAZOS)
 
-        quality = image_config.get("quality", 50)
-        format_type = image_config["format"].lower()
+        quality = int(compression_quality)
+        format_type = compression_format.lower()
         
         if format_type == "webp":
             img.save(output_path, "WEBP", quality=quality, lossless=False)
@@ -219,13 +222,29 @@ async def compress_image(input_path, output_path):
     except Exception as e:
         logging.error(f"压缩图片时出错: {e}")
 
+async def get_tgstate_config(config_key):
+    """从数据库获取配置"""
+    try:
+        async with MySQLConnectionManager() as conn:
+            cursor = await conn.cursor(aiomysql.DictCursor)
+            await cursor.execute("SELECT config_value FROM system_config WHERE config_key = %s", (config_key,))
+            result = await cursor.fetchone()
+            return result['config_value'] if result else None
+    except Exception as e:
+        logging.error(f"获取配置失败 {config_key}: {e}")
+        return None
+
 async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
         try:
             api_url = config["image_upload"]["api_url"]
             base_url = config["image_upload"]["base_url"]
-            cookies = {"p": "google"}
+            
+            # 从数据库动态获取tgstate_pass配置
+            tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
+            cookies = {"p": tgstate_pass} if tgstate_pass != "none" else {}
+            
             async with aiohttp.ClientSession(cookies=cookies) as session:
                 with open(image_path, "rb") as file:
                     form_data = aiohttp.FormData()
@@ -254,7 +273,9 @@ async def download_image_from_message(message, date_str):
                 logging.error(f"文件不存在: {local_path}")
                 return None
             
-            compressed_path = local_path.replace(".jpg", f"_compressed.{config['image_compression']['format']}")
+            # 动态获取压缩格式
+            compression_format = await get_tgstate_config('image_compression_format') or 'webp'
+            compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
             await compress_image(local_path, compressed_path)
             
             # 尝试上传图片

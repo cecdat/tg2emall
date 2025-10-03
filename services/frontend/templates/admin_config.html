@@ -280,9 +280,15 @@
                                                 {% elif config.config_key == 'scrape_limit' %}
                                                     每次采集的消息数量限制
                                                     <br><strong>示例:</strong> 10
-                                                {% elif config.config_key == 'scrape_interval' %}
+                                                    {% elif config.config_key == 'scrape_interval' %}
                                                     采集间隔时间，单位秒
                                                     <br><strong>示例:</strong> 300（5分钟）
+                                                {% elif config.config_key == 'image_compression_quality' %}
+                                                    图片压缩质量，数值越高质量越好但文件越大
+                                                    <br><strong>示例:</strong> 50（建议范围：30-80）
+                                                {% elif config.config_key == 'image_compression_format' %}
+                                                    图片压缩格式，webp体积更小，jpeg兼容性更好
+                                                    <br><strong>示例:</strong> webp 或 jpeg
                                                 {% else %}
                                                     {{ config.description }}
                                                 {% endif %}
@@ -322,6 +328,17 @@
                                                         <i class="fas fa-info-circle me-1"></i>
                                                         JSON格式，支持频道URL和频道ID两种格式，每个频道可单独设置采集数量
                                                     </small>
+                                                {% elif config.config_key == 'image_compression_format' %}
+                                                    <select class="form-select" 
+                                                            id="{{ config.config_key }}"
+                                                            name="{{ config.config_key }}">
+                                                        <option value="webp" {% if config.config_value == 'webp' %}selected{% endif %}>WebP（推荐，体积更小）</option>
+                                                        <option value="jpeg" {% if config.config_value == 'jpeg' %}selected{% endif %}>JPEG（兼容性好）</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        WebP格式体积更小但兼容性较差，JPEG兼容性更好
+                                                    </small>
                                                 {% else %}
                                                     <input type="text" 
                                                            class="form-control" 
@@ -335,6 +352,7 @@
                                                             数字类型
                                                             {% if config.config_key == 'scrape_limit' %}（建议范围：5-50）{% endif %}
                                                             {% if config.config_key == 'scrape_interval' %}（建议范围：60-3600秒）{% endif %}
+                                                            {% if config.config_key == 'image_compression_quality' %}（建议范围：30-80）{% endif %}
                                                         </small>
                                                     {% endif %}
                                                 {% endif %}

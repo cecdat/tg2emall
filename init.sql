@@ -42,7 +42,11 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('telegram_session_name', 'tg2em_scraper', 'string', 'Telegram 会话文件名', 'telegram'),
 ('scrape_channels', '[]', 'json', '要采集的目标频道列表（支持URL和频道ID）', 'telegram'),
 ('scrape_limit', '10', 'number', '每次采集的消息数量', 'telegram'),
-('scrape_interval', '300', 'number', '采集间隔时间（秒）', 'telegram');
+('scrape_interval', '300', 'number', '采集间隔时间（秒）', 'telegram'),
+
+-- 图片配置
+('image_compression_quality', '50', 'number', '图片压缩质量（1-95）', 'image'),
+('image_compression_format', 'webp', 'string', '图片压缩格式（webp或jpeg）', 'image');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表
