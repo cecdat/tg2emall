@@ -100,7 +100,7 @@ services:
       URL: "${TGSTATE_URL:-http://localhost:8088}"
       PORT: "8088"
     volumes:
-      - ./data/uploads:/app/upload
+      - ./data/uploads:/app/uploads
     networks:
       - tg2em-network
 

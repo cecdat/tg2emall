@@ -41,9 +41,20 @@ class ScraperManager:
         """获取服务状态"""
         if self.process and self.process.poll() is None:
             self.status = "running"
+            self.pid = self.process.pid
         else:
             self.status = "stopped"
-            self.pid = None
+            if self.process:
+                # 进程已结束但状态未更新
+                try:
+                    poll_result = self.process.poll()
+                    if poll_result is not None:
+                        # 进程已退出
+                        self.process = None
+                        self.pid = None
+                        self.start_time = None
+                except:
+                    pass
         
         return {
             'status': self.status,
