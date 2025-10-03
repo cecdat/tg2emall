@@ -79,6 +79,7 @@ func (api *ManagementAPI) StartManagementAPI() {
 	mux.HandleFunc("/api/management/stop", api.handleStop)
 	mux.HandleFunc("/api/management/restart", api.handleRestart)
 	mux.HandleFunc("/api/management/config", api.handleConfig)
+	mux.HandleFunc("/api/management/info", api.handleInfo)
 	mux.HandleFunc("/api/test/upload", api.handleTestUpload)
 	
 	// 提供实际的图片上传API
@@ -121,6 +122,28 @@ func (api *ManagementAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    status,
+	})
+}
+
+// handleInfo 处理服务信息查询
+func (api *ManagementAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	
+	info := map[string]interface{}{
+		"mode":             api.config.Mode,
+		"target":           api.config.Target,
+		"token_configured": len(api.config.Token) > 0,
+		"pass":             api.config.Pass,
+		"url":              api.config.URL,
+		"port":             8088,
+		"pid":              api.pid,
+		"status":           api.status,
+	}
+	
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data":    info,
 	})
 }
 
@@ -412,6 +435,51 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             animation: pulse 1.5s infinite;
         }
         
+        .config-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .config-section h4 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.2rem;
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+        
+        .config-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #007bff;
+        }
+        
+        .config-label {
+            font-weight: 600;
+            color: #495057;
+            margin-right: 10px;
+            min-width: 80px;
+        }
+        
+        .config-value {
+            color: #6c757d;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #e9ecef;
+        }
+        
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -425,10 +493,37 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
     </style>
 </head>
 <body>
-    <div class="container">
-    <h1>🖼️ tgState 图片上传服务</h1>
+        <div class="container">
+        <h1>🖼️ tgState 图片上传服务</h1>
         
-    <div id="status" class="status">加载中...</div>
+        <div id="status" class="status">加载中...</div>
+        
+        <!-- 服务配置信息 -->
+        <div id="config-info" class="config-section" style="display:none;">
+            <h4>🔧 服务配置</h4>
+            <div class="config-grid">
+                <div class="config-item">
+                    <span class="config-label">运行模式:</span>
+                    <span id="config-mode" class="config-value">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">频道目标:</span>
+                    <span id="config-target" class="config-value">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">Token配置:</span>
+                    <span id="config-token" class="config-value">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">访问密码:</span>
+                    <span id="config-pass" class="config-value">-</span>
+                </div>
+                <div class="config-item">
+                    <span class="config-label">基础URL:</span>
+                    <span id="config-url" class="config-value">-</span>
+                </div>
+            </div>
+        </div>
         
         <div class="controls">
             <button class="start-btn" onclick="startService()">启动服务</button>
@@ -460,6 +555,44 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
                         statusDiv.innerHTML = "状态: " + status + " | PID: " + data.data.pid + " | 启动时间: " + data.data.start_time;
                     }
                 });
+        }
+        
+        function getConfigInfo() {
+            fetch('/api/management/info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateConfigDisplay(data.data);
+                    }
+                });
+        }
+        
+        function updateConfigDisplay(config) {
+            // 显示/隐藏配置区域
+            const configSection = document.getElementById('config-info');
+            configSection.style.display = 'block';
+            
+            // 更新运行模式
+            const modeText = config.mode === 'p' ? '图片模式 (支持API上传)' : 
+                            config.mode === 'm' ? '管理模式 (关闭网页上传)' : 
+                            '未知模式';
+            document.getElementById('config-mode').textContent = modeText;
+            
+            // 更新频道目标
+            document.getElementById('config-target').textContent = 
+                config.target ? config.target : '未配置';
+            
+            // 更新Token配置（只显示是否配置，不显示内容）
+            document.getElementById('config-token').textContent = 
+                config.token_configured ? '已配置' : '未配置';
+            
+            // 更新访问密码
+            document.getElementById('config-pass').textContent = 
+                config.pass && config.pass !== 'none' ? '已设置' : '未设置';
+            
+            // 更新基础URL
+            document.getElementById('config-url').textContent = 
+                config.url ? config.url : '未配置';
         }
         
         function startService() {
@@ -590,8 +723,9 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             }, 3000);
         }
         
-        // 页面加载时获取状态，不自动刷新
+        // 页面加载时获取状态和配置信息
         getStatus();
+        getConfigInfo();
     </script>
 </body>
 </html>`
