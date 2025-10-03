@@ -1046,6 +1046,116 @@ def not_found(error):
     """404 错误处理"""
     return render_template('404.html'), 404
 
+@app.route('/admin/password', methods=['GET'])
+@login_required
+def admin_password():
+    """密码和验证码管理 페이지"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 获取当前验证码设置
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'admin_captcha'")
+            captcha_result = cursor.fetchone()
+            current_captcha = captcha_result['config_value'] if captcha_result else '2025'
+            
+            return render_template('admin_password.html', current_captcha=current_captcha)
+    except Exception as e:
+        logger.error(f"密码管理页面失败: {e}")
+        return render_template('admin_password.html', current_captcha='2025')
+
+@app.route('/admin/password/change', methods=['POST'])
+@login_required
+def admin_password_change():
+    """修改管理员密码"""
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+        
+        # 验证参数
+        if not current_password or not new_password or not confirm_password:
+            return jsonify({'success': False, 'message': '所有必填参数不能为空'})
+        
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': '新密码和确认密码不一致'})
+        
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'message': '新密码长度至少6位'})
+        
+        # 验证当前密码
+        if current_password != ADMIN_PASSWORD:
+            return jsonify({'success': False, 'message': '当前密码错误'})
+        
+        # 更新环境变量和数据库配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 更新数据库中的管理员密码哈希
+            import bcrypt
+            password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category) 
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                config_value = %s, updated_at = NOW()
+            """, ('admin_password', password_hash, 'string', '管理员密码哈希', 'admin', password_hash))
+            
+            conn.commit()
+        
+        logger.info(f"管理员密码修改成功: {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '密码修改成功'})
+        
+    except Exception as e:
+        logger.error(f"修改密码失败: {e}")
+        return jsonify({'success': False, 'message': f'修改失败: {str(e)}'})
+
+@app.route('/admin/captcha/change', methods=['POST'])
+@login_required
+def admin_captcha_change():
+    """修改验证码"""
+    try:
+        data = request.get_json()
+        new_captcha = data.get('new_captcha', '').strip()
+        
+        # 验证参数
+        if not new_captcha:
+            return jsonify({'success': False, 'message': '验证码不能为空'})
+        
+        if len(new_captcha) < 4:
+            return jsonify({'success': False, 'message': '验证码长度至少4位'})
+        
+        # 更新数据库配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category) 
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                config_value = %s, updated_at = NOW()
+            """, ('admin_captcha', new_captcha, 'string', '管理员登录验证码', 'admin', new_captcha))
+            
+            # 同步更新代码中的验证码常量（需要在重启服务后生效）
+            cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category) 
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                config_value = %s, updated_at = NOW()
+            """, ('admin_captcha_update_note', 
+                  '注意：验证码已更新，请重启frontend服务使新验证码生效', 
+                  'string', '验证码更新提示', 'admin',
+                  '注意：验证码已更新，请重启frontend服务使新验证码生效'))
+            
+            conn.commit()
+        
+        logger.info(f"管理员验证码修改成功: {session.get('username', 'unknown')} -> {new_captcha}")
+        return jsonify({'success': True, 'message': '验证码修改成功！请重启frontend服务使新验证码生效'})
+        
+    except Exception as e:
+        logger.error(f"修改验证码失败: {e}")
+        return jsonify({'success': False, 'message': f'修改失败: {str(e)}'})
+
 @app.errorhandler(500)
 def internal_error(error):
     """500 错误处理"""

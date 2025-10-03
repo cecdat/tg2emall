@@ -115,6 +115,12 @@
                             数据统计
                         </a>
                         
+                        <h6 class="text-light mt-4 mb-2">安全设置</h6>
+                        <a class="nav-link" href="{{ url_for('admin_password') }}">
+                            <i class="fas fa-key me-2"></i>
+                            密码管理
+                        </a>
+                        
                         <h6 class="text-light mt-4 mb-2">其他操作</h6>
                         <a class="nav-link" href="{{ url_for('index') }}">
                             <i class="fas fa-home me-2"></i>
@@ -240,7 +246,44 @@
                                     <div class="row">
                                         <div class="col-md-4">
                                             <label class="form-label fw-bold">{{ config.config_key }}</label>
-                                            <p class="small text-muted mb-2">{{ config.description }}</p>
+                                            <p class="small text-muted mb-2">
+                                                {% if config.config_key == 'tgstate_token' %}
+                                                    tgState图床Bot的Token，用于上传图片到Telegram频道
+                                                    <br><strong>示例:</strong> 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz1234567890
+                                                {% elif config.config_key == 'tgstate_target' %}
+                                                    目标频道用户名，图片将上传到此频道
+                                                    <br><strong>示例:</strong> @your_channel_name
+                                                {% elif config.config_key == 'tgstate_pass' %}
+                                                    访问密码，用于保护图床服务
+                                                    <br><strong>示例:</strong> mypassword123 或 none（无密码）
+                                                {% elif config.config_key == 'tgstate_mode' %}
+                                                    运行模式，p=API模式，m=文件服务模式
+                                                    <br><strong>示例:</strong> p
+                                                {% elif config.config_key == 'tgstate_url' %}
+                                                    tgState服务的基础URL地址
+                                                    <br><strong>示例:</strong> http://your-server:8088
+                                                {% elif config.config_key == 'telegram_api_id' %}
+                                                    Telegram API ID，从 my.telegram.org 获取
+                                                    <br><strong>示例:</strong> 12345678
+                                                {% elif config.config_key == 'telegram_api_hash' %}
+                                                    Telegram API Hash，从 my.telegram.org 获取
+                                                    <br><strong>示例:</strong> abcdef1234567890abcdef1234567890
+                                                {% elif config.config_key == 'telegram_session_name' %}
+                                                    Telegram会话文件名，用于保持登录状态
+                                                    <br><strong>示例:</strong> tg2em_scraper.session
+                                                {% elif config.config_key == 'scrape_channels' %}
+                                                    要采集的频道列表，JSON格式数组
+                                                    <br><strong>示例:</strong> ["https://t.me/channel1", "https://t.me/channel2"]
+                                                {% elif config.config_key == 'scrape_limit' %}
+                                                    每次采集的消息数量限制
+                                                    <br><strong>示例:</strong> 10
+                                                {% elif config.config_key == 'scrape_interval' %}
+                                                    采集间隔时间，单位秒
+                                                    <br><strong>示例:</strong> 300（5分钟）
+                                                {% else %}
+                                                    {{ config.description }}
+                                                {% endif %}
+                                            </p>
                                             {% if config.config_type == 'boolean' %}
                                                 {% set checked = 'checked' if config.config_value.lower() == 'true' else '' %}
                                                 <div class="form-check form-switch">
@@ -261,7 +304,7 @@
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="请输入 {{ config.config_key }}">
+                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% endif %}">
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-eye me-1"></i>
                                                         点击右侧按钮查看/隐藏敏感信息
@@ -271,17 +314,25 @@
                                                               id="{{ config.config_key }}"
                                                               name="{{ config.config_key }}"
                                                               rows="3"
-                                                              placeholder="JSON 格式，例如：['@channel1', '@channel2']">{{ config.config_value }}</textarea>
-                                                    <small class="form-text text-muted">JSON 格式的频道列表</small>
+                                                              placeholder="例如: [&quot;https://t.me/channel1&quot;, &quot;https://t.me/channel2&quot;]">{{ config.config_value }}</textarea>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        JSON格式的频道列表，支持多个频道
+                                                    </small>
                                                 {% else %}
                                                     <input type="text" 
                                                            class="form-control" 
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="请输入 {{ config.config_key }}">
+                                                           placeholder="{% if config.config_key == 'tgstate_target' %}例如: @your_channel{% elif config.config_key == 'tgstate_pass' %}例如: mypassword{% elif config.config_key == 'tgstate_mode' %}例如: p 或 m{% elif config.config_key == 'tgstate_url' %}例如: http://localhost:8088{% elif config.config_key == 'telegram_session_name' %}例如: tg2em_scraper{% elif config.config_key == 'scrape_limit' %}例如: 10{% elif config.config_key == 'scrape_interval' %}例如: 300{% endif %}">
                                                     {% if config.config_type == 'number' %}
-                                                        <small class="form-text text-muted">数字类型</small>
+                                                        <small class="form-text text-muted">
+                                                            <i class="fas fa-tag me-1"></i>
+                                                            数字类型
+                                                            {% if config.config_key == 'scrape_limit' %}（建议范围：5-50）{% endif %}
+                                                            {% if config.config_key == 'scrape_interval' %}（建议范围：60-3600秒）{% endif %}
+                                                        </small>
                                                     {% endif %}
                                                 {% endif %}
                                             {% endif %}
