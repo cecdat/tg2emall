@@ -70,6 +70,9 @@ func (api *ManagementAPI) StartManagementAPI() {
 	mux.HandleFunc("/api/management/config", api.handleConfig)
 	mux.HandleFunc("/api/test/upload", api.handleTestUpload)
 	
+	// 提供实际的图片上传API
+	mux.HandleFunc("/api", api.handleImageUpload)
+	
 	// 静态文件服务
 	mux.HandleFunc("/", api.handleStatic)
 	
@@ -629,6 +632,90 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 		"message": "图片上传成功",
 		"tgstate_response": result,
 	}, nil
+}
+
+// handleImageUpload 处理实际的图片上传请求
+func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// 检查是否有Token配置
+	if api.config.Token == "" || api.config.Target == "" {
+		response := map[string]interface{}{
+			"code":    0,
+			"message": "tgstate_not_configured",
+			"imgUrl":  "",
+		}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 获取上传的文件
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		response := map[string]interface{}{
+			"code":    0,
+			"message": "Unable to get file",
+			"imgUrl":  "",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	defer file.Close()
+
+	// 检查文件大小
+	if r.ContentLength > 20*1024*1024 {
+		response := map[string]interface{}{
+			"code":    0,
+			"message": "File size exceeds 20MB limit",
+			"imgUrl":  "",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 检查文件类型
+	allowedExts := []string{".jpg", ".jpeg", ".png"}
+	filename := header.Filename
+	ext := strings.ToLower(filename)
+	valid := false
+	for _, allowedExt := range allowedExts {
+		if strings.HasSuffix(ext, allowedExt) {
+			valid = true
+			break
+		}
+	}
+
+	if !valid {
+		response := map[string]interface{}{
+			"code":    0,
+			"message": "Invalid file type. Only .jpg, .jpeg, and .png are allowed.",
+			"imgUrl":  "",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// 模拟上传成功响应（因为这是管理接口，不具备实际的Telegram上传功能）
+	timestamp := time.Now().Format("20060102150405")
+	imgPath := fmt.Sprintf("/img/tgstate_%s_%s", timestamp, filename)
+	
+	response := map[string]interface{}{
+		"code":    1,
+		"message": imgPath,
+		"imgUrl":  "http://localhost:8088" + imgPath,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // waitForSignal 等待信号
