@@ -493,8 +493,8 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 // testUploadToTGState 测试上传到tgState服务
 func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[string]interface{}, error) {
 	// 检查tgState服务状态
-	client := &http.Client{Timeout: 5 * time.Second}
-	statusResp, err := client.Get("http://localhost:8088/api/management/status")
+	statusClient := &http.Client{Timeout: 5 * time.Second}
+	statusResp, err := statusClient.Get("http://localhost:8088/api/management/status")
 	if err != nil || statusResp.StatusCode != http.StatusOK {
 		return map[string]interface{}{
 			"success": false,
