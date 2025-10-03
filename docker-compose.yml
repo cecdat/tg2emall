@@ -125,6 +125,7 @@ services:
     volumes:
       - ./data/uploads:/app/upload
       - ./data/telegram-sessions:/app/sessions
+      - ./data/logs:/app/logs
     depends_on:
       mysql:
         condition: service_healthy

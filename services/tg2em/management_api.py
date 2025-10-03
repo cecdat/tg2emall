@@ -32,8 +32,8 @@ class ScraperManager:
             'api_hash': os.environ.get('API_HASH', ''),
             'mysql_host': os.environ.get('MYSQL_HOST', 'mysql'),
             'mysql_database': os.environ.get('MYSQL_DATABASE', 'tg2em'),
-            'mysql_user': os.environ.get('MYSQL_USER', 'tg2em'),
-            'mysql_password': os.environ.get('MYSQL_PASSWORD', 'tg2em2025'),
+            'mysql_user': os.environ.get('MYSQL_USER', 'tg2emall'),
+            'mysql_password': os.environ.get('MYSQL_PASSWORD', 'tg2emall'),
             'tgstate_url': os.environ.get('TGSTATE_URL', 'http://tgstate:8088')
         }
     

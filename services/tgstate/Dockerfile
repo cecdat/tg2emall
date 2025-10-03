@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # 编译程序
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tgState .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tgstate .
 
 # 第二阶段：运行环境
 FROM alpine:latest
@@ -30,7 +30,7 @@ RUN adduser -D -s /bin/sh tgstate
 WORKDIR /app
 
 # 从构建阶段复制二进制文件
-COPY --from=builder /app/tgState .
+COPY --from=builder /app/tgstate .
 
 # 复制模板文件
 COPY --from=builder /app/assets/templates ./assets/templates
