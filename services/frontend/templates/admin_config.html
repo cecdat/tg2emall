@@ -268,12 +268,15 @@
                                                 {% elif config.config_key == 'telegram_api_hash' %}
                                                     Telegram API Hash，从 my.telegram.org 获取
                                                     <br><strong>示例:</strong> abcdef1234567890abcdef1234567890
+                                                {% elif config.config_key == 'telegram_phone' %}
+                                                    Telegram绑定手机号码，带国家代码，用于接收验证码
+                                                    <br><strong>示例:</strong> +8613800138000 或 +12282078999
                                                 {% elif config.config_key == 'telegram_session_name' %}
                                                     Telegram会话文件名，用于保持登录状态
                                                     <br><strong>示例:</strong> tg2em_scraper.session
                                                 {% elif config.config_key == 'scrape_channels' %}
-                                                    要采集的频道列表，JSON格式数组
-                                                    <br><strong>示例:</strong> ["https://t.me/channel1", "https://t.me/channel2"]
+                                                    要采集的频道列表，支持URL和频道ID两种格式
+                                                    <br><strong>示例:</strong> [{"url": "https://t.me/channel1", "limit": 10}, {"id": -1001234567890, "limit": 15}]
                                                 {% elif config.config_key == 'scrape_limit' %}
                                                     每次采集的消息数量限制
                                                     <br><strong>示例:</strong> 10
@@ -298,13 +301,13 @@
                                                     </label>
                                                 </div>
                                             {% else %}
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash'] %}
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
                                                     <input type="password" 
                                                            class="form-control" 
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% endif %}">
+                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% endif %}">
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-eye me-1"></i>
                                                         点击右侧按钮查看/隐藏敏感信息
@@ -314,10 +317,10 @@
                                                               id="{{ config.config_key }}"
                                                               name="{{ config.config_key }}"
                                                               rows="3"
-                                                              placeholder="例如: [&quot;https://t.me/channel1&quot;, &quot;https://t.me/channel2&quot;]">{{ config.config_value }}</textarea>
+                                                              placeholder="例如: [{&quot;url&quot;: &quot;https://t.me/channel1&quot;, &quot;limit&quot;: 10}, {&quot;id&quot;: -1001234567890, &quot;limit&quot;: 15}]">{{ config.config_value }}</textarea>
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-info-circle me-1"></i>
-                                                        JSON格式的频道列表，支持多个频道
+                                                        JSON格式，支持频道URL和频道ID两种格式，每个频道可单独设置采集数量
                                                     </small>
                                                 {% else %}
                                                     <input type="text" 
@@ -351,7 +354,7 @@
                                                     </small>
                                                     {% endif %}
                                                 </div>
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash'] %}
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
                                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePassword('{{ config.config_key }}')">
                                                     <i class="fas fa-eye"></i>
                                                 </button>

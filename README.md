@@ -79,9 +79,10 @@ docker-compose --profile services up -d tgstate tg2em-scrape
 
 ```
 telegram_api_id:      # 从 https://my.telegram.org 获取
-telegram_api_hash:    # 从 https://my.telegram.org 获取  
+telegram_api_hash:    # 从 https://my.telegram.org 获取
+telegram_phone:       # Telegram绑定手机号码（带国家代码，如：+8613800138000）
 telegram_session_name: tg2em_scraper (默认)
-scrape_channels:      [{"url": "https://t.me/channel", "limit": 10}]
+scrape_channels:      [{"url": "https://t.me/channel", "limit": 10}, {"id": -1001234567890, "limit": 15}]
 scrape_limit:         10 (每次采集数量)
 scrape_interval:      300 (采集间隔秒数)
 ```

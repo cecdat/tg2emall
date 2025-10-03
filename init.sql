@@ -38,8 +38,9 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 -- Telegram 采集配置
 ('telegram_api_id', '', 'string', 'Telegram API ID（从 https://my.telegram.org 获取）', 'telegram'),
 ('telegram_api_hash', '', 'string', 'Telegram API Hash（从 https://my.telegram.org 获取）', 'telegram'),
+('telegram_phone', '', 'string', 'Telegram绑定手机号码（带国家代码）', 'telegram'),
 ('telegram_session_name', 'tg2em_scraper', 'string', 'Telegram 会话文件名', 'telegram'),
-('scrape_channels', '[]', 'json', '要采集的目标频道列表（JSON格式）', 'telegram'),
+('scrape_channels', '[]', 'json', '要采集的目标频道列表（支持URL和频道ID）', 'telegram'),
 ('scrape_limit', '10', 'number', '每次采集的消息数量', 'telegram'),
 ('scrape_interval', '300', 'number', '采集间隔时间（秒）', 'telegram');
 
