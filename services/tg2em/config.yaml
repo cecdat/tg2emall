@@ -61,14 +61,13 @@ category_mapping:
 mysql:
   host: "mysql"
   port: 3306
-  user: "tg2em"
-  password: "tg2em2025"
+  user: "tg2emall"
+  password: "tg2emall"
   database: "tg2em"
 
-# 图片上传接口配置
+# 图片上传接口配置（会从数据库动态获取端口）
 image_upload:
-  api_url: "http://tgstate:8088/api"
-  base_url: "http://tgstate:8088"
+  base_url: "http://tgstate"
 
 # 图片相关配置
 image:

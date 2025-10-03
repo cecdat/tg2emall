@@ -75,6 +75,16 @@ check_config() {
         log_warning "请编辑 .env 文件配置必要的参数"
     fi
     
+    # 询问前端端口配置
+    if ! grep -q "FRONTEND_PORT" .env; then
+        echo ""
+        read -p "请输入前端服务访问端口 (默认: 5000): " frontend_port
+        frontend_port=${frontend_port:-5000}
+        echo "FRONTEND_PORT=${frontend_port}" >> .env
+        log_info "前端端口配置为: ${frontend_port}"
+    else
+        frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
+
     log_success "配置文件检查完成"
 }
 
@@ -213,9 +223,15 @@ show_status() {
     
     echo ""
     log_info "访问地址："
+    # 获取前端端口
+    local frontend_port=5000
+    if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
+        frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
+    fi
+    
     echo "  - Nginx Proxy Manager: http://localhost:81"
-    echo "  - 前端展示系统: http://localhost:5000"
-    echo "  - 后台管理系统: http://localhost:5000/dm"
+    echo "  - 前端展示系统: http://localhost:${frontend_port}"
+    echo "  - 后台管理系统: http://localhost:${frontend_port}/admin"
     echo "  - 图片上传服务: http://localhost:8088"
     echo "  - 采集服务管理: http://localhost:5001"
     
@@ -237,8 +253,14 @@ first_time_setup() {
     echo "   - 配置域名和 SSL 证书"
     echo ""
     echo "2. 配置 Telegram 验证:"
-    echo "   - 访问管理后台: http://localhost:5000/dm"
-    echo "   - 用户名: admin, 密码: admin, 验证码: 1989"
+    # 获取前端端口
+    local frontend_port=5000
+    if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
+        frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
+    fi
+    
+    echo "   - 访问管理后台: http://localhost:${frontend_port}/admin"
+    echo "   - 用户名: admin, 密码: admin, 验证码: 2025"
     echo "   - 在配置管理页面配置 Telegram API 参数"
     echo "   - 在服务管理页面启动采集服务"
     echo ""

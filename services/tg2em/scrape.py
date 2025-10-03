@@ -238,8 +238,10 @@ async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
         try:
-            api_url = config["image_upload"]["api_url"]
+            # 从数据库动态获取tgState端口配置
+            tgstate_port = await get_tgstate_config('tgstate_port') or '8088'
             base_url = config["image_upload"]["base_url"]
+            api_url = f"{base_url}:{tgstate_port}/api"
             
             # 从数据库动态获取tgstate_pass配置
             tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
@@ -252,7 +254,7 @@ async def upload_image(image_path):
                     async with session.post(api_url, data=form_data) as response:
                         result = await response.json()
                         if result.get("code") == 1:
-                            image_url = f"{base_url}{result['url']}"
+                            image_url = f"{base_url}:{tgstate_port}{result['url']}"
                             os.remove(image_path)
                             logging.info(f"图片上传成功并删除本地文件: {image_url}")
                             return image_url

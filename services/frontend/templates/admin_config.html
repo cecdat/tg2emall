@@ -259,9 +259,9 @@
                                                 {% elif config.config_key == 'tgstate_mode' %}
                                                     运行模式，p=API模式，m=文件服务模式
                                                     <br><strong>示例:</strong> p
-                                                {% elif config.config_key == 'tgstate_url' %}
-                                                    tgState服务的基础URL地址
-                                                    <br><strong>示例:</strong> http://your-server:8088
+                                                {% elif config.config_key == 'tgstate_port' %}
+                                                    tgState服务的运行端口
+                                                    <br><strong>示例:</strong> 8088
                                                 {% elif config.config_key == 'telegram_api_id' %}
                                                     Telegram API ID，从 my.telegram.org 获取
                                                     <br><strong>示例:</strong> 12345678
@@ -275,8 +275,8 @@
                                                     Telegram会话文件名，用于保持登录状态
                                                     <br><strong>示例:</strong> tg2em_scraper.session
                                                 {% elif config.config_key == 'scrape_channels' %}
-                                                    要采集的频道列表，支持URL和频道ID两种格式
-                                                    <br><strong>示例:</strong> [{"url": "https://t.me/channel1", "limit": 10}, {"id": -1001234567890, "limit": 15}]
+                                                    要采集的频道列表，每行输入一个频道
+                                                    <br><strong>示例:</strong> https://t.me/channel1<br>-1001234567890<br>@channel_name
                                                 {% elif config.config_key == 'scrape_limit' %}
                                                     每次采集的消息数量限制
                                                     <br><strong>示例:</strong> 10
@@ -307,26 +307,29 @@
                                                     </label>
                                                 </div>
                                             {% else %}
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
-                                                    <input type="password" 
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_pass'] %}
+                                                    <input type="text" 
                                                            class="form-control" 
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% endif %}">
+                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% elif config.config_key == 'tgstate_pass' %}例如: mypassword 或 none{% endif %}">
+
+                                                    {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
                                                     <small class="form-text text-muted">
-                                                        <i class="fas fa-eye me-1"></i>
-                                                        点击右侧按钮查看/隐藏敏感信息
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        敏感信息，请注意保护
                                                     </small>
+                                                    {% endif %}
                                                 {% elif config.config_key == 'scrape_channels' %}
                                                     <textarea class="form-control" 
                                                               id="{{ config.config_key }}"
                                                               name="{{ config.config_key }}"
                                                               rows="3"
-                                                              placeholder="例如: [{&quot;url&quot;: &quot;https://t.me/channel1&quot;, &quot;limit&quot;: 10}, {&quot;id&quot;: -1001234567890, &quot;limit&quot;: 15}]">{{ config.config_value }}</textarea>
+                                                              placeholder="https://t.me/channel1&#10;-1001234567890&#10;@channel_name">{{ config.config_value }}</textarea>
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-info-circle me-1"></i>
-                                                        JSON格式，支持频道URL和频道ID两种格式，每个频道可单独设置采集数量
+                                                        每行输入一个频道，支持URL格式、频道ID或@用户名格式
                                                     </small>
                                                 {% elif config.config_key == 'image_compression_format' %}
                                                     <select class="form-select" 
@@ -372,11 +375,6 @@
                                                     </small>
                                                     {% endif %}
                                                 </div>
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="togglePassword('{{ config.config_key }}')">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
