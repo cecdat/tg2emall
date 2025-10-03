@@ -425,7 +425,7 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 	}
 
 	// 获取上传的文件
-	file, header, err := r.Form.GetReader("image")
+	file, header, err := r.FormFile("image")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
