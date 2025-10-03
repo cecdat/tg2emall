@@ -47,9 +47,9 @@ type ManagementAPI struct {
 
 // NewManagementAPI 创建管理API
 func NewManagementAPI() *ManagementAPI {
-	return &ManagementAPI{
-		status: "stopped",
-		pid:    0,
+	api := &ManagementAPI{
+		status: "running",
+		pid:    os.Getpid(),
 		config: ServiceConfig{
 			Token:  os.Getenv("TOKEN"),
 			Target: os.Getenv("TARGET"),
@@ -58,6 +58,15 @@ func NewManagementAPI() *ManagementAPI {
 			URL:    os.Getenv("URL"),
 		},
 	}
+	
+	// 同步管理API的配置到全局配置
+	conf.BotToken = api.config.Token
+	conf.ChannelName = api.config.Target
+	conf.Pass = api.config.Pass
+	conf.Mode = api.config.Mode
+	conf.BaseUrl = api.config.URL
+	
+	return api
 }
 
 // StartManagementAPI 启动管理API
@@ -266,34 +275,177 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
     <title>tgState 管理界面</title>
     <meta charset="utf-8">
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .running { background-color: #d4edda; color: #155724; }
-        .stopped { background-color: #f8d7da; color: #721c24; }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-        .upload-section { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-        input[type="file"] { margin: 10px 0; }
-        .result { margin-top: 10px; padding: 10px; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .info { background-color: #d1ecf1; color: #0c5460; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333; 
+            text-align: center; 
+            margin-bottom: 30px; 
+            font-size: 2.5rem; 
+            background: linear-gradient(45deg, #667eea, #764ba2); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            background-clip: text;
+        }
+        
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 10px;
+            font-weight: 500; 
+            text-align: center;
+            font-size: 1.1rem;
+            border: 2px solid;
+        }
+        
+        .running { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            color: #155724; 
+            border-color: #155724;
+        }
+        
+        .stopped { 
+            background: linear-gradient(135deg, #f8d7da, #f1b0b7); 
+            color: #721c24; 
+            border-color: #721c24;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        button { 
+            padding: 12px 25px; 
+            margin: 8px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 25px; 
+            font-weight: 600; 
+            font-size: 14px; 
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        
+        button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .start-btn { background: linear-gradient(135deg, #28a745, #20c997); color: white; }
+        .stop-btn { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+        .restart-btn { background: linear-gradient(135deg, #ffc107, #e0a800); color: #212529; }
+        .refresh-btn { background: linear-gradient(135deg, #17a2b8, #138496); color: white; }
+        
+        .upload-section { 
+            margin-top: 40px; 
+            padding: 25px; 
+            border: 2px dashed #dee2e6; 
+            border-radius: 15px; 
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        }
+        
+        .upload-section h3 {
+            color: #495057; 
+            margin-bottom: 20px; 
+            font-size: 1.4rem;
+        }
+        
+        input[type="file"] { 
+            margin: 15px 0; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 2px solid #dee2e6; 
+            background: white;
+            font-size: 14px;
+        }
+        
+        .upload-btn { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
+        
+        .result { 
+            margin-top: 15px; 
+            padding: 15px; 
+            border-radius: 10px; 
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            border-left: 4px solid;
+        }
+        
+        .success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            color: #155724; 
+            border-left-color: #28a745;
+        }
+        
+        .error { 
+            background: linear-gradient(135deg, #f8d7da, #f1b0b7); 
+            color: #721c24; 
+            border-left-color: #dc3545;
+        }
+        
+        .info { 
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb); 
+            color: #0c5460; 
+            border-left-color: #17a2b8;
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
     </style>
 </head>
 <body>
-    <h1>🖼️ tgState 图片上传服务</h1>
-    <div id="status" class="status">加载中...</div>
-    <button onclick="startService()">启动服务</button>
-    <button onclick="stopService()">停止服务</button>
-    <button onclick="restartService()">重启服务</button>
-    <button onclick="getStatus()">刷新状态</button>
-    
-    <div class="upload-section">
-        <h3>📸 图片上传测试</h3>
-        <form id="testUploadForm">
-            <input type="file" id="testImage" name="image" accept="image/*" required>
-            <button type="button" onclick="testUpload()">测试上传</button>
-        </form>
-        <div id="uploadResult" class="result" style="display:none;"></div>
+    <div class="container">
+        <h1>🖼️ tgState 图片上传服务</h1>
+        
+        <div id="status" class="status">加载中...</div>
+        
+        <div class="controls">
+            <button class="start-btn" onclick="startService()">启动服务</button>
+            <button class="stop-btn" onclick="stopService()">停止服务</button>
+            <button class="restart-btn" onclick="restartService()">重启服务</button>
+            <button class="refresh-btn" onclick="getStatus()">刷新状态</button>
+        </div>
+        
+        <div class="upload-section">
+            <h3>📸 图片上传测试</h3>
+            <form id="testUploadForm">
+                <input type="file" id="testImage" name="image" accept="image/*" required>
+                <br>
+                <button class="upload-btn" type="button" onclick="testUpload()">测试上传</button>
+            </form>
+            <div id="uploadResult" class="result" style="display:none;"></div>
+        </div>
     </div>
     
     <script>
@@ -314,7 +466,7 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             fetch('/api/management/start', {method: 'POST'})
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     getStatus();
                 });
         }
@@ -323,7 +475,7 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             fetch('/api/management/stop', {method: 'POST'})
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     getStatus();
                 });
         }
@@ -332,7 +484,7 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             fetch('/api/management/restart', {method: 'POST'})
                 .then(response => response.json())
                 .then(data => {
-                    alert(data.message);
+                    showNotification(data.message, 'success');
                     getStatus();
                 });
         }
@@ -381,10 +533,60 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
             resultDiv.style.display = 'block';
         }
         
-        // 页面加载时获取状态
+        // 美观的通知函数
+        function showNotification(message, type = 'info') {
+            // 创建通知容器（如果不存在）
+            if (!document.getElementById('notification-container')) {
+                const notificationContainer = document.createElement('div');
+                notificationContainer.id = 'notification-container';
+                notificationContainer.style.cssText = \`
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    max-width: 400px;
+                \`;
+                document.body.appendChild(notificationContainer);
+            }
+            
+            const notification = document.createElement('div');
+            notification.style.cssText = \`
+                background: \${type === 'success' ? 'linear-gradient(135deg, #28a745, #20c997)' : 
+                           type === 'error' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
+                           'linear-gradient(135deg, #17a2b8, #138496)'};
+                color: white;
+                padding: 15px 20px;
+                margin-bottom: 10px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                font-weight: 500;
+                cursor: pointer;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                animation: slideIn 0.3s ease forwards;
+            \`;
+            
+            notification.innerHTML = \`
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>\${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+                    <span style="flex: 1; margin: 0 10px;">\${message}</span>
+                    <span onclick="this.parentElement.parentElement.remove()" style="cursor: pointer; font-weight: bold;">×</span>
+                </div>
+            \`;
+            
+            document.getElementById('notification-container').appendChild(notification);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 3000);
+        }
+        
+        // 页面加载时获取状态，不自动刷新
         getStatus();
-        // 每5秒刷新状态
-        setInterval(getStatus, 5000);
     </script>
 </body>
 </html>`
