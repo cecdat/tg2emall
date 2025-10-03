@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -491,12 +492,16 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 
 // testUploadToTGState 测试上传到tgState服务
 func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[string]interface{}, error) {
-	if api.status != "running" {
+	// 检查tgState服务状态
+	client := &http.Client{Timeout: 5 * time.Second}
+	statusResp, err := client.Get("http://localhost:8088/api/management/status")
+	if err != nil || statusResp.StatusCode != http.StatusOK {
 		return map[string]interface{}{
 			"success": false,
-			"error": "tgState服务未运行",
+			"error": "tgState管理接口不可访问，请确保服务已启动",
 		}, nil
 	}
+	statusResp.Body.Close()
 
 	// 准备上传到tgState服务
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -577,13 +582,30 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 		}, nil
 	}
 
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		return map[string]interface{}{
+			"success": false,
+			"error": fmt.Sprintf("HTTP错误 %d: %s", resp.StatusCode, string(respBody)),
+		}, nil
+	}
+
+	// 检查响应内容类型
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "application/json") {
+		return map[string]interface{}{
+			"success": false,
+			"error": fmt.Sprintf("期望JSON响应，实际收到: %s, 内容: %s", contentType, string(respBody)),
+		}, nil
+	}
+
 	// 解析响应
 	var result map[string]interface{}
 	err = json.Unmarshal(respBody, &result)
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("解析响应失败: %v", err),
+			"error": fmt.Sprintf("解析响应失败: %v, 响应内容: %s", err, string(respBody)),
 		}, nil
 	}
 
