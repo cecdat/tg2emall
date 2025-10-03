@@ -48,10 +48,8 @@ func UploadImageAPI(w http.ResponseWriter, r *http.Request) {
 			// http.Error(w, "Invalid file type. Only .jpg, .jpeg, and .png are allowed.", http.StatusBadRequest)
 			return
 		}
-		res := conf.UploadResponse{
-			Code:    0,
-			Message: "error",
-		}
+		
+		var res conf.UploadResponse
 		
 		// 检查是否有 Token 配置
 		if conf.BotToken == "" || conf.ChannelName == "" {

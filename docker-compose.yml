@@ -99,8 +99,7 @@ services:
       MODE: "${TGSTATE_MODE:-p}"
       URL: "${TGSTATE_URL:-http://localhost:8088}"
       PORT: "8088"
-    volumes:
-      - ./data/uploads:/app/uploads
+    # volumes: 图片存储在Telegram频道，无需本地存储
     networks:
       - tg2em-network
 

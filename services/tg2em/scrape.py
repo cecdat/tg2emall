@@ -254,7 +254,8 @@ async def upload_image(image_path):
                     async with session.post(api_url, data=form_data) as response:
                         result = await response.json()
                         if result.get("code") == 1:
-                            image_url = f"{base_url}:{tgstate_port}{result['url']}"
+                            # 使用tgState返回的完整URL
+                            image_url = result.get('imgUrl') or f"{base_url}:{tgstate_port}{result.get('message', '')}"
                             os.remove(image_path)
                             logging.info(f"图片上传成功并删除本地文件: {image_url}")
                             return image_url

@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"csz.net/tgstate/conf"
+	"csz.net/tgstate/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -72,9 +74,6 @@ func (api *ManagementAPI) StartManagementAPI() {
 	
 	// 提供实际的图片上传API
 	mux.HandleFunc("/api", api.handleImageUpload)
-	
-	// 静态文件服务 - 处理上传的图片
-	mux.HandleFunc("/uploads/", api.handleUploadedFiles)
 	
 	// 静态文件服务 - 管理页面
 	mux.HandleFunc("/", api.handleStatic)
@@ -707,93 +706,35 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// 实际保存文件到本地存储
-	timestamp := time.Now().Format("20060102150405")
-	safeFilename := strings.ReplaceAll(strings.ReplaceAll(header.Filename, " ", "_"), "/", "_")
-	localFilename := fmt.Sprintf("tgstate_%s_%s", timestamp, safeFilename)
-	
-	// 创建upload目录
-	uploadDir := "/app/uploads"
-	os.MkdirAll(uploadDir, 0755)
-	
-	// 保存文件
-	localFile := filepath.Join(uploadDir, localFilename)
-	destFile, err := os.Create(localFile)
-	if err != nil {
-		response := map[string]interface{}{
-			"code":    0,
-			"message": fmt.Sprintf("保存文件失败: %v", err),
-			"imgUrl":  "",
+	// 直接上传到Telegram频道（按tgState方式）
+	img := conf.FileRoute + utils.UpDocument(utils.TgFileData(header.Filename, file))
+	if img != conf.FileRoute && img != "" {
+		// 上传成功，生成访问URL
+		baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
+		if baseUrl == "" {
+			baseUrl = "http://localhost:8088"
 		}
+		imgUrl := baseUrl + img
+		
+		response := map[string]interface{}{
+			"code":    1,
+			"message": img,
+			"imgUrl":  imgUrl,
+		}
+		
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
-		return
-	}
-	defer destFile.Close()
-	
-	_, err = io.Copy(destFile, file)
-	if err != nil {
+	} else {
+		// 上传失败
 		response := map[string]interface{}{
 			"code":    0,
-			"message": fmt.Sprintf("写入文件失败: %v", err),
+			"message": "Telegram上传失败，请检查Bot Token和频道配置",
 			"imgUrl":  "",
 		}
+		
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
-		return
 	}
-	
-	// 生成可访问的图片URL
-	imgPath := fmt.Sprintf("/uploads/%s", localFilename)
-	imgUrl := fmt.Sprintf("http://localhost:8088%s", imgPath)
-	
-	response := map[string]interface{}{
-		"code":    1,
-		"message": imgPath,
-		"imgUrl":  imgUrl,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// handleUploadedFiles 处理已上传图片的访问
-func (api *ManagementAPI) handleUploadedFiles(w http.ResponseWriter, r *http.Request) {
-	// 提取文件路径
-	filename := strings.TrimPrefix(r.URL.Path, "/uploads/")
-	if filename == "" {
-		http.NotFound(w, r)
-		return
-	}
-	
-	// 构建完整文件路径
-	uploadDir := "/app/uploads"
-	filePath := filepath.Join(uploadDir, filename)
-	
-	// 检查文件是否存在
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		http.NotFound(w, r)
-		return
-	}
-	
-	// 设置适当的Content-Type
-	ext := strings.ToLower(filepath.Ext(filename))
-	switch ext {
-	case ".jpg", ".jpeg":
-		w.Header().Set("Content-Type", "image/jpeg")
-	case ".png":
-		w.Header().Set("Content-Type", "image/png")
-	case ".gif":
-		w.Header().Set("Content-Type", "image/gif")
-	default:
-		w.Header().Set("Content-Type", "application/octet-stream")
-	}
-	
-	// 设置缓存头
-	w.Header().Set("Cache-Control", "public, max-age=31536000")
-	
-	// 读取并返回文件内容
-	http.ServeFile(w, r, filePath)
 }
 
 // waitForSignal 等待信号
