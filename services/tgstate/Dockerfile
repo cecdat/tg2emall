@@ -35,8 +35,8 @@ COPY --from=builder /app/tgstate .
 # 复制模板文件
 COPY --from=builder /app/assets/templates ./assets/templates
 
-# 设置文件权限
-RUN chown -R tgstate:tgstate /app
+# 设置文件权限  
+RUN chown -R tgstate:tgstate /app && chmod +x ./tgstate
 
 # 切换到非 root 用户
 USER tgstate
@@ -45,4 +45,4 @@ USER tgstate
 EXPOSE 8088
 
 # 设置容器启动时要执行的命令（默认启动管理接口）
-CMD ["./tgState", "management"]
+CMD ["./tgstate", "management"]
