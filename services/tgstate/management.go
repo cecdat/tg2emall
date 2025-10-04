@@ -73,7 +73,7 @@ func NewManagementAPI() *ManagementAPI {
 func (api *ManagementAPI) StartManagementAPI() {
 	mux := http.NewServeMux()
 	
-	// 管理接口路由
+	// 管理接口路由（需要密码验证）
 	mux.HandleFunc("/api/management/status", api.handleStatus)
 	mux.HandleFunc("/api/management/start", api.handleStart)
 	mux.HandleFunc("/api/management/stop", api.handleStop)
@@ -85,8 +85,17 @@ func (api *ManagementAPI) StartManagementAPI() {
 	// 提供实际的图片上传API
 	mux.HandleFunc("/api", api.handleImageUpload)
 	
-	// 静态文件服务 - 管理页面
-	mux.HandleFunc("/", api.handleStatic)
+	// 密码验证页面
+	mux.HandleFunc("/pwd", api.handlePasswordCheck)
+	
+	// 图片上传测试页面（公开访问，需要密码）
+	mux.HandleFunc("/upload", api.handleUploadPage)
+	
+	// 管理页面（需要密码验证）
+	mux.HandleFunc("/admin", api.handleAdminPage)
+	
+	// 根路径 - 根据是否有密码决定显示内容
+	mux.HandleFunc("/", api.handleRoot)
 	
 	api.httpServer = &http.Server{
 		Addr:    ":8088",
@@ -1117,4 +1126,263 @@ func (api *ManagementAPI) waitForSignal() {
 	}
 	
 	fmt.Println("✅ 管理API已关闭")
+}
+
+// handleRoot 处理根路径
+func (api *ManagementAPI) handleRoot(w http.ResponseWriter, r *http.Request) {
+	// 检查是否设置了密码
+	if api.config.Pass == "" || api.config.Pass == "none" {
+		// 没有密码，直接显示图片上传测试页面
+		api.handleUploadPage(w, r)
+		return
+	}
+	
+	// 有密码，检查是否已经验证
+	cookie, err := r.Cookie("tgstate_auth")
+	if err != nil || cookie.Value != api.config.Pass {
+		// 未验证，显示密码输入页面
+		api.handlePasswordCheck(w, r)
+		return
+	}
+	
+	// 已验证，显示图片上传测试页面
+	api.handleUploadPage(w, r)
+}
+
+// handlePasswordCheck 处理密码验证
+func (api *ManagementAPI) handlePasswordCheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		// 处理密码验证
+		password := r.FormValue("password")
+		if password == api.config.Pass {
+			// 设置认证cookie
+			cookie := &http.Cookie{
+				Name:     "tgstate_auth",
+				Value:    api.config.Pass,
+				Path:     "/",
+				MaxAge:   3600 * 24, // 24小时
+				HttpOnly: true,
+			}
+			http.SetCookie(w, cookie)
+			
+			// 重定向到上传页面
+			http.Redirect(w, r, "/upload", http.StatusSeeOther)
+			return
+		}
+		
+		// 密码错误，显示错误页面
+		html := `<!DOCTYPE html>
+<html>
+<head>
+    <title>tgState 图片上传服务 - 密码验证</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .error { color: #dc3545; margin-bottom: 20px; padding: 10px; background: #f8d7da; border-radius: 5px; }
+        input[type="password"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        h1 { text-align: center; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 密码验证</h1>
+        <div class="error">密码错误，请重新输入</div>
+        <form method="POST">
+            <input type="password" name="password" placeholder="请输入访问密码" required>
+            <button type="submit">验证</button>
+        </form>
+    </div>
+</body>
+</html>`
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(html))
+		return
+	}
+	
+	// 显示密码输入页面
+	html := `<!DOCTYPE html>
+<html>
+<head>
+    <title>tgState 图片上传服务 - 密码验证</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input[type="password"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        h1 { text-align: center; color: #333; }
+        .info { text-align: center; color: #666; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 密码验证</h1>
+        <div class="info">请输入访问密码以使用图片上传服务</div>
+        <form method="POST">
+            <input type="password" name="password" placeholder="请输入访问密码" required>
+            <button type="submit">验证</button>
+        </form>
+    </div>
+</body>
+</html>`
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(html))
+}
+
+// handleUploadPage 处理图片上传测试页面
+func (api *ManagementAPI) handleUploadPage(w http.ResponseWriter, r *http.Request) {
+	// 检查密码验证（如果有设置密码）
+	if api.config.Pass != "" && api.config.Pass != "none" {
+		cookie, err := r.Cookie("tgstate_auth")
+		if err != nil || cookie.Value != api.config.Pass {
+			http.Redirect(w, r, "/pwd", http.StatusSeeOther)
+			return
+		}
+	}
+	
+	html := `<!DOCTYPE html>
+<html>
+<head>
+    <title>tgState 图片上传服务</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .upload-area { border: 2px dashed #ddd; padding: 40px; text-align: center; border-radius: 10px; margin: 20px 0; }
+        .upload-area:hover { border-color: #007bff; background: #f8f9fa; }
+        input[type="file"] { margin: 20px 0; }
+        button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { text-align: center; color: #666; }
+        .admin-link { text-align: center; margin-top: 20px; }
+        .admin-link a { color: #007bff; text-decoration: none; }
+        .admin-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 图片上传测试</h1>
+        
+        <div class="upload-area">
+            <h3>选择图片文件</h3>
+            <input type="file" id="imageFile" accept="image/*" multiple>
+            <br>
+            <button onclick="uploadImages()" id="uploadBtn">上传图片</button>
+        </div>
+        
+        <div id="result" class="result" style="display:none;"></div>
+        
+        <div class="admin-link">
+            <a href="/admin">🔧 服务管理</a>
+        </div>
+    </div>
+    
+    <script>
+        function uploadImages() {
+            const fileInput = document.getElementById('imageFile');
+            const files = fileInput.files;
+            const resultDiv = document.getElementById('result');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (files.length === 0) {
+                showResult('请选择要上传的图片文件', 'error');
+                return;
+            }
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
+            resultDiv.style.display = 'none';
+            
+            let uploadPromises = [];
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                uploadPromises.push(
+                    fetch('/api', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.code === 1) {
+                            return { success: true, file: file.name, url: data.imgUrl };
+                        } else {
+                            return { success: false, file: file.name, error: data.message };
+                        }
+                    })
+                    .catch(error => {
+                        return { success: false, file: file.name, error: error.message };
+                    })
+                );
+            }
+            
+            Promise.all(uploadPromises).then(results => {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '上传图片';
+                
+                let successCount = 0;
+                let errorCount = 0;
+                let resultHtml = '';
+                
+                results.forEach(result => {
+                    if (result.success) {
+                        successCount++;
+                        resultHtml += `<div style="margin: 10px 0;">
+                            <strong>${result.file}:</strong> 
+                            <a href="${result.url}" target="_blank">${result.url}</a>
+                        </div>`;
+                    } else {
+                        errorCount++;
+                        resultHtml += `<div style="margin: 10px 0; color: #dc3545;">
+                            <strong>${result.file}:</strong> ${result.error}
+                        </div>`;
+                    }
+                });
+                
+                if (successCount > 0) {
+                    showResult(`成功上传 ${successCount} 个文件${errorCount > 0 ? '，失败 ' + errorCount + ' 个' : ''}<br>` + resultHtml, 'success');
+                } else {
+                    showResult('所有文件上传失败<br>' + resultHtml, 'error');
+                }
+            });
+        }
+        
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = 'result ' + type;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>`
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(html))
+}
+
+// handleAdminPage 处理管理页面
+func (api *ManagementAPI) handleAdminPage(w http.ResponseWriter, r *http.Request) {
+	// 检查密码验证（如果有设置密码）
+	if api.config.Pass != "" && api.config.Pass != "none" {
+		cookie, err := r.Cookie("tgstate_auth")
+		if err != nil || cookie.Value != api.config.Pass {
+			http.Redirect(w, r, "/pwd", http.StatusSeeOther)
+			return
+		}
+	}
+	
+	// 显示原来的管理页面
+	api.handleStatic(w, r)
 }
