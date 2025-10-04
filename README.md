@@ -6,26 +6,42 @@
 [![Flask](https://img.shields.io/badge/Flask-Latest-000000?logo=flask)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**tg2emall** 是一个基于 Docker 的一体化解决方案，可以自动抓取 Telegram 频道消息，通过 Web 界面进行管理展示，支持图片上传和服务配置。
+**tg2emall** 是一个基于 Docker 的双服务架构一体化解决方案，可以自动抓取 Telegram 频道消息，通过 Web 界面进行管理展示，支持图片上传和服务配置。
 
 ## ✨ 核心功能
 
 ### 🎯 **主要特性**
 - 🤖 **自动化采集**: 定时抓取 Telegram 频道消息
 - 🌐 **Web 管理界面**: 完整的后台管理系统
-- 📷 **图片上传**: 支持 Telegram 图床和本地存储
+- 📷 **图片上传**: 支持 Telegram 图床服务
 - 🔧 **配置管理**: Web 界面管理所有配置参数
 - 🖥️ **服务控制**: 一键启动/停止采集和图片服务
 - 📱 **Telegram 验证**: Web 界面输入验证码
 - 🔄 **会话持久化**: Telegram 会话文件自动保存
 - 🛡️ **安全保护**: 完善的身份验证和权限控制
+- 🏗️ **双服务架构**: 管理服务和业务服务分离设计
 
 ### 🏗️ **技术架构**
-- **前端**: Flask + Bootstrap 5 + Jinja2
-- **采集服务**: Python + Telethon + AsyncIO  
-- **图片服务**: Go + Telegram Bot API
+
+#### **双服务架构设计**
+```
+📦 tg2emall 容器集群
+├── 🌐 前端服务 (Flask + Bootstrap 5)
+├── 🗄️ MySQL 数据库
+├── 🔄 采集服务容器
+│   ├── 📊 管理服务 (端口5001) - 控制采集服务启停
+│   └── 🤖 采集服务 (端口5002) - 专门负责Telegram采集
+└── 📷 图片服务容器
+    ├── 📊 管理服务 (端口8088) - 控制上传服务启停
+    └── 🖼️ 上传服务 (端口8089) - 专门负责图片上传
+```
+
+#### **技术栈**
+- **前端**: Flask + Bootstrap 5 + Jinja2 + SweetAlert2
+- **采集服务**: Python + Telethon + AsyncIO + Flask
+- **图片服务**: Go + Telegram Bot API + HTTP API
 - **数据库**: MySQL 8.0
-- **部署**: Docker Compose + Profiles
+- **部署**: Docker Compose + 双服务架构
 - **反向代理**: Nginx Proxy Manager
 
 ## 🚀 快速开始
@@ -94,9 +110,17 @@ scrape_interval:      300 (采集间隔秒数)
 tgstate_token:        # Telegram Bot Token
 tgstate_target:       # 目标频道 @channel_name
 tgstate_pass:         none (访问密码)
-tgstate_mode:          p (API模式)
-tgstate_url:          http://localhost:8088
+tgstate_mode:         p (API模式)
+tgstate_url:          http://your-domain:8088 (基础URL)
+tgstate_port:         8088 (管理服务端口)
 ```
+
+#### **图片服务双架构说明**
+- **管理服务 (8088端口)**: 自动启动，控制上传服务
+- **上传服务 (8089端口)**: 由管理服务控制，专门处理图片上传
+- **访问方式**: 
+  - 管理界面: `http://your-domain:8088`
+  - 上传测试: `https://img.your-domain.com` (需要密码)
 
 ### 🗄️ **数据库配置**
 ```bash
@@ -143,10 +167,19 @@ MYSQL_PASSWORD=tg2emall
 - **服务控制配置**: 各服务的启用状态
 
 ### 🔧 **服务管理**
+
+#### **双服务架构控制**
+- **采集服务**: 管理服务(5001) + 采集服务(5002)
+- **图片服务**: 管理服务(8088) + 上传服务(8089)
 - **服务状态**: 实时监控所有服务运行状态
 - **一键控制**: 启动/停止采集和图片服务
 - **批量操作**: 同时启动或停止所有业务服务
 - **状态刷新**: 自动和手动刷新服务状态
+
+#### **服务管理页面**
+- **采集服务管理**: `http://your-domain:5001`
+- **图片服务管理**: `http://your-domain:8088`
+- **统一管理后台**: `http://your-domain:5000/dm` → 服务管理
 
 ## 🛠️ 故障排除
 
@@ -253,8 +286,15 @@ tg2emall/
 │   │   ├── 📁 templates/         # Jinja2 模板
 │   │   └── 📄 service_controller.py # 服务控制器
 │   ├── 📁 tg2em/                 # Telegram 采集服务
-│   │   └── 📜 scrape.py          # 采集脚本
+│   │   ├── 📜 management-service.py # 采集管理服务
+│   │   ├── 📜 scraper-service.py    # 采集业务服务
+│   │   ├── 📜 scrape.py          # 采集脚本
+│   │   └── 📜 management_api.py  # 管理API (兼容)
 │   └── 📁 tgstate/               # Go 图片服务
+│       ├── 📜 management-service.go # 图片管理服务
+│       ├── 📜 upload-service.go     # 图片上传服务
+│       ├── 📁 web/                # 管理界面
+│       └── 📁 assets/             # 静态资源
 ├── 📁 data/                       # 数据目录（自动创建）
 │   ├── 📁 mysql/                 # MySQL 数据
 │   ├── 📁 telegram-sessions/      # Telegram 会话
@@ -302,6 +342,15 @@ docker-compose -f docker-compose.dev.yml up
 ```
 
 ## 📋 **更新日志**
+
+### 🆕 v3.0 - 双服务架构重构
+- ✅ **双服务架构设计**: 管理服务和业务服务分离
+- ✅ **采集服务重构**: 管理服务(5001) + 采集服务(5002)
+- ✅ **图片服务重构**: 管理服务(8088) + 上传服务(8089)
+- ✅ **统一管理界面**: 每个服务都有独立的管理页面
+- ✅ **配置热更新**: 支持配置变更后自动重启服务
+- ✅ **服务状态监控**: 实时监控双服务架构状态
+- ✅ **API接口统一**: 所有服务提供统一的REST API
 
 ### 🆕 v2.1 - 配置管理和服务控制
 - ✅ Web 界面配置管理

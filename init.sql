@@ -47,7 +47,17 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 
 -- 图片配置
 ('image_compression_quality', '50', 'number', '图片压缩质量（1-95）', 'image'),
-('image_compression_format', 'webp', 'string', '图片压缩格式（webp或jpeg）', 'image');
+('image_compression_format', 'webp', 'string', '图片压缩格式（webp或jpeg）', 'image'),
+
+-- 双服务架构配置
+('scraper_management_port', '5001', 'number', '采集服务管理端口', 'scraper'),
+('scraper_service_port', '5002', 'number', '采集服务业务端口', 'scraper'),
+('tgstate_management_port', '8088', 'number', '图片服务管理端口', 'tgstate'),
+('tgstate_service_port', '8089', 'number', '图片服务业务端口', 'tgstate'),
+
+-- 管理员配置
+('admin_password', 'admin', 'string', '管理员密码', 'admin'),
+('admin_captcha', '2025', 'string', '管理员验证码', 'admin');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表
@@ -71,8 +81,10 @@ CREATE TABLE IF NOT EXISTS `services_status` (
 
 -- 初始化服务状态
 INSERT INTO `services_status` (`service_name`, `status`) VALUES
-('tgstate', 'stopped'),
-('scraper', 'stopped'),
+('tgstate-management', 'running'),
+('tgstate-service', 'stopped'),
+('scraper-management', 'running'),
+('scraper-service', 'stopped'),
 ('mysql', 'running'),
 ('frontend', 'running');
 
@@ -152,21 +164,6 @@ CREATE TABLE IF NOT EXISTS `channels` (
 
 
 -- --------------------------------------------------------
--- 表的结构 `system_config` - 系统配置表
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `system_config` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `config_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置键',
-  `config_value` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '配置值',
-  `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '配置描述',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_config_key` (`config_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
-
--- --------------------------------------------------------
 -- 表的结构 `admin_users` - 管理员用户表
 -- --------------------------------------------------------
 
@@ -200,10 +197,6 @@ CREATE TABLE IF NOT EXISTS `advertisements` (
   KEY `idx_is_active` (`is_active`),
   KEY `idx_sort_order` (`sort_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='广告表';
-
--- --------------------------------------------------------
--- 插入默认配置（已在上方完成）
--- --------------------------------------------------------
 
 -- --------------------------------------------------------
 -- 插入默认管理员用户
