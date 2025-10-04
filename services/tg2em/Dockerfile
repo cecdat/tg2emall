@@ -18,8 +18,11 @@ RUN pip install --no-cache-dir Flask Flask-CORS
 # 复制项目文件
 COPY . .
 
-# 暴露管理接口端口
-EXPOSE 5001
+# 创建日志目录
+RUN mkdir -p /app/logs
 
-# 默认启动管理接口
-CMD ["python", "management_api.py"]
+# 暴露管理服务和采集服务端口
+EXPOSE 5001 5002
+
+# 默认启动管理服务
+CMD ["python", "management-service.py"]

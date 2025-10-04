@@ -112,7 +112,8 @@ services:
     container_name: tg2em-scrape
     restart: always
     ports:
-      - "5001:5001"  # 管理接口端口
+      - "5001:5001"  # 管理服务端口
+      - "5002:5002"  # 采集服务端口
     environment:
       TZ: "Asia/Shanghai"
       MYSQL_HOST: "mysql"

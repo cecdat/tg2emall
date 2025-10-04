@@ -168,6 +168,43 @@
                     </div>
                 </div>
             </div>
+            {% elif service_name == 'scraper' %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog me-2"></i>双服务架构信息
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading">
+                                            <i class="fas fa-server me-2"></i>管理服务 (端口5001)
+                                        </h6>
+                                        <p class="mb-1">负责控制采集服务的启停和配置管理</p>
+                                        <small class="text-muted">状态: 运行中 (自动启动)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert alert-{% if status.success and status.status == 'running' %}success{% else %}warning{% endif %}">
+                                        <h6 class="alert-heading">
+                                            <i class="fas fa-download me-2"></i>采集服务 (端口5002)
+                                        </h6>
+                                        <p class="mb-1">专门负责Telegram频道消息采集</p>
+                                        <small class="text-muted">
+                                            状态: {% if status.success and status.status == 'running' %}运行中{% else %}已停止{% endif %}
+                                            {% if status.pid %} | PID: {{ status.pid }}{% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {% elif service_name == 'scraper' and config and config.success %}
             <div class="row">
                 <div class="col-12">
@@ -239,6 +276,30 @@
                 图片上传测试页面: <a href="https://img.237890.xyz" target="_blank">https://img.237890.xyz</a>
                 <br><small class="text-muted">公开的图片上传测试页面，需要输入密码验证</small>
             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif service_name == 'scraper' %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>服务信息
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                采集服务管理页面: <a href="http://{{ request.host.split(':')[0] }}:5001" target="_blank">http://{{ request.host.split(':')[0] }}:5001</a>
+                                <br><small class="text-muted">该页面提供详细的采集服务管理和配置功能</small>
+                            </div>
+                            <div class="alert alert-success">
+                                <i class="fas fa-download me-2"></i>
+                                采集服务状态页面: <a href="http://{{ request.host.split(':')[0] }}:5002" target="_blank">http://{{ request.host.split(':')[0] }}:5002</a>
+                                <br><small class="text-muted">采集服务的状态信息和健康检查</small>
+                            </div>
                         </div>
                     </div>
                 </div>
