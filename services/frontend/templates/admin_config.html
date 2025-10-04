@@ -259,6 +259,9 @@
                                                 {% elif config.config_key == 'tgstate_mode' %}
                                                     运行模式，p=API模式，m=文件服务模式
                                                     <br><strong>示例:</strong> p
+                                                {% elif config.config_key == 'tgstate_url' %}
+                                                    tgState服务的基础URL地址
+                                                    <br><strong>示例:</strong> http://localhost:8088 或 https://img.example.com
                                                 {% elif config.config_key == 'tgstate_port' %}
                                                     tgState服务的运行端口
                                                     <br><strong>示例:</strong> 8088
@@ -307,15 +310,15 @@
                                                     </label>
                                                 </div>
                                             {% else %}
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_pass'] %}
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_pass', 'tgstate_url'] %}
                                                     <input type="text" 
                                                            class="form-control" 
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% elif config.config_key == 'tgstate_pass' %}例如: mypassword 或 none{% endif %}">
+                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% elif config.config_key == 'tgstate_pass' %}例如: mypassword 或 none{% elif config.config_key == 'tgstate_url' %}例如: http://localhost:8088{% endif %}">
 
-                                                    {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone'] %}
+                                                    {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_url'] %}
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-info-circle me-1"></i>
                                                         敏感信息，请注意保护

@@ -234,7 +234,7 @@ def handle_config():
             'mysql_database': manager.config.get('mysql_database', 'tg2em'),
             'mysql_user': manager.config.get('mysql_user', 'tg2emall'),
             'mysql_password': manager.config.get('mysql_password', 'tg2emall'),
-            'tgstate_url': db_config.get('tgstate_url', manager.config.get('tgstate_url', 'http://tgstate:8088')),
+            'tgstate_url': db_config.get('tgstate_url', manager.config.get('tgstate_url', 'http://localhost:8088')),
             'tgstate_token': db_config.get('tgstate_token', ''),
             'tgstate_target': db_config.get('tgstate_target', ''),
             'tgstate_pass': db_config.get('tgstate_pass', ''),

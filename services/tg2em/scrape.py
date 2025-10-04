@@ -238,10 +238,15 @@ async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
         try:
-            # 从数据库动态获取tgState端口配置
+            # 从数据库动态获取tgState配置
             tgstate_port = await get_tgstate_config('tgstate_port') or '8088'
-            base_url = config["image_upload"]["base_url"]
-            api_url = f"{base_url}:{tgstate_port}/api"
+            tgstate_url = await get_tgstate_config('tgstate_url') or 'http://localhost:8088'
+            
+            # 容器内网络调用地址（用于API调用）
+            container_api_url = f"http://tgstate:{tgstate_port}/api"
+            
+            # 配置的基础URL（用于返回给用户）
+            base_url = tgstate_url.rstrip('/')
             
             # 从数据库动态获取tgstate_pass配置
             tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
@@ -251,11 +256,14 @@ async def upload_image(image_path):
                 with open(image_path, "rb") as file:
                     form_data = aiohttp.FormData()
                     form_data.add_field("image", file, filename=os.path.basename(image_path))
-                    async with session.post(api_url, data=form_data) as response:
+                    async with session.post(container_api_url, data=form_data) as response:
                         result = await response.json()
                         if result.get("code") == 1:
-                            # 使用tgState返回的完整URL
-                            image_url = result.get('imgUrl') or f"{base_url}:{tgstate_port}{result.get('message', '')}"
+                            # 使用配置的基础URL构建返回地址
+                            img_path = result.get('message', '')
+                            if img_path.startswith('/'):
+                                img_path = img_path[1:]  # 移除开头的斜杠
+                            image_url = f"{base_url}/{img_path}"
                             os.remove(image_path)
                             logging.info(f"图片上传成功并删除本地文件: {image_url}")
                             return image_url
