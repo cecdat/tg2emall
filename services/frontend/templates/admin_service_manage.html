@@ -131,7 +131,44 @@
             </div>
 
             <!-- 服务配置 -->
-            {% if service_name == 'scraper' and config and config.success %}
+            {% if service_name == 'tgstate' %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog me-2"></i>双服务架构信息
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading">
+                                            <i class="fas fa-server me-2"></i>管理服务 (端口8088)
+                                        </h6>
+                                        <p class="mb-1">负责控制上传服务的启停和配置管理</p>
+                                        <small class="text-muted">状态: 运行中 (自动启动)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert alert-{% if status.success and status.status == 'running' %}success{% else %}warning{% endif %}">
+                                        <h6 class="alert-heading">
+                                            <i class="fas fa-upload me-2"></i>上传服务 (端口8089)
+                                        </h6>
+                                        <p class="mb-1">专门负责图片上传到Telegram频道</p>
+                                        <small class="text-muted">
+                                            状态: {% if status.success and status.status == 'running' %}运行中{% else %}已停止{% endif %}
+                                            {% if status.pid %} | PID: {{ status.pid }}{% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif service_name == 'scraper' and config and config.success %}
             <div class="row">
                 <div class="col-12">
                     <div class="card">
@@ -194,7 +231,7 @@
                         <div class="card-body">
             <div class="alert alert-info">
                 <i class="fas fa-external-link-alt me-2"></i>
-                图片上传服务管理页面: <a href="http://{{ request.host.split(':')[0] }}:8088/admin" target="_blank">http://{{ request.host.split(':')[0] }}:8088/admin</a>
+                图片上传服务管理页面: <a href="http://{{ request.host.split(':')[0] }}:8088" target="_blank">http://{{ request.host.split(':')[0] }}:8088</a>
                 <br><small class="text-muted">该页面提供详细的服务管理和配置功能</small>
             </div>
             <div class="alert alert-success">
