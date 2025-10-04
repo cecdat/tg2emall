@@ -19,19 +19,31 @@ import hashlib
 
 # 导入服务控制器
 try:
-    from service_controller import start_service_via_docker_real, stop_service_via_docker_real, check_service_status_via_docker_real
+    from service_controller import ServiceController
     
     def start_service_via_docker(service_name):
-        """通过Docker启动服务"""
-        return start_service_via_docker_real(service_name)
+        """通过服务管理接口启动服务"""
+        if ServiceController is None:
+            return {'success': False, 'message': 'ServiceController未初始化'}
+        
+        controller = ServiceController()
+        return controller.start_service(service_name)
     
     def stop_service_via_docker(service_name):
-        """通过Docker停止服务"""
-        return stop_service_via_docker_real(service_name)
+        """通过服务管理接口停止服务"""
+        if ServiceController is None:
+            return {'success': False, 'message': 'ServiceController未初始化'}
+        
+        controller = ServiceController()
+        return controller.stop_service(service_name)
     
     def check_service_status_via_docker(service_name):
-        """检查Docker服务状态"""
-        return check_service_status_via_docker_real(service_name)
+        """通过服务管理接口检查服务状态"""
+        if ServiceController is None:
+            return {'success': False, 'status': 'error', 'message': 'ServiceController未初始化'}
+        
+        controller = ServiceController()
+        return controller.get_service_status(service_name)
         
 except ImportError:
     # 如果导入失败，使用模拟实现
@@ -843,146 +855,6 @@ def admin_service_status(service_name):
     except Exception as e:
         logger.error(f"获取服务状态失败: {service_name}, 错误: {e}")
         return jsonify({'success': False, 'message': '获取状态失败'}), 500
-
-def start_service_via_docker(service_name):
-    """通过Docker启动服务"""
-    try:
-        import subprocess
-        
-        # 映射管理面板的服务名到docker-compose.yml中的服务名
-        service_mapping = {
-            'tgstate': 'tgstate',
-            'scraper': 'tg2em-scrape'
-        }
-        
-        docker_service = service_mapping.get(service_name)
-        if not docker_service:
-            return {'success': False, 'message': f'未知服务: {service_name}'}
-        
-        # 构建docker-compose命令
-        cmd = ['docker-compose', 'start', docker_service]
-        
-        # 执行命令
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        
-        if result.returncode == 0:
-            # 获取容器PID
-            pid_cmd = ['docker-compose', 'ps', '-q', docker_service]
-            pid_result = subprocess.run(pid_cmd, capture_output=True, text=True, timeout=10)
-            
-            if pid_result.returncode == 0 and pid_result.stdout.strip():
-                container_id = pid_result.stdout.strip()
-                inspect_cmd = ['docker', 'inspect', '--format', '{{.State.Pid}}', container_id]
-                inspect_result = subprocess.run(inspect_cmd, capture_output=True, text=True, timeout=10)
-                
-                pid = inspect_result.stdout.strip() if inspect_result.returncode == 0 else None
-            else:
-                pid = None
-            
-            return {'success': True, 'message': f'服务 {docker_service} 启动成功', 'pid': pid}
-        else:
-            error_msg = result.stderr if result.stderr else f'启动失败，返回码: {result.returncode}'
-            return {'success': False, 'message': f'启动失败: {error_msg}'}
-        
-    except subprocess.TimeoutExpired:
-        return {'success': False, 'message': '启动命令超时'}
-    except Exception as e:
-        return {'success': False, 'message': f'启动失败: {str(e)}'}
-
-def stop_service_via_docker(service_name):
-    """通过Docker停止服务"""
-    try:
-        import subprocess
-        
-        # 映射管理面板的服务名到docker-compose.yml中的服务名
-        service_mapping = {
-            'tgstate': 'tgstate',
-            'scraper': 'tg2em-scrape'
-        }
-        
-        docker_service = service_mapping.get(service_name)
-        if not docker_service:
-            return {'success': False, 'message': f'未知服务: {service_name}'}
-        
-        # 构建docker-compose命令
-        cmd = ['docker-compose', 'stop', docker_service]
-        
-        # 执行命令
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        
-        if result.returncode == 0:
-            return {'success': True, 'message': f'服务 {docker_service} 停止成功'}
-        else:
-            error_msg = result.stderr if result.stderr else f'停止失败，返回码: {result.returncode}'
-            return {'success': False, 'message': f'停止失败: {error_msg}'}
-        
-    except subprocess.TimeoutExpired:
-        return {'success': False, 'message': '停止命令超时'}
-    except Exception as e:
-        return {'success': False, 'message': f'停止失败: {str(e)}'}
-
-def check_service_status_via_docker(service_name):
-    """检查Docker服务状态"""
-    try:
-        import subprocess
-        
-        # 映射管理面板的服务名到docker-compose.yml中的服务名
-        service_mapping = {
-            'tgstate': 'tgstate',
-            'scraper': 'tg2em-scrape'
-        }
-        
-        docker_service = service_mapping.get(service_name)
-        if not docker_service:
-            return {'success': False, 'status': 'unknown', 'message': f'未知服务: {service_name}'}
-        
-        # 检查容器状态
-        cmd = ['docker-compose', 'ps', docker_service]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
-        
-        if result.returncode != 0:
-            return {'success': False, 'status': 'error', 'message': '无法检查服务状态'}
-        
-        output = result.stdout.lower()
-        
-        # 获取PID
-        pid_cmd = ['docker-compose', 'ps', '-q', docker_service]
-        pid_result = subprocess.run(pid_cmd, capture_output=True, text=True, timeout=10)
-        
-        pid = None
-        if pid_result.returncode == 0 and pid_result.stdout.strip():
-            container_id = pid_result.stdout.strip()
-            inspect_cmd = ['docker', 'inspect', '--format', '{{.State.Pid}}', container_id]
-            inspect_result = subprocess.run(inspect_cmd, capture_output=True, text=True, timeout=10)
-            
-            if inspect_result.returncode == 0:
-                pid = inspect_result.stdout.strip()
-        
-        # 判断状态
-        if 'up' in output and 'running' in output:
-            status = 'running'
-            message = f'服务 {docker_service} 运行中'
-        elif 'exited' in output:
-            status = 'stopped'
-            message = f'服务 {docker_service} 已停止'
-        elif 'dead' in output or 'failed' in output:
-            status = 'error'
-            message = f'服务 {docker_service} 异常'
-        else:
-            status = 'unknown'
-            message = f'服务 {docker_service} 状态未知'
-        
-        return {
-            'success': True,
-            'status': status,
-            'message': message,
-            'pid': pid
-        }
-        
-    except subprocess.TimeoutExpired:
-        return {'success': False, 'status': 'timeout', 'message': '状态检查超时'}
-    except Exception as e:
-        return {'success': False, 'status': 'error', 'message': f'状态检查失败: {str(e)}'}
 
 @app.route('/admin/telegram/verification')
 @login_required
