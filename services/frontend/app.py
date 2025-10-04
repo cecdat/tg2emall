@@ -833,34 +833,58 @@ def admin_service_stop(service_name):
         logger.error(f"停止服务失败: {service_name}, 错误: {e}")
         return jsonify({'success': False, 'message': '停止服务失败'}), 500
 
-@app.route('/admin/services/<service_name>/status', methods=['GET'])
+@app.route('/admin/services/<service_name>/restart', methods=['POST'])
 @login_required
-def admin_service_status(service_name):
-    """获取服务状态"""
+def admin_service_restart(service_name):
+    """重启服务"""
     try:
-        result = check_service_status_via_docker(service_name)
+        controller = ServiceController()
+        result = controller.restart_service(service_name)
         
-        # 更新数据库状态
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE services_status 
-                SET status = %s, last_check = NOW(), message = %s, 
-                    pid = %s
-                WHERE service_name = %s
-            """, (result['status'], result['message'], result.get('pid'), service_name))
-            conn.commit()
-        
-        return jsonify(result)
+        if result['success']:
+            logger.info(f"服务重启成功: {service_name}")
+            return jsonify({'success': True, 'message': result['message']})
+        else:
+            return jsonify({'success': False, 'message': result['message']}), 500
+            
     except Exception as e:
-        logger.error(f"获取服务状态失败: {service_name}, 错误: {e}")
-        return jsonify({'success': False, 'message': '获取状态失败'}), 500
+        logger.error(f"重启服务失败: {service_name}, 错误: {e}")
+        return jsonify({'success': False, 'message': '重启服务失败'}), 500
 
-@app.route('/admin/telegram/verification')
+@app.route('/admin/services/manage/<service_name>')
 @login_required
-def telegram_verification():
-    """Telegram验证页面"""
-    return render_template('admin_telegram_verification.html')
+def admin_service_manage(service_name):
+    """服务管理页面（带认证）"""
+    try:
+        # 验证服务名称
+        valid_services = ['tgstate', 'scraper']
+        if service_name not in valid_services:
+            return "无效的服务名称", 404
+        
+        # 获取服务状态
+        controller = ServiceController()
+        status_result = controller.get_service_status(service_name)
+        
+        # 获取服务配置（如果是采集服务）
+        config_result = None
+        if service_name == 'scraper':
+            try:
+                import requests
+                url = f"{controller.service_urls[service_name]}/api/management/config"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    config_result = response.json()
+            except:
+                pass
+        
+        return render_template('admin_service_manage.html', 
+                             service_name=service_name,
+                             status=status_result,
+                             config=config_result)
+        
+    except Exception as e:
+        logger.error(f"获取服务管理页面失败: {service_name}, 错误: {e}")
+        return f"获取服务管理页面失败: {str(e)}", 500
 
 @app.route('/admin/telegram/verification/status')
 @login_required

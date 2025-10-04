@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}服务管理 - {{ service_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 侧边栏 -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-2"></i>仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                            <i class="fas fa-newspaper me-2"></i>文章管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_config') }}">
+                            <i class="fas fa-cog me-2"></i>配置管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_services') }}">
+                            <i class="fas fa-server me-2"></i>服务管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_password') }}">
+                            <i class="fas fa-key me-2"></i>密码管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_telegram_verification') }}">
+                            <i class="fas fa-mobile-alt me-2"></i>Telegram验证
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">
+                    {% if service_name == 'tgstate' %}
+                        <i class="fas fa-image me-2"></i>图片上传服务管理
+                    {% elif service_name == 'scraper' %}
+                        <i class="fas fa-download me-2"></i>采集服务管理
+                    {% endif %}
+                </h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshStatus()">
+                            <i class="fas fa-sync-alt me-1"></i>刷新状态
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 服务状态卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>服务状态
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="service-status">
+                                {% if status.success %}
+                                    <div class="alert alert-{% if status.status == 'running' %}success{% elif status.status == 'stopped' %}warning{% else %}danger{% endif %}">
+                                        <h6 class="alert-heading">
+                                            {% if status.status == 'running' %}
+                                                <i class="fas fa-play-circle me-2"></i>运行中
+                                            {% elif status.status == 'stopped' %}
+                                                <i class="fas fa-stop-circle me-2"></i>已停止
+                                            {% else %}
+                                                <i class="fas fa-exclamation-triangle me-2"></i>异常
+                                            {% endif %}
+                                        </h6>
+                                        <p class="mb-1">{{ status.message }}</p>
+                                        {% if status.pid %}
+                                            <small class="text-muted">PID: {{ status.pid }}</small>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        无法获取服务状态: {{ status.message }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cogs me-2"></i>服务控制
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="btn-group-vertical w-100" role="group">
+                                {% if status.success and status.status == 'running' %}
+                                    <button type="button" class="btn btn-outline-danger mb-2" onclick="stopService()">
+                                        <i class="fas fa-stop me-2"></i>停止服务
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning mb-2" onclick="restartService()">
+                                        <i class="fas fa-redo me-2"></i>重启服务
+                                    </button>
+                                {% else %}
+                                    <button type="button" class="btn btn-outline-success mb-2" onclick="startService()">
+                                        <i class="fas fa-play me-2"></i>启动服务
+                                    </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-info" onclick="refreshStatus()">
+                                    <i class="fas fa-sync-alt me-2"></i>刷新状态
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 服务配置 -->
+            {% if service_name == 'scraper' and config and config.success %}
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-cog me-2"></i>服务配置
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Telegram API ID</label>
+                                        <input type="text" class="form-control" id="api_id" value="{{ config.data.api_id or '' }}" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Telegram API Hash</label>
+                                        <input type="text" class="form-control" id="api_hash" value="{{ config.data.api_hash or '' }}" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">采集频道</label>
+                                        <textarea class="form-control" id="scrape_channels" rows="3" readonly>{{ config.data.scrape_channels or '' }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">采集数量限制</label>
+                                        <input type="number" class="form-control" id="scrape_limit" value="{{ config.data.scrape_limit or '10' }}" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">采集间隔（秒）</label>
+                                        <input type="number" class="form-control" id="scrape_interval" value="{{ config.data.scrape_interval or '300' }}" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">tgState URL</label>
+                                        <input type="text" class="form-control" id="tgstate_url" value="{{ config.data.tgstate_url or '' }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                配置信息从数据库动态读取，如需修改请前往<a href="{{ url_for('admin_config') }}">配置管理</a>页面。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 服务信息 -->
+            {% if service_name == 'tgstate' %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2"></i>服务信息
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                图片上传服务管理页面: <a href="http://{{ request.host.split(':')[0] }}:8088" target="_blank">http://{{ request.host.split(':')[0] }}:8088</a>
+                                <br><small class="text-muted">该页面提供图片上传测试和详细配置管理功能</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+function showSweetAlert(title, text, icon) {
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: icon,
+        confirmButtonText: '确定',
+        confirmButtonColor: icon === 'success' ? '#28a745' : 
+                          icon === 'error' ? '#dc3545' : '#007bff',
+        timer: icon === 'success' ? 2000 : null,
+        timerProgressBar: icon === 'success' ? true : false,
+        showConfirmButton: icon !== 'success'
+    });
+}
+
+function startService() {
+    Swal.fire({
+        title: '确认启动服务',
+        text: '确定要启动{{ service_name }}服务吗？',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '确定启动',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/services/{{ service_name }}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSweetAlert('成功', data.message, 'success');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showSweetAlert('失败', '启动失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showSweetAlert('错误', '启动失败，请重试', 'error');
+            });
+        }
+    });
+}
+
+function stopService() {
+    Swal.fire({
+        title: '确认停止服务',
+        text: '确定要停止{{ service_name }}服务吗？',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '确定停止',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/services/{{ service_name }}/stop`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSweetAlert('成功', data.message, 'success');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showSweetAlert('失败', '停止失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showSweetAlert('错误', '停止失败，请重试', 'error');
+            });
+        }
+    });
+}
+
+function restartService() {
+    Swal.fire({
+        title: '确认重启服务',
+        text: '确定要重启{{ service_name }}服务吗？',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '确定重启',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin/services/{{ service_name }}/restart`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSweetAlert('成功', data.message, 'success');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showSweetAlert('失败', '重启失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showSweetAlert('错误', '重启失败，请重试', 'error');
+            });
+        }
+    });
+}
+
+function refreshStatus() {
+    location.reload();
+}
+</script>
+{% endblock %}

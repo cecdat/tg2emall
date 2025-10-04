@@ -116,6 +116,64 @@ class ScraperManager:
         time.sleep(2)  # 等待进程完全停止
         return self.start_service()
     
+    def get_config_from_db(self):
+        """从数据库获取配置"""
+        try:
+            import aiomysql
+            import asyncio
+            
+            async def fetch_config():
+                conn = await aiomysql.connect(
+                    host=self.config['mysql_host'],
+                    port=3306,
+                    user=self.config['mysql_user'],
+                    password=self.config['mysql_password'],
+                    db=self.config['mysql_database'],
+                    charset='utf8mb4'
+                )
+                
+                cursor = await conn.cursor(aiomysql.DictCursor)
+                
+                # 获取Telegram相关配置
+                await cursor.execute("""
+                    SELECT config_key, config_value 
+                    FROM system_config 
+                    WHERE config_key IN ('telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'scrape_channels', 'scrape_limit', 'scrape_interval')
+                """)
+                
+                telegram_configs = await cursor.fetchall()
+                
+                # 获取tgState相关配置
+                await cursor.execute("""
+                    SELECT config_key, config_value 
+                    FROM system_config 
+                    WHERE config_key IN ('tgstate_token', 'tgstate_target', 'tgstate_pass', 'tgstate_mode', 'tgstate_url', 'tgstate_port')
+                """)
+                
+                tgstate_configs = await cursor.fetchall()
+                
+                await cursor.close()
+                conn.close()
+                
+                # 构建配置字典
+                config_dict = {}
+                for config in telegram_configs + tgstate_configs:
+                    config_dict[config['config_key']] = config['config_value']
+                
+                return config_dict
+            
+            # 运行异步函数
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                return loop.run_until_complete(fetch_config())
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            print(f"从数据库获取配置失败: {e}")
+            return {}
+    
     def update_config(self, new_config):
         """更新配置"""
         try:
@@ -164,9 +222,31 @@ def restart_service():
 def handle_config():
     """处理配置"""
     if request.method == 'GET':
+        # 从数据库获取配置
+        db_config = manager.get_config_from_db()
+        
+        # 合并环境变量配置和数据库配置
+        config = {
+            'api_id': db_config.get('telegram_api_id', manager.config.get('api_id', '')),
+            'api_hash': db_config.get('telegram_api_hash', manager.config.get('api_hash', '')),
+            'mysql_host': manager.config.get('mysql_host', 'mysql'),
+            'mysql_database': manager.config.get('mysql_database', 'tg2em'),
+            'mysql_user': manager.config.get('mysql_user', 'tg2emall'),
+            'mysql_password': manager.config.get('mysql_password', 'tg2emall'),
+            'tgstate_url': db_config.get('tgstate_url', manager.config.get('tgstate_url', 'http://tgstate:8088')),
+            'tgstate_token': db_config.get('tgstate_token', ''),
+            'tgstate_target': db_config.get('tgstate_target', ''),
+            'tgstate_pass': db_config.get('tgstate_pass', ''),
+            'tgstate_mode': db_config.get('tgstate_mode', 'p'),
+            'tgstate_port': db_config.get('tgstate_port', '8088'),
+            'scrape_channels': db_config.get('scrape_channels', ''),
+            'scrape_limit': db_config.get('scrape_limit', '10'),
+            'scrape_interval': db_config.get('scrape_interval', '300')
+        }
+        
         return jsonify({
             'success': True,
-            'data': manager.config
+            'data': config
         })
     
     elif request.method == 'POST':
