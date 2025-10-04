@@ -886,6 +886,12 @@ def admin_service_manage(service_name):
         logger.error(f"获取服务管理页面失败: {service_name}, 错误: {e}")
         return f"获取服务管理页面失败: {str(e)}", 500
 
+@app.route('/admin/telegram/verification')
+@login_required
+def telegram_verification():
+    """Telegram验证页面"""
+    return render_template('admin_telegram_verification.html')
+
 @app.route('/admin/telegram/verification/status')
 @login_required
 def telegram_verification_status():
