@@ -1339,20 +1339,20 @@ func (api *ManagementAPI) handleUploadPage(w http.ResponseWriter, r *http.Reques
                 results.forEach(result => {
                     if (result.success) {
                         successCount++;
-                        resultHtml += `<div style="margin: 10px 0;">
-                            <strong>${result.file}:</strong> 
-                            <a href="${result.url}" target="_blank">${result.url}</a>
-                        </div>`;
+                        resultHtml += '<div style="margin: 10px 0;">' +
+                            '<strong>' + result.file + ':</strong> ' +
+                            '<a href="' + result.url + '" target="_blank">' + result.url + '</a>' +
+                        '</div>';
                     } else {
                         errorCount++;
-                        resultHtml += `<div style="margin: 10px 0; color: #dc3545;">
-                            <strong>${result.file}:</strong> ${result.error}
-                        </div>`;
+                        resultHtml += '<div style="margin: 10px 0; color: #dc3545;">' +
+                            '<strong>' + result.file + ':</strong> ' + result.error +
+                        '</div>';
                     }
                 });
                 
                 if (successCount > 0) {
-                    showResult(`成功上传 ${successCount} 个文件${errorCount > 0 ? '，失败 ' + errorCount + ' 个' : ''}<br>` + resultHtml, 'success');
+                    showResult('成功上传 ' + successCount + ' 个文件' + (errorCount > 0 ? '，失败 ' + errorCount + ' 个' : '') + '<br>' + resultHtml, 'success');
                 } else {
                     showResult('所有文件上传失败<br>' + resultHtml, 'error');
                 }

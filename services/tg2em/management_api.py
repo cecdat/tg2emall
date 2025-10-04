@@ -229,6 +229,7 @@ def handle_config():
         config = {
             'api_id': db_config.get('telegram_api_id', manager.config.get('api_id', '')),
             'api_hash': db_config.get('telegram_api_hash', manager.config.get('api_hash', '')),
+            'telegram_phone': db_config.get('telegram_phone', ''),
             'mysql_host': manager.config.get('mysql_host', 'mysql'),
             'mysql_database': manager.config.get('mysql_database', 'tg2em'),
             'mysql_user': manager.config.get('mysql_user', 'tg2emall'),
