@@ -78,8 +78,8 @@ check_config() {
     # 询问前端端口配置
     if ! grep -q "FRONTEND_PORT" .env; then
         echo ""
-        read -p "请输入前端服务访问端口 (默认: 5000): " frontend_port
-        frontend_port=${frontend_port:-5000}
+        read -p "请输入前端服务访问端口 (默认: 6000): " frontend_port
+        frontend_port=${frontend_port:-6000}
         echo "FRONTEND_PORT=${frontend_port}" >> .env
         log_info "前端端口配置为: ${frontend_port}"
     else
@@ -226,7 +226,7 @@ show_status() {
     echo ""
     log_info "访问地址："
     # 获取前端端口
-    local frontend_port=5000
+    local frontend_port=6000
     if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
         frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
     fi
@@ -256,7 +256,7 @@ first_time_setup() {
     echo ""
     echo "2. 配置 Telegram 验证:"
     # 获取前端端口
-    local frontend_port=5000
+    local frontend_port=6000
     if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
         frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
     fi
@@ -268,7 +268,7 @@ first_time_setup() {
     echo ""
     echo "3. 检查配置文件:"
     echo "   - 编辑 .env 文件配置 tgState 参数"
-    echo "   - 访问 http://localhost:5000 查看前端展示"
+    echo "   - 访问 http://localhost:6000 查看前端展示"
     echo ""
     echo "4. 重启服务应用配置:"
     echo "   - docker-compose restart"

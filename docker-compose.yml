@@ -67,7 +67,7 @@ services:
     container_name: tg2em-frontend
     restart: always
     ports:
-      - "2000:2000"
+      - "6000:6000"
     environment:
       TZ: "Asia/Shanghai"
       MYSQL_HOST: "mysql"
@@ -89,8 +89,8 @@ services:
     container_name: tg2em-tgstate
     restart: always
     ports:
-      - "2001:2001"  # 管理服务端口
-      - "2002:2002"  # 上传服务端口
+      - "6001:6001"  # 管理服务端口
+      - "6002:6002"  # 上传服务端口
     environment:
       TZ: "Asia/Shanghai"
       # tgState 配置参数
@@ -98,8 +98,8 @@ services:
       TARGET: "${TGSTATE_TARGET:-}"
       PASS: "${TGSTATE_PASS:-none}"
       MODE: "${TGSTATE_MODE:-p}"
-      URL: "${TGSTATE_URL:-http://localhost:2001}"
-      PORT: "2001"
+      URL: "${TGSTATE_URL:-http://localhost:6001}"
+      PORT: "6001"
     # volumes: 图片存储在Telegram频道，无需本地存储
     networks:
       - tg2em-network
@@ -122,7 +122,7 @@ services:
       MYSQL_PASSWORD: "tg2emall"
       API_ID: "${API_ID}"
       API_HASH: "${API_HASH}"
-      TGSTATE_URL: "http://tgstate:2001"
+      TGSTATE_URL: "http://tgstate:6001"
     volumes:
       - ./data/uploads:/app/upload
       - ./data/telegram-sessions:/app/sessions

@@ -19,7 +19,7 @@ RUN useradd -m -u 1000 frontend && chown -R frontend:frontend /app
 USER frontend
 
 # 暴露端口
-EXPOSE 2000
+EXPOSE 6000
 
 # 启动命令
 CMD ["python", "app.py"]
