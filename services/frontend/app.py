@@ -168,7 +168,18 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('logged_in'):
+            # 记录未授权访问尝试
+            logger.warning(f"未授权访问尝试: {request.remote_addr} -> {request.path}")
             return redirect(url_for('admin_login'))
+        
+        # 检查会话是否过期（24小时）
+        if 'login_time' in session:
+            login_time = session['login_time']
+            if (datetime.now() - login_time).total_seconds() > 24 * 3600:
+                session.clear()
+                logger.info(f"会话过期，用户已登出: {session.get('username', 'unknown')}")
+                return redirect(url_for('admin_login'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -450,8 +461,22 @@ def article_detail(article_id):
 @app.route('/api/articles')
 def api_articles():
     """API: 获取文章列表"""
+    # 限制请求频率（简单实现）
+    client_ip = request.remote_addr
+    current_time = datetime.now()
+    
+    # 记录API访问（用于监控）
+    logger.debug(f"API访问: {client_ip} -> /api/articles")
+    
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
+    
+    # 限制分页参数
+    if page < 1:
+        page = 1
+    if limit > 100:  # 限制最大返回数量
+        limit = 100
+    
     offset = (page - 1) * limit
     
     articles = get_published_articles(limit, offset)
@@ -466,6 +491,13 @@ def api_articles():
 @app.route('/api/article/<int:article_id>')
 def api_article_detail(article_id):
     """API: 获取文章详情"""
+    # 记录API访问
+    logger.debug(f"API访问: {request.remote_addr} -> /api/article/{article_id}")
+    
+    # 验证文章ID
+    if article_id < 1:
+        return jsonify({'success': False, 'message': '无效的文章ID'}), 400
+    
     article = get_article_by_id(article_id)
     if not article:
         return jsonify({'success': False, 'message': '文章不存在'}), 404
@@ -493,7 +525,9 @@ def admin_login():
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['logged_in'] = True
             session['username'] = username
-            logger.info(f"管理员登录成功: {username}")
+            session['login_time'] = datetime.now()
+            session['login_ip'] = request.remote_addr
+            logger.info(f"管理员登录成功: {username} from {request.remote_addr}")
             return redirect(url_for('admin_index'))
         else:
             logger.warning(f"管理员登录失败: 用户名或密码错误 - {username}")
@@ -504,9 +538,10 @@ def admin_login():
 @app.route('/dm/logout')
 def admin_logout():
     """管理员登出"""
-    session.pop('logged_in', None)
-    session.pop('username', None)
-    logger.info("管理员已登出")
+    username = session.get('username', 'unknown')
+    login_ip = session.get('login_ip', 'unknown')
+    session.clear()  # 完全清除会话
+    logger.info(f"管理员已登出: {username} from {login_ip}")
     return redirect(url_for('admin_login'))
 
 @app.route('/admin')
@@ -999,23 +1034,26 @@ def telegram_verification_reset():
 @app.route('/api/stats')
 def api_stats():
     """API: 获取统计信息"""
+    # 记录API访问
+    logger.debug(f"API访问: {request.remote_addr} -> /api/stats")
+    
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             # 总文章数
-            cursor.execute("SELECT COUNT(*) as total FROM messages")
+            cursor.execute("SELECT COUNT(*) as total FROM messages WHERE is_deleted = 0")
             total_articles = cursor.fetchone()['total']
             
             # 今日文章数
             today = datetime.now().date()
             cursor.execute(
-                "SELECT COUNT(*) as today FROM messages WHERE DATE(created_at) = %s",
+                "SELECT COUNT(*) as today FROM messages WHERE DATE(created_at) = %s AND is_deleted = 0",
                 (today,)
             )
             today_articles = cursor.fetchone()['today']
             
             # 分类数
-            cursor.execute("SELECT COUNT(DISTINCT sort_id) as categories FROM messages WHERE sort_id IS NOT NULL")
+            cursor.execute("SELECT COUNT(DISTINCT sort_id) as categories FROM messages WHERE sort_id IS NOT NULL AND is_deleted = 0")
             total_categories = cursor.fetchone()['categories']
             
             return jsonify({
