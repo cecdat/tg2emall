@@ -271,12 +271,32 @@ def handle_scrape_start():
             'message': '采集服务未运行'
         })
     
-    # 这里需要实现HTTP代理逻辑
-    # 暂时返回错误，后续实现
-    return jsonify({
-        'success': False,
-        'message': '采集任务代理功能开发中'
-    })
+    try:
+        # 向采集服务发送启动请求
+        import requests
+        scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/scraper/start"
+        
+        response = requests.post(scraper_url, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify(result)
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'采集服务响应错误: {response.status_code}'
+            })
+            
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'message': '无法连接到采集服务'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'启动采集任务失败: {str(e)}'
+        })
 
 @app.route('/api/scrape/status', methods=['GET'])
 def handle_scrape_status():
@@ -287,12 +307,32 @@ def handle_scrape_status():
             'message': '采集服务未运行'
         })
     
-    # 这里需要实现HTTP代理逻辑
-    # 暂时返回错误，后续实现
-    return jsonify({
-        'success': False,
-        'message': '采集状态代理功能开发中'
-    })
+    try:
+        # 向采集服务发送状态查询请求
+        import requests
+        scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/scraper/status"
+        
+        response = requests.get(scraper_url, timeout=5)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify(result)
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'采集服务响应错误: {response.status_code}'
+            })
+            
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'message': '无法连接到采集服务'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'查询采集状态失败: {str(e)}'
+        })
 
 @app.route('/')
 def index():
