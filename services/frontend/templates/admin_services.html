@@ -220,10 +220,10 @@
                                 <div class="card-header">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="d-flex align-items-center">
-                                            {% if service.service_name == 'tgstate' %}
+                                            {% if service.service_name in ['tgstate', 'tgstate-management', 'tgstate-service'] %}
                                                 <i class="fas fa-cloud-upload-alt text-success me-2"></i>
                                                 <h5 class="mb-0">图片上传服务</h5>
-                                            {% elif service.service_name == 'scraper' %}
+                                            {% elif service.service_name in ['scraper', 'scraper-management', 'scraper-service'] %}
                                                 <i class="fab fa-telegram text-primary me-2"></i>
                                                 <h5 class="mb-0">采集服务</h5>
                                             {% elif service.service_name == 'mysql' %}

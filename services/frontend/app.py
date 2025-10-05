@@ -908,7 +908,7 @@ def admin_service_manage(service_name):
     """服务管理页面（带认证）"""
     try:
         # 验证服务名称
-        valid_services = ['tgstate', 'scraper']
+        valid_services = ['tgstate', 'tgstate-management', 'tgstate-service', 'scraper', 'scraper-management', 'scraper-service']
         if service_name not in valid_services:
             return "无效的服务名称", 404
         
@@ -918,7 +918,7 @@ def admin_service_manage(service_name):
         
         # 获取服务配置（如果是采集服务）
         config_result = None
-        if service_name == 'scraper':
+        if service_name in ['scraper', 'scraper-management', 'scraper-service']:
             try:
                 import requests
                 url = f"{controller.service_urls[service_name]}/api/management/config"
