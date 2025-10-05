@@ -18,12 +18,16 @@ class ServiceController:
         # 服务名称映射：前端使用的名称 -> 实际的服务名称
         self.service_name_mapping = {
             'tgstate': 'tgstate-management',  # 前端使用tgstate，实际管理tgstate-management
+            'tgstate-service': 'tgstate-management',  # 兼容tgstate-service名称
             'scraper': 'scraper-management',  # 前端使用scraper，实际管理scraper-management
+            'scraper-service': 'scraper-management',  # 兼容scraper-service名称
         }
         
         self.service_urls = {
             'scraper': 'http://tg2em-scrape:5001',  # 管理服务端口
+            'scraper-service': 'http://tg2em-scrape:5001',  # 兼容scraper-service名称
             'tgstate': 'http://tgstate:8088',
+            'tgstate-service': 'http://tgstate:8088',  # 兼容tgstate-service名称
             'mysql': 'http://mysql:3306',  # 外部服务，通过端口检查
             'nginx-proxy-manager': 'http://nginx-proxy-manager:80'  # 外部服务，通过端口检查
         }
@@ -44,7 +48,7 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口获取状态
-            if service_name in ['scraper', 'tgstate']:
+            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
                 url = f"{self.service_urls[service_name]}/api/management/status"
                 response = requests.get(url, timeout=5)
                 
@@ -95,7 +99,7 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口启动
-            if service_name in ['scraper', 'tgstate']:
+            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
                 url = f"{self.service_urls[service_name]}/api/management/start"
                 response = requests.post(url, timeout=10)
                 
@@ -131,7 +135,7 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口停止
-            if service_name in ['scraper', 'tgstate']:
+            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
                 url = f"{self.service_urls[service_name]}/api/management/stop"
                 response = requests.post(url, timeout=10)
                 
@@ -166,7 +170,7 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口重启
-            if service_name in ['scraper', 'tgstate']:
+            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
                 url = f"{self.service_urls[service_name]}/api/management/restart"
                 response = requests.post(url, timeout=15)
                 

@@ -25,7 +25,9 @@ try:
         """获取数据库中的服务名称"""
         service_mapping = {
             'tgstate': 'tgstate-management',
+            'tgstate-service': 'tgstate-management',  # 兼容tgstate-service名称
             'scraper': 'scraper-management',
+            'scraper-service': 'scraper-management',  # 兼容scraper-service名称
         }
         return service_mapping.get(frontend_service_name, frontend_service_name)
     

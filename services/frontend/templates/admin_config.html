@@ -310,6 +310,18 @@
                                                 {% elif config.config_key == 'tgstate_service_port' %}
                                                     图片服务业务端口
                                                     <br><strong>示例:</strong> 8089
+                                                {% elif config.config_key == 'frontend_domain' %}
+                                                    前端域名
+                                                    <br><strong>示例:</strong> 237890.xyz
+                                                {% elif config.config_key == 'frontend_admin_path' %}
+                                                    后台管理路径
+                                                    <br><strong>示例:</strong> /dm
+                                                {% elif config.config_key == 'img_domain' %}
+                                                    图片服务域名
+                                                    <br><strong>示例:</strong> img.237890.xyz
+                                                {% elif config.config_key == 'img_admin_path' %}
+                                                    图片服务管理路径
+                                                    <br><strong>示例:</strong> /dm
                                                 {% else %}
                                                     {{ config.description }}
                                                 {% endif %}
@@ -328,15 +340,15 @@
                                                     </label>
                                                 </div>
                                             {% else %}
-                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_pass', 'tgstate_url'] %}
+                                                {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_pass', 'tgstate_url', 'frontend_domain', 'img_domain'] %}
                                                     <input type="text" 
                                                            class="form-control" 
                                                            id="{{ config.config_key }}"
                                                            name="{{ config.config_key }}"
                                                            value="{{ config.config_value }}"
-                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% elif config.config_key == 'tgstate_pass' %}例如: mypassword 或 none{% elif config.config_key == 'tgstate_url' %}例如: http://localhost:8088{% endif %}">
+                                                           placeholder="{% if config.config_key == 'tgstate_token' %}例如: 1234567890:ABCdef...{% elif config.config_key == 'telegram_api_id' %}例如: 12345678{% elif config.config_key == 'telegram_api_hash' %}例如: abcdef1234567890...{% elif config.config_key == 'telegram_phone' %}例如: +8613800138000{% elif config.config_key == 'tgstate_pass' %}例如: mypassword 或 none{% elif config.config_key == 'tgstate_url' %}例如: https://img.237890.xyz{% elif config.config_key == 'frontend_domain' %}例如: 237890.xyz{% elif config.config_key == 'img_domain' %}例如: img.237890.xyz{% endif %}">
 
-                                                    {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_url'] %}
+                                                    {% if config.config_key in ['tgstate_token', 'telegram_api_id', 'telegram_api_hash', 'telegram_phone', 'tgstate_url', 'frontend_domain', 'img_domain'] %}
                                                     <small class="form-text text-muted">
                                                         <i class="fas fa-info-circle me-1"></i>
                                                         敏感信息，请注意保护
