@@ -175,7 +175,11 @@ def login_required(f):
         # 检查会话是否过期（24小时）
         if 'login_time' in session:
             login_time = session['login_time']
-            if (datetime.now() - login_time).total_seconds() > 24 * 3600:
+            # 确保两个datetime都是naive类型
+            if hasattr(login_time, 'tzinfo') and login_time.tzinfo is not None:
+                login_time = login_time.replace(tzinfo=None)
+            current_time = datetime.now()
+            if (current_time - login_time).total_seconds() > 24 * 3600:
                 session.clear()
                 logger.info(f"会话过期，用户已登出: {session.get('username', 'unknown')}")
                 return redirect(url_for('admin_login'))
