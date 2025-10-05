@@ -48,7 +48,7 @@ func main() {
 	flag.StringVar(&config.Target, "target", "", "Target Channel")
 	flag.StringVar(&config.Pass, "pass", "none", "Access Password")
 	flag.StringVar(&config.Mode, "mode", "p", "Service Mode")
-	flag.StringVar(&config.URL, "url", "http://localhost:8088", "Base URL")
+	flag.StringVar(&config.URL, "url", "http://localhost:6001", "Base URL")
 	flag.StringVar(&config.Port, "port", "6002", "Service Port")
 	flag.Parse()
 	
