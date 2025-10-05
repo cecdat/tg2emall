@@ -24,10 +24,10 @@ class ServiceController:
         }
         
         self.service_urls = {
-            'scraper': 'http://tg2em-scrape:5001',  # 管理服务端口
-            'scraper-service': 'http://tg2em-scrape:5001',  # 兼容scraper-service名称
-            'tgstate': 'http://tgstate:8088',
-            'tgstate-service': 'http://tgstate:8088',  # 兼容tgstate-service名称
+            'scraper': 'http://tg2em-scrape:2003',  # 管理服务端口
+            'scraper-service': 'http://tg2em-scrape:2003',  # 兼容scraper-service名称
+            'tgstate': 'http://tgstate:2001',
+            'tgstate-service': 'http://tgstate:2001',  # 兼容tgstate-service名称
             'mysql': 'http://mysql:3306',  # 外部服务，通过端口检查
             'nginx-proxy-manager': 'http://nginx-proxy-manager:80'  # 外部服务，通过端口检查
         }

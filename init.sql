@@ -34,7 +34,6 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('tgstate_pass', 'none', 'string', 'tgState 图床访问密码（设置访问保护）', 'tgstate'),
 ('tgstate_mode', 'p', 'string', 'tgState 运行模式（p=API模式，m=文件服务模式）', 'tgstate'),
 ('tgstate_url', 'https://img.237890.xyz', 'string', 'tgState 基础URL地址', 'tgstate'),
-('tgstate_port', '8088', 'number', 'tgState 服务端口', 'tgstate'),
 
 -- Telegram 采集配置
 ('telegram_api_id', '', 'string', 'Telegram API ID（从 https://my.telegram.org 获取）', 'telegram'),
@@ -50,20 +49,14 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('image_compression_format', 'webp', 'string', '图片压缩格式（webp或jpeg）', 'image'),
 
 -- 双服务架构配置
-('scraper_management_port', '5001', 'number', '采集服务管理端口', 'scraper'),
+('scraper_management_port', '2003', 'number', '采集服务管理端口', 'scraper'),
 ('scraper_service_port', '5002', 'number', '采集服务业务端口', 'scraper'),
-('tgstate_management_port', '8088', 'number', '图片服务管理端口', 'tgstate'),
-('tgstate_service_port', '8089', 'number', '图片服务业务端口', 'tgstate'),
+('tgstate_management_port', '2001', 'number', '图片服务管理端口', 'tgstate'),
+('tgstate_upload_port', '2002', 'number', '图片上传服务端口', 'tgstate'),
 
 -- 管理员配置
 ('admin_password', 'admin', 'string', '管理员密码', 'admin'),
-('admin_captcha', '2025', 'string', '管理员验证码', 'admin'),
-
--- 域名配置
-('frontend_domain', '237890.xyz', 'string', '前端域名', 'domain'),
-('frontend_admin_path', '/dm', 'string', '后台管理路径', 'domain'),
-('img_domain', 'img.237890.xyz', 'string', '图片服务域名', 'domain'),
-('img_admin_path', '/dm', 'string', '图片服务管理路径', 'domain');
+('admin_captcha', '2025', 'string', '管理员验证码', 'admin');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表

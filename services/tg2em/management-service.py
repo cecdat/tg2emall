@@ -40,7 +40,7 @@ class ScraperManagementService:
             'mysql_user': os.getenv('MYSQL_USER', 'tg2emall'),
             'mysql_password': os.getenv('MYSQL_PASSWORD', 'tg2emall'),
             'scraper_port': os.getenv('SCRAPER_PORT', '5002'),
-            'management_port': os.getenv('MANAGEMENT_PORT', '5001'),
+            'management_port': os.getenv('MANAGEMENT_PORT', '2003'),
         }
         
         # 尝试从数据库获取Telegram配置

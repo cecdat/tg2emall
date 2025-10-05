@@ -75,6 +75,9 @@ func main() {
 	// 设置路由
 	router := mux.NewRouter()
 	
+	// 密码验证中间件
+	router.Use(passwordAuthMiddleware)
+	
 	// 管理API路由
 	router.HandleFunc("/api/management/status", handleStatus).Methods("GET")
 	router.HandleFunc("/api/management/start", handleStart).Methods("POST")
@@ -91,7 +94,7 @@ func main() {
 	
 	// 启动HTTP服务器
 	server := &http.Server{
-		Addr:    ":8088",
+		Addr:    ":2001",
 		Handler: router,
 	}
 	
@@ -392,4 +395,171 @@ func (ms *ManagementService) StopUploadService() {
 		ms.uploadService = nil
 		ms.isRunning = false
 	}
+}
+
+// passwordAuthMiddleware 密码验证中间件
+func passwordAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 获取配置的密码
+		pass := os.Getenv("PASS")
+		if pass == "" || pass == "none" {
+			// 没有设置密码，直接通过
+			next.ServeHTTP(w, r)
+			return
+		}
+		
+		// 检查Cookie中的密码
+		cookie, err := r.Cookie("tgstate_auth")
+		if err == nil && cookie.Value == pass {
+			// 密码正确，直接通过
+			next.ServeHTTP(w, r)
+			return
+		}
+		
+		// 检查URL参数中的密码
+		if r.URL.Query().Get("p") == pass {
+			// 密码正确，设置Cookie并重定向
+			http.SetCookie(w, &http.Cookie{
+				Name:     "tgstate_auth",
+				Value:    pass,
+				Path:     "/",
+				MaxAge:   3600 * 24, // 24小时
+				HttpOnly: true,
+			})
+			next.ServeHTTP(w, r)
+			return
+		}
+		
+		// 密码错误，显示密码输入页面
+		if r.URL.Path == "/" {
+			showPasswordPage(w, r)
+			return
+		}
+		
+		// 其他页面返回401
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, `{"error":"需要密码验证","success":false}`)
+	})
+}
+
+// showPasswordPage 显示密码输入页面
+func showPasswordPage(w http.ResponseWriter, r *http.Request) {
+	html := `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tgState 图片上传服务 - 密码验证</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 密码验证</h1>
+            <p>请输入访问密码以继续</p>
+        </div>
+        <form onsubmit="return verifyPassword(event)">
+            <div class="form-group">
+                <label for="password">访问密码</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn">验证密码</button>
+        </form>
+        <div id="error" class="error">密码错误，请重试</div>
+    </div>
+    <script>
+        function verifyPassword(event) {
+            event.preventDefault();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            
+            // 重定向到带密码参数的URL
+            window.location.href = '/?p=' + encodeURIComponent(password);
+            return false;
+        }
+        
+        // 检查URL参数中是否有错误
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === '1') {
+            document.getElementById('error').style.display = 'block';
+        }
+    </script>
+</body>
+</html>`
+	
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, html)
 }
