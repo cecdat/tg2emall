@@ -21,6 +21,14 @@ import hashlib
 try:
     from service_controller import ServiceController
     
+    def get_db_service_name(frontend_service_name):
+        """获取数据库中的服务名称"""
+        service_mapping = {
+            'tgstate': 'tgstate-management',
+            'scraper': 'scraper-management',
+        }
+        return service_mapping.get(frontend_service_name, frontend_service_name)
+    
     def start_service_via_docker(service_name):
         """通过服务管理接口启动服务"""
         if ServiceController is None:
@@ -824,6 +832,7 @@ def admin_service_start(service_name):
         
         if result['success']:
             # 更新数据库状态
+            db_service_name = get_db_service_name(service_name)
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
@@ -831,7 +840,7 @@ def admin_service_start(service_name):
                     SET status = 'running', last_start = NOW(), last_check = NOW(),
                         message = %s, pid = %s
                     WHERE service_name = %s
-                """, (result['message'], result.get('pid'), service_name))
+                """, (result['message'], result.get('pid'), db_service_name))
                 conn.commit()
             
             logger.info(f"服务启动成功: {service_name}")
@@ -853,6 +862,7 @@ def admin_service_stop(service_name):
         
         if result['success']:
             # 更新数据库状态
+            db_service_name = get_db_service_name(service_name)
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
@@ -860,7 +870,7 @@ def admin_service_stop(service_name):
                     SET status = 'stopped', last_stop = NOW(), last_check = NOW(),
                         message = %s, pid = NULL
                     WHERE service_name = %s
-                """, (result['message'], service_name))
+                """, (result['message'], db_service_name))
                 conn.commit()
             
             logger.info(f"服务停止成功: {service_name}")

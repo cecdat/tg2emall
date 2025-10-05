@@ -15,6 +15,12 @@ class ServiceController:
     """服务控制器（HTTP API模式）"""
     
     def __init__(self, compose_dir: str = "/app/data"):
+        # 服务名称映射：前端使用的名称 -> 实际的服务名称
+        self.service_name_mapping = {
+            'tgstate': 'tgstate-management',  # 前端使用tgstate，实际管理tgstate-management
+            'scraper': 'scraper-management',  # 前端使用scraper，实际管理scraper-management
+        }
+        
         self.service_urls = {
             'scraper': 'http://tg2em-scrape:5001',  # 管理服务端口
             'tgstate': 'http://tgstate:8088',
@@ -32,6 +38,9 @@ class ServiceController:
                 'port': None,
                 'message': f'未知服务: {service_name}'
             }
+        
+        # 获取数据库中的实际服务名称
+        db_service_name = self.service_name_mapping.get(service_name, service_name)
         
         try:
             # 业务服务通过管理接口获取状态

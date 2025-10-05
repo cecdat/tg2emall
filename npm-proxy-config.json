@@ -1,0 +1,86 @@
+{
+  "proxy_hosts": [
+    {
+      "domain_names": ["237890.xyz", "www.237890.xyz"],
+      "forward_host": "frontend",
+      "forward_port": 5000,
+      "forward_scheme": "http",
+      "certificate_id": 1,
+      "ssl_forced": true,
+      "http2_support": true,
+      "block_exploits": true,
+      "caching_enabled": false,
+      "allow_websocket_upgrade": true,
+      "access_list_id": 0,
+      "advanced_config": "",
+      "enabled": true,
+      "meta": {
+        "letsencrypt_agree": true,
+        "nginx_online": true,
+        "nginx_err": null
+      }
+    },
+    {
+      "domain_names": ["img.237890.xyz"],
+      "forward_host": "tgstate",
+      "forward_port": 8088,
+      "forward_scheme": "http",
+      "certificate_id": 1,
+      "ssl_forced": true,
+      "http2_support": true,
+      "block_exploits": true,
+      "caching_enabled": false,
+      "allow_websocket_upgrade": true,
+      "access_list_id": 0,
+      "advanced_config": "",
+      "enabled": true,
+      "meta": {
+        "letsencrypt_agree": true,
+        "nginx_online": true,
+        "nginx_err": null
+      }
+    }
+  ],
+  "redirection_hosts": [
+    {
+      "domain_names": ["www.237890.xyz"],
+      "forward_scheme": "https",
+      "forward_host": "237890.xyz",
+      "forward_port": 443,
+      "enabled": true,
+      "meta": {
+        "letsencrypt_agree": true,
+        "nginx_online": true,
+        "nginx_err": null
+      }
+    }
+  ],
+  "certificates": [
+    {
+      "id": 1,
+      "nice_name": "237890.xyz",
+      "domain_names": ["237890.xyz", "www.237890.xyz", "img.237890.xyz"],
+      "expires_on": "2026-01-01T00:00:00.000Z",
+      "meta": {
+        "letsencrypt_email": "admin@237890.xyz",
+        "letsencrypt_agree": true,
+        "nginx_online": true,
+        "nginx_err": null
+      },
+      "created_on": "2025-01-01T00:00:00.000Z",
+      "modified_on": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "access_lists": [],
+  "dead_hosts": [],
+  "streams": [],
+  "settings": {
+    "email": "admin@237890.xyz",
+    "letsencrypt_agree": true,
+    "nginx_online": true,
+    "nginx_err": null,
+    "nginx_version": "1.21.6",
+    "nginx_online": true,
+    "nginx_err": null
+  }
+}

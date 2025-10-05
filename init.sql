@@ -33,7 +33,7 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('tgstate_target', '', 'string', 'tgState 图床上传的目标频道（@channel_name）', 'tgstate'),
 ('tgstate_pass', 'none', 'string', 'tgState 图床访问密码（设置访问保护）', 'tgstate'),
 ('tgstate_mode', 'p', 'string', 'tgState 运行模式（p=API模式，m=文件服务模式）', 'tgstate'),
-('tgstate_url', 'http://localhost:8088', 'string', 'tgState 基础URL地址', 'tgstate'),
+('tgstate_url', 'https://img.237890.xyz', 'string', 'tgState 基础URL地址', 'tgstate'),
 ('tgstate_port', '8088', 'number', 'tgState 服务端口', 'tgstate'),
 
 -- Telegram 采集配置
@@ -57,7 +57,13 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 
 -- 管理员配置
 ('admin_password', 'admin', 'string', '管理员密码', 'admin'),
-('admin_captcha', '2025', 'string', '管理员验证码', 'admin');
+('admin_captcha', '2025', 'string', '管理员验证码', 'admin'),
+
+-- 域名配置
+('frontend_domain', '237890.xyz', 'string', '前端域名', 'domain'),
+('frontend_admin_path', '/dm', 'string', '后台管理路径', 'domain'),
+('img_domain', 'img.237890.xyz', 'string', '图片服务域名', 'domain'),
+('img_admin_path', '/dm', 'string', '图片服务管理路径', 'domain');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表

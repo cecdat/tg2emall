@@ -292,6 +292,24 @@
                                                 {% elif config.config_key == 'image_compression_format' %}
                                                     图片压缩格式，webp体积更小，jpeg兼容性更好
                                                     <br><strong>示例:</strong> webp 或 jpeg
+                                                {% elif config.config_key == 'admin_password' %}
+                                                    管理员登录密码
+                                                    <br><strong>示例:</strong> admin
+                                                {% elif config.config_key == 'admin_captcha' %}
+                                                    管理员登录验证码
+                                                    <br><strong>示例:</strong> 2025
+                                                {% elif config.config_key == 'scraper_management_port' %}
+                                                    采集服务管理端口
+                                                    <br><strong>示例:</strong> 5001
+                                                {% elif config.config_key == 'scraper_service_port' %}
+                                                    采集服务业务端口
+                                                    <br><strong>示例:</strong> 5002
+                                                {% elif config.config_key == 'tgstate_management_port' %}
+                                                    图片服务管理端口
+                                                    <br><strong>示例:</strong> 8088
+                                                {% elif config.config_key == 'tgstate_service_port' %}
+                                                    图片服务业务端口
+                                                    <br><strong>示例:</strong> 8089
                                                 {% else %}
                                                     {{ config.description }}
                                                 {% endif %}

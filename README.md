@@ -85,10 +85,18 @@ docker-compose --profile services up -d tgstate tg2em-scrape
 ## ⚙️ 配置指南
 
 ### 🔐 **管理后台访问**
-- **访问地址**: `http://your-server:5000/dm`
+- **访问地址**: `https://237890.xyz/dm`
 - **默认账号**: admin 
 - **默认密码**: admin
 - **验证码**: 2025 (固定验证码)
+
+### 🌐 **域名配置**
+- **主站**: `https://237890.xyz`
+- **管理后台**: `https://237890.xyz/dm`
+- **图片服务**: `https://img.237890.xyz`
+- **图片管理**: `https://img.237890.xyz/dm`
+- **强制HTTPS**: 所有域名强制使用HTTPS访问
+- **www重定向**: `www.237890.xyz` 自动重定向到 `237890.xyz`
 
 ### 📱 **Telegram 配置**
 在管理后台"配置管理"页面配置：
@@ -111,7 +119,7 @@ tgstate_token:        # Telegram Bot Token
 tgstate_target:       # 目标频道 @channel_name
 tgstate_pass:         none (访问密码)
 tgstate_mode:         p (API模式)
-tgstate_url:          http://your-domain:8088 (基础URL)
+tgstate_url:          https://img.237890.xyz (基础URL)
 tgstate_port:         8088 (管理服务端口)
 ```
 
