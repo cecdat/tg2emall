@@ -14,6 +14,9 @@ RUN go mod download
 # 复制源代码
 COPY . .
 
+# 整理模块依赖
+RUN go mod tidy
+
 # 编译管理服务和上传服务
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management-service management-service.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upload-service upload-service.go
