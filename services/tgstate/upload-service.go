@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -195,7 +195,7 @@ func (us *UploadService) handleImageUpload(w http.ResponseWriter, r *http.Reques
 	}
 	
 	// 上传到Telegram频道
-	imgPath := utils.UpDocument(utils.TgFileData(filename, fileData))
+	imgPath := utils.UpDocument(utils.TgFileData(filename, bytes.NewReader(fileData)))
 	if imgPath == "" || imgPath == conf.FileRoute {
 		us.sendErrorResponse(w, "Failed to upload to Telegram", 500)
 		return
