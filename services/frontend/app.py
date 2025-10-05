@@ -902,6 +902,39 @@ def admin_service_restart(service_name):
         logger.error(f"重启服务失败: {service_name}, 错误: {e}")
         return jsonify({'success': False, 'message': '重启服务失败'}), 500
 
+@app.route('/admin/services/<service_name>/status', methods=['GET'])
+@login_required
+def admin_service_status(service_name):
+    """获取服务状态"""
+    try:
+        # 验证服务名称
+        valid_services = ['tgstate', 'tgstate-management', 'tgstate-service', 'scraper', 'scraper-management', 'scraper-service']
+        if service_name not in valid_services:
+            return jsonify({'success': False, 'message': '无效的服务名称'}), 404
+        
+        # 获取服务状态
+        controller = ServiceController()
+        status_result = controller.get_service_status(service_name)
+        
+        if status_result['success']:
+            return jsonify({
+                'success': True,
+                'status': status_result['status'],
+                'pid': status_result['pid'],
+                'port': status_result['port'],
+                'message': status_result['message']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'status': 'error',
+                'message': status_result['message']
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"获取服务状态失败: {service_name}, 错误: {e}")
+        return jsonify({'success': False, 'message': '获取服务状态失败'}), 500
+
 @app.route('/admin/services/manage/<service_name>')
 @login_required
 def admin_service_manage(service_name):
