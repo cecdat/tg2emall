@@ -29,8 +29,9 @@ class ScraperManagementService:
         self.config = self.load_config()
         
     def load_config(self) -> Dict[str, Any]:
-        """从环境变量加载配置"""
-        return {
+        """从环境变量和数据库加载配置"""
+        # 基础配置从环境变量获取
+        config = {
             'api_id': os.getenv('API_ID', ''),
             'api_hash': os.getenv('API_HASH', ''),
             'phone_number': os.getenv('PHONE_NUMBER', ''),
@@ -41,6 +42,47 @@ class ScraperManagementService:
             'scraper_port': os.getenv('SCRAPER_PORT', '5002'),
             'management_port': os.getenv('MANAGEMENT_PORT', '5001'),
         }
+        
+        # 尝试从数据库获取Telegram配置
+        try:
+            import pymysql
+            conn = pymysql.connect(
+                host=config['mysql_host'],
+                port=3306,
+                user=config['mysql_user'],
+                password=config['mysql_password'],
+                database=config['mysql_database'],
+                charset='utf8mb4'
+            )
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 获取Telegram配置
+            cursor.execute("""
+                SELECT config_key, config_value FROM system_config 
+                WHERE config_key IN ('telegram_api_id', 'telegram_api_hash', 'telegram_phone')
+            """)
+            results = cursor.fetchall()
+            
+            for result in results:
+                if result['config_key'] == 'telegram_api_id':
+                    config['api_id'] = result['config_value']
+                elif result['config_key'] == 'telegram_api_hash':
+                    config['api_hash'] = result['config_value']
+                elif result['config_key'] == 'telegram_phone':
+                    config['phone_number'] = result['config_value']
+            
+            conn.close()
+            print(f"✅ 从数据库获取Telegram配置: API_ID={config['api_id'][:4]}***, Phone={config['phone_number']}")
+            
+        except Exception as e:
+            print(f"⚠️ 从数据库获取配置失败，使用环境变量: {e}")
+        
+        return config
+    
+    def reload_config(self) -> Dict[str, Any]:
+        """重新加载配置"""
+        self.config = self.load_config()
+        return self.config
     
     def start_scraper_service(self) -> Dict[str, Any]:
         """启动采集服务"""
@@ -195,7 +237,8 @@ class ScraperManagementService:
     def update_config(self, new_config: Dict[str, Any]) -> Dict[str, Any]:
         """更新配置"""
         try:
-            self.config.update(new_config)
+            # 重新从数据库加载配置
+            self.config = self.load_config()
             
             # 如果采集服务正在运行，重启以应用新配置
             if self.is_running:
