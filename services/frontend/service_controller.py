@@ -53,13 +53,13 @@ class ServiceController:
         try:
             # 业务服务通过管理接口获取状态
             if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
-                # 根据服务类型选择不同的API端点
-                if service_name in ['scraper-management', 'tgstate-management']:
-                    # 管理服务
-                    url = f"{self.service_urls[service_name]}/api/management/status"
-                else:
-                    # 业务服务
-                    url = f"{self.service_urls[service_name]}/api/status"
+                # 统一通过管理服务获取状态
+                if service_name in ['scraper', 'scraper-service', 'scraper-management']:
+                    # 采集服务相关，都通过管理服务获取状态
+                    url = f"{self.service_urls['scraper-management']}/api/management/status"
+                elif service_name in ['tgstate', 'tgstate-service', 'tgstate-management']:
+                    # 图片服务相关，都通过管理服务获取状态
+                    url = f"{self.service_urls['tgstate-management']}/api/management/status"
                 
                 response = requests.get(url, timeout=5)
                 
@@ -111,13 +111,13 @@ class ServiceController:
         try:
             # 业务服务通过管理接口启动
             if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
-                # 根据服务类型选择不同的API端点
-                if service_name in ['scraper-management', 'tgstate-management']:
-                    # 管理服务
-                    url = f"{self.service_urls[service_name]}/api/management/start"
-                else:
-                    # 业务服务
-                    url = f"{self.service_urls[service_name]}/api/start"
+                # 统一通过管理服务启动
+                if service_name in ['scraper', 'scraper-service', 'scraper-management']:
+                    # 采集服务相关，都通过管理服务启动
+                    url = f"{self.service_urls['scraper-management']}/api/management/start"
+                elif service_name in ['tgstate', 'tgstate-service', 'tgstate-management']:
+                    # 图片服务相关，都通过管理服务启动
+                    url = f"{self.service_urls['tgstate-management']}/api/management/start"
                 
                 response = requests.post(url, timeout=10)
                 
@@ -154,13 +154,13 @@ class ServiceController:
         try:
             # 业务服务通过管理接口停止
             if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
-                # 根据服务类型选择不同的API端点
-                if service_name in ['scraper-management', 'tgstate-management']:
-                    # 管理服务
-                    url = f"{self.service_urls[service_name]}/api/management/stop"
-                else:
-                    # 业务服务
-                    url = f"{self.service_urls[service_name]}/api/stop"
+                # 统一通过管理服务停止
+                if service_name in ['scraper', 'scraper-service', 'scraper-management']:
+                    # 采集服务相关，都通过管理服务停止
+                    url = f"{self.service_urls['scraper-management']}/api/management/stop"
+                elif service_name in ['tgstate', 'tgstate-service', 'tgstate-management']:
+                    # 图片服务相关，都通过管理服务停止
+                    url = f"{self.service_urls['tgstate-management']}/api/management/stop"
                 
                 response = requests.post(url, timeout=10)
                 
@@ -196,13 +196,13 @@ class ServiceController:
         try:
             # 业务服务通过管理接口重启
             if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
-                # 根据服务类型选择不同的API端点
-                if service_name in ['scraper-management', 'tgstate-management']:
-                    # 管理服务
-                    url = f"{self.service_urls[service_name]}/api/management/restart"
-                else:
-                    # 业务服务
-                    url = f"{self.service_urls[service_name]}/api/restart"
+                # 统一通过管理服务重启
+                if service_name in ['scraper', 'scraper-service', 'scraper-management']:
+                    # 采集服务相关，都通过管理服务重启
+                    url = f"{self.service_urls['scraper-management']}/api/management/restart"
+                elif service_name in ['tgstate', 'tgstate-service', 'tgstate-management']:
+                    # 图片服务相关，都通过管理服务重启
+                    url = f"{self.service_urls['tgstate-management']}/api/management/restart"
                 
                 response = requests.post(url, timeout=15)
                 
