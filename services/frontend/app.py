@@ -165,32 +165,40 @@ def update_services_status_to_db():
     except Exception as e:
         logger.error(f"更新服务状态到数据库失败: {e}")
 
-    def start_service_via_docker(service_name):
-        """通过服务管理接口启动服务"""
-        if ServiceController is None:
-            return {'success': False, 'message': 'ServiceController未初始化'}
-        
-        controller = ServiceController()
-        return controller.start_service(service_name)
+def start_service_via_docker(service_name):
+    """通过服务管理接口启动服务"""
+    if ServiceController is None:
+        return {'success': False, 'message': 'ServiceController未初始化'}
     
-    def stop_service_via_docker(service_name):
-        """通过服务管理接口停止服务"""
-        if ServiceController is None:
-            return {'success': False, 'message': 'ServiceController未初始化'}
-        
-        controller = ServiceController()
-        return controller.stop_service(service_name)
-    
-    def check_service_status_via_docker(service_name):
-        """通过服务管理接口检查服务状态"""
-        if ServiceController is None:
-            return {'success': False, 'status': 'error', 'message': 'ServiceController未初始化'}
-        
-        controller = ServiceController()
-        return controller.get_service_status(service_name)
+    controller = ServiceController()
+    return controller.start_service(service_name)
 
-except ImportError:
-    # 如果导入失败，使用模拟实现
+def stop_service_via_docker(service_name):
+    """通过服务管理接口停止服务"""
+    if ServiceController is None:
+        return {'success': False, 'message': 'ServiceController未初始化'}
+    
+    controller = ServiceController()
+    return controller.stop_service(service_name)
+
+def check_service_status_via_docker(service_name):
+    """通过服务管理接口检查服务状态"""
+    if ServiceController is None:
+        return {'success': False, 'status': 'error', 'message': 'ServiceController未初始化'}
+    
+    controller = ServiceController()
+    return controller.get_service_status(service_name)
+
+def restart_service_via_docker(service_name):
+    """重启服务"""
+    if ServiceController is None:
+        return {'success': False, 'message': 'ServiceController未初始化'}
+    
+    controller = ServiceController()
+    return controller.restart_service(service_name)
+
+# 如果导入失败，使用模拟实现
+if ServiceController is None:
     def start_service_via_docker(service_name):
         """通过Docker启动服务（模拟实现）"""
         try:
