@@ -89,26 +89,7 @@ URL: "${TGSTATE_URL:-http://tgstate:8001}"
 
 ## 快速修复步骤
 
-### Windows 用户
-
-1. **运行诊断脚本**（可选）：
-   ```powershell
-   .\diagnose_tgstate.ps1
-   ```
-
-2. **运行修复脚本**：
-   ```powershell
-   .\fix_tgstate.ps1
-   ```
-
-   该脚本会自动：
-   - 创建 .env 文件（如果不存在）
-   - 停止现有的 tgstate 容器
-   - 重新构建镜像
-   - 启动服务
-   - 测试管理接口
-
-### Linux/Mac 用户
+### Linux 服务器用户
 
 1. **运行诊断脚本**（可选）：
    ```bash
@@ -177,10 +158,6 @@ docker-compose ps tgstate
 ### 2. 测试管理 API
 
 ```bash
-# Windows PowerShell
-Invoke-RestMethod -Uri "http://localhost:8001/api/management/status" -Method Get
-
-# Linux/Mac
 curl http://localhost:8001/api/management/status
 ```
 
@@ -200,10 +177,6 @@ curl http://localhost:8001/api/management/status
 ### 3. 测试服务信息
 
 ```bash
-# Windows PowerShell
-Invoke-RestMethod -Uri "http://localhost:8001/api/management/info" -Method Get
-
-# Linux/Mac
 curl http://localhost:8001/api/management/info
 ```
 
@@ -269,11 +242,10 @@ docker-compose ps
 
 **解决方案**:
 ```bash
-# Windows
-netstat -ano | findstr :8001
-
-# Linux/Mac
+# 查看端口占用
 lsof -i :8001
+# 或
+netstat -tlnp | grep 8001
 
 # 修改 docker-compose.yml 中的端口映射
 ports:

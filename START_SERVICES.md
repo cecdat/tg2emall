@@ -9,11 +9,8 @@
 
 ### 1. 配置环境变量
 
-```powershell
-# Windows PowerShell
-Copy-Item env.example .env
-
-# Linux/Mac
+```bash
+# 复制环境变量示例文件
 cp env.example .env
 ```
 
@@ -141,9 +138,9 @@ EXIT;
 
 ### 3. 测试 tgState API
 
-```powershell
-# Windows PowerShell
-Invoke-RestMethod -Uri "http://localhost:8001/api/management/status"
+```bash
+# 测试管理 API
+curl http://localhost:8001/api/management/status
 
 # 期望输出
 # {
