@@ -1163,7 +1163,7 @@ def telegram_verification_submit():
                 INSERT INTO system_config (config_key, config_value, config_type, description, category)
                 VALUES ('telegram_verification_submitted', 'true', 'boolean', '验证码已提交', 'telegram')
                 ON DUPLICATE KEY UPDATE 
-                config_value = 'true', updated_at = NOW())
+                config_value = 'true', updated_at = NOW()
             """)
             
             conn.commit()

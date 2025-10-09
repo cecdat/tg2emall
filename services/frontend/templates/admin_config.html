@@ -106,6 +106,10 @@
                             <i class="fas fa-cogs me-2"></i>
                             配置管理
                         </a>
+                        <a class="nav-link" href="{{ url_for('telegram_verification') }}">
+                            <i class="fab fa-telegram me-2"></i>
+                            Telegram 验证
+                        </a>
                         <a class="nav-link" href="{{ url_for('admin_services') }}">
                             <i class="fas fa-server me-2"></i>
                             服务管理
@@ -241,11 +245,11 @@
                                 </div>
                             </div>
                             <div class="config-body">
+                                <div class="row">
                                 {% for config in configs %}
-                                <div class="config-item">
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold">{{ config.config_key }}</label>
+                                <div class="col-md-6 mb-3">
+                                    <div class="config-item h-100">
+                                        <label class="form-label fw-bold">{{ config.config_key }}</label>
                                             <p class="small text-muted mb-2">
                                                 {% if config.config_key == 'tgstate_token' %}
                                                     tgState图床Bot的Token，用于上传图片到Telegram频道
@@ -381,26 +385,23 @@
                                                     {% endif %}
                                                 {% endif %}
                                             {% endif %}
-                                        </div>
-                                        <div class="col-md-8">
-                                            <div class="d-flex align-items-center justify-content-between">
-                                                <div>
-                                                    <span class="config-status status-success">
-                                                        <i class="fas fa-check-circle me-1"></i>
-                                                        {{ config.config_type|upper }}
-                                                    </span>
-                                                    {% if config.updated_at %}
-                                                    <small class="text-muted ms-2">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        更新于 {{ config.updated_at.strftime('%Y-%m-%d %H:%M') }}
-                                                    </small>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
+                                        
+                                        <div class="mt-2">
+                                            <span class="config-status status-success">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                {{ config.config_type|upper }}
+                                            </span>
+                                            {% if config.updated_at %}
+                                            <small class="text-muted ms-2">
+                                                <i class="fas fa-clock me-1"></i>
+                                                更新于 {{ config.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </small>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
                                 {% endfor %}
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
