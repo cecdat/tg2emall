@@ -328,10 +328,13 @@ def handle_info():
 @app.route('/api/scrape/start', methods=['POST'])
 def handle_scrape_start():
     """处理采集任务启动请求（代理到采集服务）"""
+    print("🎯 收到启动采集任务请求")
+    
     if not management_service.is_running:
+        print("❌ 采集服务未运行，无法启动任务")
         return jsonify({
             'success': False,
-            'message': '采集服务未运行'
+            'message': '采集服务未运行，请先启动采集服务'
         })
     
     try:
@@ -339,7 +342,9 @@ def handle_scrape_start():
         import requests
         scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/scraper/start"
         
+        print(f"📡 向采集服务发送启动请求: {scraper_url}")
         response = requests.post(scraper_url, timeout=10)
+        print(f"📥 采集服务响应状态码: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()

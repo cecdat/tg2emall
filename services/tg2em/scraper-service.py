@@ -189,33 +189,45 @@ def handle_config():
 @app.route('/api/scraper/start', methods=['POST'])
 def handle_start_scraping():
     """处理采集任务启动"""
+    logger.info("🎯 收到启动采集任务请求")
+    
     if not scraper_service:
+        logger.error("❌ 采集服务未初始化")
         return jsonify({
             'success': False,
             'message': '采集服务未初始化'
         })
     
+    logger.info("✅ 采集服务已初始化，准备启动采集任务")
+    
     # 在后台线程中运行异步采集任务
     import threading
     
     def run_scraping():
+        logger.info("🔄 采集线程启动")
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            logger.info("⏳ 开始执行采集任务...")
             result = loop.run_until_complete(scraper_service.start_scraping())
-            logger.info(f"采集任务结果: {result}")
+            logger.info(f"✅ 采集任务结果: {result}")
         except Exception as e:
-            logger.error(f"采集任务异常: {e}")
+            logger.error(f"❌ 采集任务异常: {e}")
+            import traceback
+            logger.error(f"异常堆栈: {traceback.format_exc()}")
         finally:
             loop.close()
+            logger.info("🔄 采集线程结束")
     
     thread = threading.Thread(target=run_scraping)
     thread.daemon = True
     thread.start()
     
+    logger.info("✅ 采集任务已在后台线程启动")
+    
     return jsonify({
         'success': True,
-        'message': '采集任务已启动'
+        'message': '采集任务已启动，请查看日志了解进度'
     })
 
 @app.route('/api/scraper/stop', methods=['POST'])
