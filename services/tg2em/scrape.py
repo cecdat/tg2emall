@@ -274,6 +274,50 @@ async def mark_verification_completed():
     except Exception as e:
         logging.error(f"❌ 标记验证完成失败: {e}")
 
+async def clear_verification_status():
+    """清除验证状态"""
+    try:
+        async with MySQLConnectionManager() as conn:
+            cursor = await conn.cursor()
+            
+            # 清除验证状态
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_verification_required', 'false', 'boolean', '需要验证码', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = 'false', updated_at = NOW()
+            """)
+            
+            # 清除会话有效状态
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_session_valid', 'false', 'boolean', 'Telegram会话有效', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = 'false', updated_at = NOW()
+            """)
+            
+            # 清除验证码
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_verification_code', '', 'string', 'Telegram验证码', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = '', updated_at = NOW()
+            """)
+            
+            # 清除提交状态
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_verification_submitted', 'false', 'boolean', '验证码已提交', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = 'false', updated_at = NOW()
+            """)
+            
+            await conn.commit()
+            logging.info("✅ 已清除验证状态")
+            
+    except Exception as e:
+        logging.error(f"❌ 清除验证状态失败: {e}")
+
 async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
@@ -523,7 +567,25 @@ async def init_telegram_client():
                 return True
                 
             except Exception as auth_error:
+                error_msg = str(auth_error)
                 logging.error(f"❌ Telegram验证失败: {auth_error}")
+                
+                # 检查是否是验证码重发限制错误
+                if "ResendCodeRequest" in error_msg or "all available options" in error_msg:
+                    logging.warning("⚠️ 检测到验证码重发限制，删除会话文件重新开始...")
+                    try:
+                        # 删除会话文件
+                        if os.path.exists(session_file):
+                            os.remove(session_file)
+                            logging.info("🗑️ 已删除会话文件，请等待24小时后重新尝试")
+                        
+                        # 清除数据库中的验证状态
+                        await clear_verification_status()
+                        
+                        raise Exception("验证码重发限制：请等待24小时后重新尝试，或联系管理员删除会话文件")
+                    except Exception as clear_error:
+                        logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                
                 raise Exception(f"Telegram登录失败: {auth_error}")
     
     except Exception as e:
