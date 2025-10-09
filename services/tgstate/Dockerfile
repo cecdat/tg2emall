@@ -23,7 +23,7 @@ RUN go mod tidy
 # 编译管理服务和上传服务
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management-service management-service.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upload-service upload-service.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management management.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management main.go
 
 # 第二阶段：运行环境
 FROM alpine:latest
@@ -60,7 +60,7 @@ EXPOSE 8001 8002 8088
 # 创建启动脚本
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo './management-service &' >> /app/start.sh && \
-    echo './management &' >> /app/start.sh && \
+    echo './management management &' >> /app/start.sh && \
     echo 'wait' >> /app/start.sh && \
     chmod +x /app/start.sh
 
