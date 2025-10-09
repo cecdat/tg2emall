@@ -56,7 +56,7 @@ var (
 
 func main() {
 	log.Println("🚀 tgState管理服务启动中...")
-	
+
 	// 初始化管理服务
 	managementService = &ManagementService{
 		config: ServiceConfig{
@@ -69,15 +69,15 @@ func main() {
 		},
 		pid: os.Getpid(),
 	}
-	
+
 	startTime = time.Now()
-	
+
 	// 设置路由
 	router := mux.NewRouter()
-	
+
 	// 密码验证中间件
 	router.Use(passwordAuthMiddleware)
-	
+
 	// 管理API路由
 	router.HandleFunc("/api/management/status", handleStatus).Methods("GET")
 	router.HandleFunc("/api/management/start", handleStart).Methods("POST")
@@ -85,33 +85,33 @@ func main() {
 	router.HandleFunc("/api/management/restart", handleRestart).Methods("POST")
 	router.HandleFunc("/api/management/config", handleConfig).Methods("GET", "POST")
 	router.HandleFunc("/api/management/info", handleInfo).Methods("GET")
-	
+
 	// 图片上传API路由（代理到上传服务）
 	router.HandleFunc("/api", handleImageUpload).Methods("POST")
-	
+
 	// 静态文件服务（管理页面）
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/")))
-	
+
 	// 启动HTTP服务器
 	server := &http.Server{
 		Addr:    ":8001",
 		Handler: router,
 	}
-	
+
 	// 优雅关闭
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
-		
+
 		log.Println("🛑 管理服务正在关闭...")
 		managementService.StopUploadService()
 		server.Shutdown(nil)
 	}()
-	
-	log.Println("✅ tgState管理服务已启动，监听端口: 8088")
+
+	log.Println("✅ tgState管理服务已启动，监听端口: 8001")
 	log.Printf("📊 管理服务PID: %d", managementService.pid)
-	
+
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("❌ 管理服务启动失败: %v", err)
 	}
@@ -121,17 +121,17 @@ func main() {
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	managementService.mutex.RLock()
 	defer managementService.mutex.RUnlock()
-	
+
 	status := "stopped"
 	pid := 0
 	uptime := "0s"
-	
+
 	if managementService.isRunning && managementService.uploadService != nil {
 		status = "running"
 		pid = managementService.uploadService.Process.Pid
 		uptime = time.Since(startTime).String()
 	}
-	
+
 	response := APIResponse{
 		Success: true,
 		Data: ServiceStatus{
@@ -141,7 +141,7 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 			StartTime: startTime.Format("2006-01-02 15:04:05"),
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -150,7 +150,7 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 func handleStart(w http.ResponseWriter, r *http.Request) {
 	managementService.mutex.Lock()
 	defer managementService.mutex.Unlock()
-	
+
 	if managementService.isRunning {
 		response := APIResponse{
 			Success: false,
@@ -160,7 +160,7 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	// 启动上传服务
 	if err := managementService.StartUploadService(); err != nil {
 		response := APIResponse{
@@ -171,7 +171,7 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	response := APIResponse{
 		Success: true,
 		Message: "上传服务启动成功",
@@ -184,7 +184,7 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 func handleStop(w http.ResponseWriter, r *http.Request) {
 	managementService.mutex.Lock()
 	defer managementService.mutex.Unlock()
-	
+
 	if !managementService.isRunning {
 		response := APIResponse{
 			Success: false,
@@ -194,10 +194,10 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	// 停止上传服务
 	managementService.StopUploadService()
-	
+
 	response := APIResponse{
 		Success: true,
 		Message: "上传服务停止成功",
@@ -210,13 +210,13 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 func handleRestart(w http.ResponseWriter, r *http.Request) {
 	managementService.mutex.Lock()
 	defer managementService.mutex.Unlock()
-	
+
 	// 先停止
 	if managementService.isRunning {
 		managementService.StopUploadService()
 		time.Sleep(2 * time.Second) // 等待进程完全停止
 	}
-	
+
 	// 再启动
 	if err := managementService.StartUploadService(); err != nil {
 		response := APIResponse{
@@ -227,7 +227,7 @@ func handleRestart(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	response := APIResponse{
 		Success: true,
 		Message: "上传服务重启成功",
@@ -258,18 +258,18 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		
+
 		managementService.mutex.Lock()
 		managementService.config = newConfig
 		managementService.mutex.Unlock()
-		
+
 		// 如果上传服务正在运行，重启以应用新配置
 		if managementService.isRunning {
 			go func() {
 				time.Sleep(1 * time.Second)
 				managementService.mutex.Lock()
 				defer managementService.mutex.Unlock()
-				
+
 				if managementService.isRunning {
 					managementService.StopUploadService()
 					time.Sleep(2 * time.Second)
@@ -277,7 +277,7 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 				}
 			}()
 		}
-		
+
 		response := APIResponse{
 			Success: true,
 			Message: "配置更新成功",
@@ -297,7 +297,7 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 		"management_port": "8088",
 		"architecture":    "dual-service",
 	}
-	
+
 	response := APIResponse{
 		Success: true,
 		Data:    info,
@@ -310,7 +310,7 @@ func handleInfo(w http.ResponseWriter, r *http.Request) {
 func handleImageUpload(w http.ResponseWriter, r *http.Request) {
 	managementService.mutex.RLock()
 	defer managementService.mutex.RUnlock()
-	
+
 	if !managementService.isRunning {
 		response := APIResponse{
 			Success: false,
@@ -320,7 +320,7 @@ func handleImageUpload(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	// 代理请求到上传服务
 	// 这里需要实现HTTP代理逻辑
 	// 暂时返回错误，后续实现
@@ -335,9 +335,9 @@ func handleImageUpload(w http.ResponseWriter, r *http.Request) {
 // StartUploadService 启动上传服务
 func (ms *ManagementService) StartUploadService() error {
 	log.Println("🚀 启动上传服务...")
-	
+
 	// 构建上传服务启动命令
-	cmd := exec.Command("./upload-service", 
+	cmd := exec.Command("./upload-service",
 		"--token", ms.config.Token,
 		"--target", ms.config.Target,
 		"--pass", ms.config.Pass,
@@ -345,7 +345,7 @@ func (ms *ManagementService) StartUploadService() error {
 		"--url", ms.config.URL,
 		"--port", "8089",
 	)
-	
+
 	// 设置环境变量
 	cmd.Env = append(os.Environ(),
 		"TOKEN="+ms.config.Token,
@@ -355,15 +355,15 @@ func (ms *ManagementService) StartUploadService() error {
 		"URL="+ms.config.URL,
 		"PORT=8089",
 	)
-	
+
 	// 启动服务
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("启动上传服务失败: %v", err)
 	}
-	
+
 	ms.uploadService = cmd
 	ms.isRunning = true
-	
+
 	log.Printf("✅ 上传服务启动成功，PID: %d", cmd.Process.Pid)
 	return nil
 }
@@ -372,18 +372,18 @@ func (ms *ManagementService) StartUploadService() error {
 func (ms *ManagementService) StopUploadService() {
 	if ms.uploadService != nil && ms.isRunning {
 		log.Println("🛑 停止上传服务...")
-		
+
 		// 发送SIGTERM信号
 		if err := ms.uploadService.Process.Signal(syscall.SIGTERM); err != nil {
 			log.Printf("⚠️ 发送SIGTERM失败: %v", err)
 		}
-		
+
 		// 等待进程结束
 		done := make(chan error, 1)
 		go func() {
 			done <- ms.uploadService.Wait()
 		}()
-		
+
 		select {
 		case <-done:
 			log.Println("✅ 上传服务已停止")
@@ -391,7 +391,7 @@ func (ms *ManagementService) StopUploadService() {
 			log.Println("⚠️ 强制终止上传服务")
 			ms.uploadService.Process.Kill()
 		}
-		
+
 		ms.uploadService = nil
 		ms.isRunning = false
 	}
@@ -400,6 +400,28 @@ func (ms *ManagementService) StopUploadService() {
 // passwordAuthMiddleware 密码验证中间件
 func passwordAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 管理 API 路由不需要密码验证（用于内部服务调用）
+		if r.URL.Path == "/api/management/status" ||
+			r.URL.Path == "/api/management/start" ||
+			r.URL.Path == "/api/management/stop" ||
+			r.URL.Path == "/api/management/restart" ||
+			r.URL.Path == "/api/management/config" ||
+			r.URL.Path == "/api/management/info" {
+			// 允许跨域访问（CORS）
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+			// 处理 OPTIONS 预检请求
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// 获取配置的密码
 		pass := os.Getenv("PASS")
 		if pass == "" || pass == "none" {
@@ -407,7 +429,7 @@ func passwordAuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// 检查Cookie中的密码
 		cookie, err := r.Cookie("tgstate_auth")
 		if err == nil && cookie.Value == pass {
@@ -415,7 +437,7 @@ func passwordAuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// 检查URL参数中的密码
 		if r.URL.Query().Get("p") == pass {
 			// 密码正确，设置Cookie并重定向
@@ -429,13 +451,13 @@ func passwordAuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		
+
 		// 密码错误，显示密码输入页面
 		if r.URL.Path == "/" {
 			showPasswordPage(w, r)
 			return
 		}
-		
+
 		// 其他页面返回401
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -559,7 +581,7 @@ func showPasswordPage(w http.ResponseWriter, r *http.Request) {
     </script>
 </body>
 </html>`
-	
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, html)
 }

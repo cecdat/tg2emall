@@ -99,7 +99,7 @@ services:
       TARGET: "${TGSTATE_TARGET:-}"
       PASS: "${TGSTATE_PASS:-none}"
       MODE: "${TGSTATE_MODE:-p}"
-      URL: "${TGSTATE_URL:-http://localhost:8001}"
+      URL: "${TGSTATE_URL:-http://tgstate:8001}"
       PORT: "8001"
     # volumes: 图片存储在Telegram频道，无需本地存储
     networks:
