@@ -10,12 +10,67 @@ import os
 import json
 import logging
 import pymysql
+import requests
+import socket
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from contextlib import contextmanager
 from functools import wraps
 import re
 import hashlib
+
+# ==================== 工具函数 ====================
+
+def get_public_ip():
+    """获取公网IP地址"""
+    try:
+        # 尝试多个公共IP查询服务
+        services = [
+            'https://api.ipify.org?format=text',
+            'https://ifconfig.me/ip',
+            'https://api.ip.sb/ip',
+            'https://ipinfo.io/ip'
+        ]
+        
+        for service in services:
+            try:
+                response = requests.get(service, timeout=3)
+                if response.status_code == 200:
+                    ip = response.text.strip()
+                    if ip and '.' in ip:  # 简单验证是否为IPv4
+                        logging.info(f"✅ 获取到公网IP: {ip}")
+                        return ip
+            except:
+                continue
+        
+        # 如果所有服务都失败，尝试获取本地IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('8.8.8.8', 80))
+            local_ip = s.getsockname()[0]
+            logging.warning(f"⚠️ 无法获取公网IP，使用本地IP: {local_ip}")
+            return local_ip
+        except:
+            return '127.0.0.1'
+        finally:
+            s.close()
+            
+    except Exception as e:
+        logging.error(f"❌ 获取IP地址失败: {e}")
+        return '127.0.0.1'
+
+def get_server_url():
+    """获取服务器访问地址（使用公网IP，不使用localhost）"""
+    port = int(os.getenv('FRONTEND_PORT', '8000'))
+    public_ip = get_public_ip()
+    
+    # 如果端口是80，不显示端口号
+    if port == 80:
+        return f"http://{public_ip}"
+    else:
+        return f"http://{public_ip}:{port}"
+
+# ==================== 服务控制器 ====================
 
 # 导入服务控制器
 try:
@@ -1238,5 +1293,7 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 if __name__ == '__main__':
+    # 从环境变量获取端口，默认 8000（避免 ERR_UNSAFE_PORT）
+    port = int(os.getenv('FRONTEND_PORT', '8000'))
     # 启动应用
-    app.run(host='0.0.0.0', port=6000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
