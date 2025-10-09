@@ -1089,26 +1089,49 @@ def telegram_verification_status():
                 WHERE config_key = 'telegram_verification_required'
             """)
             result = cursor.fetchone()
+            needs_verification = result and result['config_value'] == 'true'
             
-            needs_verification = result['config_value'] == 'true' if result else False
+            # 检查是否已提交验证码
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'telegram_verification_submitted'
+            """)
+            submitted_result = cursor.fetchone()
+            is_submitted = submitted_result and submitted_result['config_value'] == 'true'
             
-            # 检查是否有验证码请求
+            # 检查验证码值
             cursor.execute("""
                 SELECT config_value FROM system_config 
                 WHERE config_key = 'telegram_verification_code'
             """)
-            result = cursor.fetchone()
+            code_result = cursor.fetchone()
+            has_code = code_result and code_result['config_value'] != ''
             
-            verification_code = result['config_value'] if result else ''
+            # 根据实际状态判断
+            if needs_verification and not is_submitted:
+                status = 'waiting'
+                message = '等待输入验证码'
+            elif needs_verification and is_submitted and has_code:
+                status = 'submitted'
+                message = '验证码已提交，等待验证...'
+            elif not needs_verification:
+                status = 'idle'
+                message = '无需验证或验证已完成'
+            else:
+                status = 'unknown'
+                message = '状态未知'
             
             return jsonify({
+                'success': True,
                 'needs_verification': needs_verification,
-                'verification_code': verification_code,
-                'status': 'waiting' if needs_verification else 'completed'
+                'is_submitted': is_submitted,
+                'has_code': has_code,
+                'status': status,
+                'message': message
             })
     except Exception as e:
         logger.error(f"获取Telegram验证状态失败: {e}")
-        return jsonify({'error': '获取状态失败'}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/telegram/verification/submit', methods=['POST'])
 @login_required
@@ -1155,6 +1178,37 @@ def telegram_verification_submit():
     except Exception as e:
         logger.error(f"提交Telegram验证码失败: {e}")
         return jsonify({'success': False, 'message': '提交验证码失败'}), 500
+
+@app.route('/admin/telegram/verification/logs')
+@login_required
+def telegram_verification_logs():
+    """获取Telegram验证相关的实时日志"""
+    try:
+        import subprocess
+        
+        # 获取采集服务的最新日志
+        result = subprocess.run(
+            ['docker', 'logs', '--tail=50', 'tg2em-scrape'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        logs = result.stdout + result.stderr
+        
+        # 过滤出验证相关的日志
+        verification_logs = []
+        for line in logs.split('\n'):
+            if any(keyword in line for keyword in ['验证', 'Telegram', '登录', 'auth', 'code', 'phone', '🔐', '📱', '✅', '❌']):
+                verification_logs.append(line)
+        
+        return jsonify({
+            'success': True,
+            'logs': verification_logs[-20:] if len(verification_logs) > 20 else verification_logs
+        })
+    except Exception as e:
+        logger.error(f"获取验证日志失败: {e}")
+        return jsonify({'success': False, 'logs': [f'获取日志失败: {str(e)}']})
 
 @app.route('/admin/telegram/verification/reset', methods=['POST'])
 @login_required

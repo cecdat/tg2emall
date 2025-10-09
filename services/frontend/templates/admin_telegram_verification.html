@@ -365,17 +365,91 @@
             const verificationArea = document.getElementById('verificationArea');
             const completedArea = document.getElementById('completedArea');
             
-            if (data.needs_verification) {
-                statusIndicator.className = 'status-indicator status-waiting';
-                statusText.textContent = '需要验证码';
-                verificationArea.style.display = 'block';
-                completedArea.style.display = 'none';
-            } else {
-                statusIndicator.className = 'status-indicator status-completed';
-                statusText.textContent = '验证已完成';
-                verificationArea.style.display = 'none';
-                completedArea.style.display = 'block';
+            if (!data.success) {
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = '状态检查失败';
+                return;
             }
+            
+            // 根据实际状态判断
+            if (data.status === 'waiting') {
+                // 等待输入验证码
+                statusIndicator.className = 'status-indicator status-waiting';
+                statusText.textContent = data.message || '等待输入验证码';
+                verificationArea.style.display = 'block';
+                if (completedArea) completedArea.style.display = 'none';
+            } else if (data.status === 'submitted') {
+                // 验证码已提交，等待验证
+                statusIndicator.className = 'status-indicator status-waiting';
+                statusText.textContent = data.message || '验证码已提交，等待验证...';
+                verificationArea.style.display = 'none';
+                if (completedArea) completedArea.style.display = 'block';
+            } else if (data.status === 'idle') {
+                // 无需验证或已完成
+                statusIndicator.className = 'status-indicator status-completed';
+                statusText.textContent = data.message || '无需验证';
+                verificationArea.style.display = 'none';
+                if (completedArea) completedArea.style.display = 'block';
+            } else {
+                // 未知状态
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = data.message || '状态未知';
+                verificationArea.style.display = 'none';
+            }
+            
+            // 同时刷新日志
+            refreshLogs();
+        }
+        
+        // 刷新验证日志
+        function refreshLogs() {
+            fetch('/admin/telegram/verification/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.logs) {
+                        updateLogsDisplay(data.logs);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取日志失败:', error);
+                });
+        }
+        
+        // 更新日志显示
+        function updateLogsDisplay(logs) {
+            const logContainer = document.getElementById('verificationLogs');
+            if (!logContainer) return;
+            
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<div class="log-entry text-muted">暂无日志</div>';
+                return;
+            }
+            
+            logContainer.innerHTML = logs.map(log => {
+                // 高亮关键信息
+                let logClass = 'log-entry';
+                if (log.includes('✅') || log.includes('成功')) {
+                    logClass += ' text-success';
+                } else if (log.includes('❌') || log.includes('失败') || log.includes('ERROR')) {
+                    logClass += ' text-danger';
+                } else if (log.includes('⚠️') || log.includes('警告') || log.includes('WARNING')) {
+                    logClass += ' text-warning';
+                } else if (log.includes('🔐') || log.includes('📱') || log.includes('验证')) {
+                    logClass += ' text-primary';
+                }
+                
+                return `<div class="${logClass}">${escapeHtml(log)}</div>`;
+            }).join('');
+            
+            // 自动滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         // 提交验证码
