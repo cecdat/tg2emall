@@ -855,7 +855,11 @@ func (api *ManagementAPI) uploadImageToTGState(tempFile, filename string) (succe
 	imgPath = conf.FileRoute + finalPath
 	baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
 	if baseUrl == "" {
-		baseUrl = "http://localhost:8088"
+		// 从环境变量获取公网地址，如果没有则使用默认值
+		baseUrl = os.Getenv("PUBLIC_URL")
+		if baseUrl == "" {
+			baseUrl = "http://your-domain.com:8088"
+		}
 	}
 	imgUrl = baseUrl + imgPath
 	
@@ -1079,7 +1083,11 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 		// 上传成功，生成访问URL
 		baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
 		if baseUrl == "" {
-			baseUrl = "http://localhost:8088"
+			// 从环境变量获取公网地址，如果没有则使用默认值
+			baseUrl = os.Getenv("PUBLIC_URL")
+			if baseUrl == "" {
+				baseUrl = "http://your-domain.com:8088"
+			}
 		}
 		imgUrl := baseUrl + img
 		
