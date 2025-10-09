@@ -2,6 +2,17 @@
 
 # tg2emall 部署脚本
 # 用于快速部署 Telegram 到自定义前端一体化解决方案
+#
+# 使用方法:
+#   ./deploy.sh          - 完整部署流程（自动拉取最新代码）
+#   ./deploy.sh update   - 更新代码并重新构建
+#   ./deploy.sh pull     - 仅拉取最新代码
+#   ./deploy.sh start    - 启动服务
+#   ./deploy.sh stop     - 停止服务
+#   ./deploy.sh restart  - 重启服务
+#   ./deploy.sh status   - 查看服务状态
+#   ./deploy.sh build    - 构建镜像
+#   ./deploy.sh logs     - 查看日志
 
 set -e
 
@@ -43,7 +54,80 @@ check_dependencies() {
         exit 1
     fi
     
+    if ! command -v git &> /dev/null; then
+        log_error "Git 未安装，请先安装 Git"
+        exit 1
+    fi
+    
     log_success "依赖检查通过"
+}
+
+# 拉取最新代码
+pull_latest_code() {
+    log_info "检查代码更新..."
+    
+    # 检查是否是Git仓库
+    if [ ! -d ".git" ]; then
+        log_warning "当前目录不是Git仓库，跳过代码拉取"
+        return 0
+    fi
+    
+    # 检查是否有未提交的更改
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        log_warning "检测到本地修改"
+        echo ""
+        read -p "是否暂存本地修改并拉取最新代码？(y/n): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log_info "暂存本地修改..."
+            git stash push -m "Auto-stash before deploy at $(date '+%Y-%m-%d %H:%M:%S')"
+            
+            log_info "拉取最新代码..."
+            if git pull origin main; then
+                log_success "代码更新成功"
+                
+                # 询问是否恢复本地修改
+                echo ""
+                read -p "是否恢复之前的本地修改？(y/n): " -n 1 -r
+                echo
+                if [[ $REPLY =~ ^[Yy]$ ]]; then
+                    git stash pop
+                    log_info "本地修改已恢复"
+                fi
+            else
+                log_error "代码拉取失败"
+                git stash pop
+                return 1
+            fi
+        else
+            log_warning "跳过代码拉取"
+        fi
+    else
+        # 没有本地修改，直接拉取
+        log_info "拉取最新代码..."
+        
+        # 获取当前提交
+        local current_commit=$(git rev-parse --short HEAD)
+        
+        if git pull origin main; then
+            local new_commit=$(git rev-parse --short HEAD)
+            
+            if [ "$current_commit" != "$new_commit" ]; then
+                log_success "代码已更新: $current_commit -> $new_commit"
+                
+                # 显示更新日志
+                echo ""
+                log_info "最近的更新："
+                git log --oneline --graph -5
+                echo ""
+            else
+                log_success "代码已是最新版本"
+            fi
+        else
+            log_error "代码拉取失败"
+            return 1
+        fi
+    fi
 }
 
 # 创建必要的目录
@@ -324,6 +408,7 @@ main() {
     echo ""
     
     check_dependencies
+    pull_latest_code
     create_directories
     check_config
     check_database
@@ -417,6 +502,34 @@ case "${1:-}" in
         docker-compose up -d mysql
         sleep 30
         check_database_structure
+        ;;
+    "update")
+        log_info "更新代码和服务..."
+        check_dependencies
+        pull_latest_code
+        
+        echo ""
+        read -p "是否重新构建服务？(y/n): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            log_info "停止服务..."
+            docker-compose down
+            
+            log_info "重新构建镜像..."
+            docker-compose build --no-cache
+            
+            log_info "启动服务..."
+            docker-compose up -d
+            
+            log_success "更新完成！"
+            show_status
+        else
+            log_info "仅更新代码，未重新构建服务"
+        fi
+        ;;
+    "pull")
+        check_dependencies
+        pull_latest_code
         ;;
     *)
         main
