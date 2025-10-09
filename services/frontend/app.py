@@ -957,6 +957,50 @@ def admin_service_restart(service_name):
         logger.error(f"重启服务失败: {service_name}, 错误: {e}")
         return jsonify({'success': False, 'message': '重启服务失败'}), 500
 
+@app.route('/admin/services/<service_name>/scrape/start', methods=['POST'])
+@login_required
+def admin_scrape_task_start(service_name):
+    """启动采集任务"""
+    try:
+        # 只允许采集服务调用
+        if service_name not in ['scraper', 'scraper-management', 'scraper-service']:
+            return jsonify({'success': False, 'message': '此操作仅适用于采集服务'}), 400
+        
+        # 调用采集管理服务的API
+        import requests
+        management_url = 'http://tg2em-scrape:2003/api/scrape/start'
+        
+        try:
+            response = requests.post(management_url, timeout=30)
+            result = response.json()
+            
+            if result.get('success'):
+                logger.info(f"采集任务启动成功")
+                return jsonify({
+                    'success': True,
+                    'message': result.get('message', '采集任务已启动，请查看日志了解进度')
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': result.get('message', '启动采集任务失败')
+                })
+                
+        except requests.exceptions.ConnectionError:
+            return jsonify({
+                'success': False,
+                'message': '无法连接到采集服务，请先启动采集服务'
+            }), 500
+        except requests.exceptions.Timeout:
+            return jsonify({
+                'success': True,
+                'message': '采集任务已启动（响应超时，但任务可能正在执行中）'
+            })
+            
+    except Exception as e:
+        logger.error(f"启动采集任务失败: {e}")
+        return jsonify({'success': False, 'message': f'启动采集任务失败: {str(e)}'}), 500
+
 @app.route('/admin/services/<service_name>/status', methods=['GET'])
 @login_required
 def admin_service_status(service_name):

@@ -116,6 +116,16 @@
                                     <button type="button" class="btn btn-outline-warning mb-2" onclick="restartService()">
                                         <i class="fas fa-redo me-2"></i>重启服务
                                     </button>
+                                    {% if service_name in ['scraper', 'scraper-management', 'scraper-service'] %}
+                                        <hr class="my-2">
+                                        <button type="button" class="btn btn-primary mb-2" onclick="startScrapingTask()">
+                                            <i class="fas fa-robot me-2"></i>启动采集任务
+                                        </button>
+                                        <small class="text-muted d-block mb-2">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            启动Telegram采集任务（首次需要验证）
+                                        </small>
+                                    {% endif %}
                                 {% else %}
                                     <button type="button" class="btn btn-outline-success mb-2" onclick="startService()">
                                         <i class="fas fa-play me-2"></i>启动服务
@@ -427,6 +437,58 @@ function restartService() {
             .catch(error => {
                 console.error('Error:', error);
                 showSweetAlert('错误', '重启失败，请重试', 'error');
+            });
+        }
+    });
+}
+
+// 启动采集任务
+function startScrapingTask() {
+    Swal.fire({
+        title: '启动采集任务',
+        html: '<p>即将启动Telegram采集任务</p>' +
+              '<p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>首次运行需要输入验证码</p>' +
+              '<p class="text-info"><small>如需验证，请前往"Telegram验证"页面输入验证码</small></p>',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '启动任务',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: '正在启动...',
+                html: '请稍候，正在初始化Telegram客户端...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/services/{{ service_name }}/scrape/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    showSweetAlert('成功', data.message + '<br><small class="text-muted">请查看日志了解采集进度</small>', 'success');
+                } else {
+                    let errorMsg = data.message;
+                    if (errorMsg.includes('验证') || errorMsg.includes('登录')) {
+                        errorMsg += '<br><br><a href="/dm" class="btn btn-sm btn-warning mt-2">前往Telegram验证</a>';
+                    }
+                    showSweetAlert('提示', errorMsg, 'info');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                showSweetAlert('错误', '启动采集任务失败，请重试', 'error');
             });
         }
     });
