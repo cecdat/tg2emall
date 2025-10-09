@@ -956,6 +956,15 @@ func (api *ManagementAPI) uploadImageToTGState(tempFile, filename string) (succe
 			}
 		}
 	}
+	
+	// 调试信息
+	fmt.Printf("🔍 uploadImageToTGState URL生成调试信息:\n")
+	fmt.Printf("  - api.publicURL: %s\n", api.publicURL)
+	fmt.Printf("  - conf.BaseUrl: %s\n", conf.BaseUrl)
+	fmt.Printf("  - PUBLIC_URL环境变量: %s\n", os.Getenv("PUBLIC_URL"))
+	fmt.Printf("  - 最终使用的baseUrl: %s\n", baseUrl)
+	fmt.Printf("  - imgPath: %s\n", imgPath)
+	
 	imgUrl = baseUrl + imgPath
 
 	return true, imgPath, imgUrl
@@ -1189,6 +1198,13 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 				}
 			}
 		}
+		
+		// 调试信息
+		fmt.Printf("🔍 URL生成调试信息:\n")
+		fmt.Printf("  - api.publicURL: %s\n", api.publicURL)
+		fmt.Printf("  - conf.BaseUrl: %s\n", conf.BaseUrl)
+		fmt.Printf("  - PUBLIC_URL环境变量: %s\n", os.Getenv("PUBLIC_URL"))
+		fmt.Printf("  - 最终使用的baseUrl: %s\n", baseUrl)
 		imgUrl := baseUrl + img
 
 		response := map[string]interface{}{
