@@ -75,7 +75,10 @@ def get_server_url():
 # 导入服务控制器
 try:
     from service_controller import ServiceController
-    
+except ImportError as e:
+    logging.error(f"导入服务控制器失败: {e}")
+    ServiceController = None
+
 def get_db_service_name(frontend_service_name):
     """获取数据库中的服务名称"""
     service_mapping = {
@@ -161,7 +164,7 @@ def update_services_status_to_db():
             
     except Exception as e:
         logger.error(f"更新服务状态到数据库失败: {e}")
-    
+
     def start_service_via_docker(service_name):
         """通过服务管理接口启动服务"""
         if ServiceController is None:
@@ -185,7 +188,7 @@ def update_services_status_to_db():
         
         controller = ServiceController()
         return controller.get_service_status(service_name)
-        
+
 except ImportError:
     # 如果导入失败，使用模拟实现
     def start_service_via_docker(service_name):
