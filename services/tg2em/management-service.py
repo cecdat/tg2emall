@@ -12,6 +12,7 @@ import time
 import signal
 import subprocess
 import threading
+import requests
 from datetime import datetime
 from flask import Flask, request, jsonify
 from typing import Dict, Any, Optional
@@ -339,7 +340,6 @@ def handle_scrape_start():
     
     try:
         # 向采集服务发送启动请求
-        import requests
         scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/scraper/start"
         
         print(f"📡 向采集服务发送启动请求: {scraper_url}")
@@ -355,6 +355,11 @@ def handle_scrape_start():
                 'message': f'采集服务响应错误: {response.status_code}'
             })
             
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'message': '缺少requests模块，请检查依赖安装'
+        })
     except requests.exceptions.ConnectionError:
         return jsonify({
             'success': False,
@@ -377,7 +382,6 @@ def handle_scrape_status():
     
     try:
         # 向采集服务发送状态查询请求
-        import requests
         scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/scraper/status"
         
         response = requests.get(scraper_url, timeout=5)
