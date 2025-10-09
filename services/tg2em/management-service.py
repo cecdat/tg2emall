@@ -93,6 +93,26 @@ class ScraperManagementService:
                     'message': '采集服务已在运行中'
                 }
             
+            # 验证配置完整性
+            if not self.config['api_id'] or not self.config['api_hash']:
+                print(f"❌ Telegram配置不完整:")
+                print(f"   - API_ID: {'已配置' if self.config['api_id'] else '未配置'}")
+                print(f"   - API_Hash: {'已配置' if self.config['api_hash'] else '未配置'}")
+                print(f"   - Phone: {'已配置' if self.config['phone_number'] else '未配置'}")
+                return {
+                    'success': False,
+                    'message': 'Telegram配置不完整，请在管理后台配置API ID和API Hash'
+                }
+            
+            if not self.config['phone_number']:
+                print(f"⚠️ 警告: 未配置手机号码，首次运行时需要验证")
+            
+            print(f"📋 准备启动采集服务，配置信息:")
+            print(f"   - API_ID: {self.config['api_id'][:4]}***")
+            print(f"   - API_Hash: {self.config['api_hash'][:4]}***")
+            print(f"   - Phone: {self.config['phone_number'] or '未配置'}")
+            print(f"   - MySQL: {self.config['mysql_host']}:{self.config['mysql_database']}")
+            
             # 构建采集服务启动命令
             cmd = [
                 'python3', 'scraper-service.py',
@@ -119,12 +139,12 @@ class ScraperManagementService:
                 'SCRAPER_PORT': self.config['scraper_port']
             })
             
-            # 启动采集服务
+            # 启动采集服务（不捕获输出，让日志直接显示）
             self.scraper_process = subprocess.Popen(
                 cmd,
                 env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=None,  # 让stdout直接输出到容器日志
+                stderr=None,  # 让stderr直接输出到容器日志
                 cwd='/app'
             )
             
