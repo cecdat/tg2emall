@@ -387,7 +387,7 @@
                                                     onclick="checkServiceStatus('{{ service.service_name }}')">
                                                 <i class="fas fa-info-circle me-1"></i>状态
                                             </button>
-                                            {% if service.service_name in ['tgstate', 'scraper'] %}
+                                            {% if service.service_name in ['tgstate', 'scraper', 'tgstate-management', 'tgstate-service', 'scraper-management', 'scraper-service'] %}
                                             <a href="{{ url_for('admin_service_manage', service_name=service.service_name) }}" 
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-cog me-1"></i>管理
