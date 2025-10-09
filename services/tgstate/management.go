@@ -2,8 +2,7 @@ package main
 
 import (
 	"bytes"
-	"csz.net/tgstate/conf"
-	"csz.net/tgstate/utils"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,14 +15,18 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"csz.net/tgstate/conf"
+	"csz.net/tgstate/utils"
 )
 
 // ServiceStatus 服务状态
 type ServiceStatus struct {
-	Status    string `json:"status"`    // running, stopped, error
-	PID       int    `json:"pid"`       // 进程ID
-	Port      int    `json:"port"`      // 端口
-	Message   string `json:"message"`   // 状态信息
+	Status    string `json:"status"`     // running, stopped, error
+	PID       int    `json:"pid"`        // 进程ID
+	Port      int    `json:"port"`       // 端口
+	Message   string `json:"message"`    // 状态信息
 	StartTime string `json:"start_time"` // 启动时间
 }
 
@@ -43,6 +46,7 @@ type ManagementAPI struct {
 	startTime  time.Time
 	config     ServiceConfig
 	httpServer *http.Server
+	publicURL  string // 公网访问地址
 }
 
 // NewManagementAPI 创建管理API
@@ -58,6 +62,9 @@ func NewManagementAPI() *ManagementAPI {
 			URL:    os.Getenv("URL"),
 		},
 	}
+
+	// 从数据库加载配置
+	api.loadConfigFromDB()
 	
 	// 同步管理API的配置到全局配置
 	conf.BotToken = api.config.Token
@@ -65,14 +72,95 @@ func NewManagementAPI() *ManagementAPI {
 	conf.Pass = api.config.Pass
 	conf.Mode = api.config.Mode
 	conf.BaseUrl = api.config.URL
-	
+
 	return api
+}
+
+// loadConfigFromDB 从数据库加载配置
+func (api *ManagementAPI) loadConfigFromDB() {
+	// 数据库连接配置
+	dbConfig := map[string]string{
+		"host":     os.Getenv("MYSQL_HOST"),
+		"port":     os.Getenv("MYSQL_PORT"),
+		"user":     os.Getenv("MYSQL_USER"),
+		"password": os.Getenv("MYSQL_PASSWORD"),
+		"database": os.Getenv("MYSQL_DATABASE"),
+	}
+	
+	// 设置默认值
+	if dbConfig["host"] == "" {
+		dbConfig["host"] = "mysql"
+	}
+	if dbConfig["port"] == "" {
+		dbConfig["port"] = "3306"
+	}
+	if dbConfig["user"] == "" {
+		dbConfig["user"] = "tg2emall"
+	}
+	if dbConfig["password"] == "" {
+		dbConfig["password"] = "tg2emall"
+	}
+	if dbConfig["database"] == "" {
+		dbConfig["database"] = "tg2em"
+	}
+	
+	// 连接数据库
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbConfig["user"], dbConfig["password"], dbConfig["host"], dbConfig["port"], dbConfig["database"])
+	
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		fmt.Printf("⚠️ 数据库连接失败，使用环境变量配置: %v\n", err)
+		return
+	}
+	defer db.Close()
+	
+	// 查询tgState相关配置
+	rows, err := db.Query(`
+		SELECT config_key, config_value 
+		FROM system_config 
+		WHERE config_key IN ('tgstate_token', 'tgstate_target', 'tgstate_pass', 'tgstate_mode', 'tgstate_url', 'tgstate_port', 'public_url')
+	`)
+	if err != nil {
+		fmt.Printf("⚠️ 查询配置失败，使用环境变量配置: %v\n", err)
+		return
+	}
+	defer rows.Close()
+	
+	// 读取配置
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			continue
+		}
+		
+		switch key {
+		case "tgstate_token":
+			api.config.Token = value
+		case "tgstate_target":
+			api.config.Target = value
+		case "tgstate_pass":
+			api.config.Pass = value
+		case "tgstate_mode":
+			api.config.Mode = value
+		case "tgstate_url":
+			api.config.URL = value
+		case "tgstate_port":
+			api.config.Port = value
+		case "public_url":
+			// 存储公网地址，用于图片URL生成
+			api.publicURL = value
+		}
+	}
+	
+	fmt.Printf("✅ 从数据库加载tgState配置: Token=%s***, Target=%s, URL=%s\n", 
+		api.config.Token[:4], api.config.Target, api.config.URL)
 }
 
 // StartManagementAPI 启动管理API
 func (api *ManagementAPI) StartManagementAPI() {
 	mux := http.NewServeMux()
-	
+
 	// 管理接口路由（需要密码验证）
 	mux.HandleFunc("/api/management/status", api.handleStatus)
 	mux.HandleFunc("/api/management/start", api.handleStart)
@@ -81,36 +169,36 @@ func (api *ManagementAPI) StartManagementAPI() {
 	mux.HandleFunc("/api/management/config", api.handleConfig)
 	mux.HandleFunc("/api/management/info", api.handleInfo)
 	mux.HandleFunc("/api/test/upload", api.handleTestUpload)
-	
+
 	// 提供实际的图片上传API
 	mux.HandleFunc("/api", api.handleImageUpload)
-	
+
 	// 密码验证页面
 	mux.HandleFunc("/pwd", api.handlePasswordCheck)
-	
+
 	// 图片上传测试页面（公开访问，需要密码）
 	mux.HandleFunc("/upload", api.handleUploadPage)
-	
+
 	// 管理页面（需要密码验证）
 	mux.HandleFunc("/admin", api.handleAdminPage)
-	
+
 	// 根路径 - 根据是否有密码决定显示内容
 	mux.HandleFunc("/", api.handleRoot)
-	
+
 	api.httpServer = &http.Server{
 		Addr:    ":8088",
 		Handler: mux,
 	}
-	
+
 	fmt.Println("🔧 tgState 管理API启动在端口 8088")
-	
+
 	// 启动HTTP服务器
 	go func() {
 		if err := api.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("❌ 管理API启动失败: %v\n", err)
 		}
 	}()
-	
+
 	// 等待信号
 	api.waitForSignal()
 }
@@ -119,7 +207,7 @@ func (api *ManagementAPI) StartManagementAPI() {
 func (api *ManagementAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	status := ServiceStatus{
 		Status:    api.status,
 		PID:       api.pid,
@@ -127,7 +215,7 @@ func (api *ManagementAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 		Message:   fmt.Sprintf("tgState服务状态: %s", api.status),
 		StartTime: api.startTime.Format("2006-01-02 15:04:05"),
 	}
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    status,
@@ -138,7 +226,7 @@ func (api *ManagementAPI) handleStatus(w http.ResponseWriter, r *http.Request) {
 func (api *ManagementAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	info := map[string]interface{}{
 		"mode":             api.config.Mode,
 		"target":           api.config.Target,
@@ -149,7 +237,7 @@ func (api *ManagementAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
 		"pid":              api.pid,
 		"status":           api.status,
 	}
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"data":    info,
@@ -160,7 +248,7 @@ func (api *ManagementAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
 func (api *ManagementAPI) handleStart(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if api.status == "running" {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -168,11 +256,11 @@ func (api *ManagementAPI) handleStart(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// 启动tgState服务
 	cmd := exec.Command("./tgstate")
 	cmd.Dir = "/app"
-	
+
 	if err := cmd.Start(); err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -180,11 +268,11 @@ func (api *ManagementAPI) handleStart(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	api.status = "running"
 	api.pid = cmd.Process.Pid
 	api.startTime = time.Now()
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "服务启动成功",
@@ -196,7 +284,7 @@ func (api *ManagementAPI) handleStart(w http.ResponseWriter, r *http.Request) {
 func (api *ManagementAPI) handleStop(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if api.status == "stopped" {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
@@ -204,17 +292,17 @@ func (api *ManagementAPI) handleStop(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if api.pid > 0 {
 		process, err := os.FindProcess(api.pid)
 		if err == nil {
 			process.Signal(syscall.SIGTERM)
 		}
 	}
-	
+
 	api.status = "stopped"
 	api.pid = 0
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "服务停止成功",
@@ -225,7 +313,7 @@ func (api *ManagementAPI) handleStop(w http.ResponseWriter, r *http.Request) {
 func (api *ManagementAPI) handleRestart(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	// 先停止
 	if api.status == "running" && api.pid > 0 {
 		process, err := os.FindProcess(api.pid)
@@ -234,11 +322,11 @@ func (api *ManagementAPI) handleRestart(w http.ResponseWriter, r *http.Request) 
 		}
 		time.Sleep(2 * time.Second)
 	}
-	
+
 	// 再启动
 	cmd := exec.Command("./tgstate")
 	cmd.Dir = "/app"
-	
+
 	if err := cmd.Start(); err != nil {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
@@ -246,11 +334,11 @@ func (api *ManagementAPI) handleRestart(w http.ResponseWriter, r *http.Request) 
 		})
 		return
 	}
-	
+
 	api.status = "running"
 	api.pid = cmd.Process.Pid
 	api.startTime = time.Now()
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "服务重启成功",
@@ -262,7 +350,7 @@ func (api *ManagementAPI) handleRestart(w http.ResponseWriter, r *http.Request) 
 func (api *ManagementAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if r.Method == "GET" {
 		// 获取配置
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -279,16 +367,16 @@ func (api *ManagementAPI) handleConfig(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		
+
 		api.config = newConfig
-		
+
 		// 更新环境变量
 		os.Setenv("TOKEN", newConfig.Token)
 		os.Setenv("TARGET", newConfig.Target)
 		os.Setenv("PASS", newConfig.Pass)
 		os.Setenv("MODE", newConfig.Mode)
 		os.Setenv("URL", newConfig.URL)
-		
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"message": "配置更新成功",
@@ -742,7 +830,7 @@ func (api *ManagementAPI) handleStatic(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(html))
 		return
 	}
-	
+
 	// 其他请求返回404
 	w.WriteHeader(http.StatusNotFound)
 	w.Write([]byte("Not Found"))
@@ -759,7 +847,7 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": "只支持POST方法",
+			"error":   "只支持POST方法",
 		})
 		return
 	}
@@ -770,7 +858,7 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("解析表单失败: %v", err),
+			"error":   fmt.Sprintf("解析表单失败: %v", err),
 		})
 		return
 	}
@@ -781,7 +869,7 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("获取文件失败: %v", err),
+			"error":   fmt.Sprintf("获取文件失败: %v", err),
 		})
 		return
 	}
@@ -791,13 +879,13 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 	tempDir := "/tmp"
 	os.MkdirAll(tempDir, 0755)
 	tempFile := filepath.Join(tempDir, "test_upload_"+header.Filename)
-	
+
 	destFile, err := os.Create(tempFile)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("创建临时文件失败: %v", err),
+			"error":   fmt.Sprintf("创建临时文件失败: %v", err),
 		})
 		return
 	}
@@ -810,7 +898,7 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("保存文件失败: %v", err),
+			"error":   fmt.Sprintf("保存文件失败: %v", err),
 		})
 		return
 	}
@@ -821,13 +909,13 @@ func (api *ManagementAPI) handleTestUpload(w http.ResponseWriter, r *http.Reques
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"message": "图片上传成功",
-			"imgUrl": imgUrl,
+			"imgUrl":  imgUrl,
 			"imgPath": imgPath,
 		})
 	} else {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"error": imgPath, // 错误时imgPath存储错误信息
+			"error":   imgPath, // 错误时imgPath存储错误信息
 		})
 	}
 }
@@ -838,31 +926,37 @@ func (api *ManagementAPI) uploadImageToTGState(tempFile, filename string) (succe
 	if conf.BotToken == "" || conf.ChannelName == "" {
 		return false, "tgState未配置Bot Token或频道名称", ""
 	}
-	
+
 	// 读取文件
 	file, err := os.Open(tempFile)
 	if err != nil {
 		return false, fmt.Sprintf("打开文件失败: %v", err), ""
 	}
 	defer file.Close()
-	
+
 	// 上传到Telegram
 	finalPath := utils.UpDocument(utils.TgFileData(filename, file))
 	if finalPath == "" {
 		return false, "上传到Telegram失败", ""
 	}
-	
+
 	imgPath = conf.FileRoute + finalPath
-	baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
+	
+	// 优先使用数据库中的公网地址
+	baseUrl := strings.TrimSuffix(api.publicURL, "/")
 	if baseUrl == "" {
-		// 从环境变量获取公网地址，如果没有则使用默认值
-		baseUrl = os.Getenv("PUBLIC_URL")
+		// 其次使用配置中的URL
+		baseUrl = strings.TrimSuffix(conf.BaseUrl, "/")
 		if baseUrl == "" {
-			baseUrl = "http://your-domain.com:8088"
+			// 最后使用环境变量
+			baseUrl = os.Getenv("PUBLIC_URL")
+			if baseUrl == "" {
+				baseUrl = "http://your-domain.com:8088"
+			}
 		}
 	}
 	imgUrl = baseUrl + imgPath
-	
+
 	return true, imgPath, imgUrl
 }
 
@@ -874,20 +968,20 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil || statusResp.StatusCode != http.StatusOK {
 		return map[string]interface{}{
 			"success": false,
-			"error": "tgState管理接口不可访问，请确保服务已启动",
+			"error":   "tgState管理接口不可访问，请确保服务已启动",
 		}, nil
 	}
 	statusResp.Body.Close()
 
 	// 准备上传到tgState服务
 	client := &http.Client{Timeout: 30 * time.Second}
-	
+
 	// 打开文件
 	file, err := os.Open(tempFile)
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("打开文件失败: %v", err),
+			"error":   fmt.Sprintf("打开文件失败: %v", err),
 		}, nil
 	}
 	defer file.Close()
@@ -899,7 +993,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("创建表单字段失败: %v", err),
+			"error":   fmt.Sprintf("创建表单字段失败: %v", err),
 		}, nil
 	}
 
@@ -907,7 +1001,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("写入文件内容失败: %v", err),
+			"error":   fmt.Sprintf("写入文件内容失败: %v", err),
 		}, nil
 	}
 
@@ -915,7 +1009,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("关闭multipart writer失败: %v", err),
+			"error":   fmt.Sprintf("关闭multipart writer失败: %v", err),
 		}, nil
 	}
 
@@ -925,12 +1019,12 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("创建请求失败: %v", err),
+			"error":   fmt.Sprintf("创建请求失败: %v", err),
 		}, nil
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	
+
 	// 如果有密码，设置cookie
 	if api.config.Pass != "" && api.config.Pass != "none" {
 		req.AddCookie(&http.Cookie{
@@ -944,7 +1038,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("发送请求失败: %v", err),
+			"error":   fmt.Sprintf("发送请求失败: %v", err),
 		}, nil
 	}
 	defer resp.Body.Close()
@@ -954,7 +1048,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("读取响应失败: %v", err),
+			"error":   fmt.Sprintf("读取响应失败: %v", err),
 		}, nil
 	}
 
@@ -962,7 +1056,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if resp.StatusCode != http.StatusOK {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("HTTP错误 %d: %s", resp.StatusCode, string(respBody)),
+			"error":   fmt.Sprintf("HTTP错误 %d: %s", resp.StatusCode, string(respBody)),
 		}, nil
 	}
 
@@ -971,7 +1065,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if !strings.Contains(contentType, "application/json") {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("期望JSON响应，实际收到: %s, 内容: %s", contentType, string(respBody)),
+			"error":   fmt.Sprintf("期望JSON响应，实际收到: %s, 内容: %s", contentType, string(respBody)),
 		}, nil
 	}
 
@@ -981,7 +1075,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,
-			"error": fmt.Sprintf("解析响应失败: %v, 响应内容: %s", err, string(respBody)),
+			"error":   fmt.Sprintf("解析响应失败: %v, 响应内容: %s", err, string(respBody)),
 		}, nil
 	}
 
@@ -994,15 +1088,15 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 
 	if !success {
 		return map[string]interface{}{
-			"success": false,
-			"error": "上传失败，tgState返回错误",
+			"success":          false,
+			"error":            "上传失败，tgState返回错误",
 			"tgstate_response": result,
 		}, nil
 	}
 
 	return map[string]interface{}{
-		"success": true,
-		"message": "图片上传成功",
+		"success":          true,
+		"message":          "图片上传成功",
 		"tgstate_response": result,
 	}, nil
 }
@@ -1010,7 +1104,7 @@ func (api *ManagementAPI) testUploadToTGState(tempFile, filename string) (map[st
 // handleImageUpload 处理实际的图片上传请求
 func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -1023,8 +1117,8 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 			"message": "tgstate_not_configured",
 			"imgUrl":  "",
 		}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -1081,22 +1175,27 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 	img := conf.FileRoute + utils.UpDocument(utils.TgFileData(header.Filename, file))
 	if img != conf.FileRoute && img != "" {
 		// 上传成功，生成访问URL
-		baseUrl := strings.TrimSuffix(conf.BaseUrl, "/")
+		// 优先使用数据库中的公网地址
+		baseUrl := strings.TrimSuffix(api.publicURL, "/")
 		if baseUrl == "" {
-			// 从环境变量获取公网地址，如果没有则使用默认值
-			baseUrl = os.Getenv("PUBLIC_URL")
+			// 其次使用配置中的URL
+			baseUrl = strings.TrimSuffix(conf.BaseUrl, "/")
 			if baseUrl == "" {
-				baseUrl = "http://your-domain.com:8088"
+				// 最后使用环境变量
+				baseUrl = os.Getenv("PUBLIC_URL")
+				if baseUrl == "" {
+					baseUrl = "http://your-domain.com:8088"
+				}
 			}
 		}
 		imgUrl := baseUrl + img
-		
+
 		response := map[string]interface{}{
 			"code":    1,
 			"message": img,
 			"imgUrl":  imgUrl,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	} else {
@@ -1106,7 +1205,7 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 			"message": "Telegram上传失败，请检查Bot Token和频道配置",
 			"imgUrl":  "",
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -1116,10 +1215,10 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 func (api *ManagementAPI) waitForSignal() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	
+
 	<-c
 	fmt.Println("🛑 收到停止信号，正在关闭管理API...")
-	
+
 	// 停止tgState服务
 	if api.status == "running" && api.pid > 0 {
 		process, err := os.FindProcess(api.pid)
@@ -1127,12 +1226,12 @@ func (api *ManagementAPI) waitForSignal() {
 			process.Signal(syscall.SIGTERM)
 		}
 	}
-	
+
 	// 关闭HTTP服务器
 	if api.httpServer != nil {
 		api.httpServer.Close()
 	}
-	
+
 	fmt.Println("✅ 管理API已关闭")
 }
 
@@ -1144,7 +1243,7 @@ func (api *ManagementAPI) handleRoot(w http.ResponseWriter, r *http.Request) {
 		api.handleUploadPage(w, r)
 		return
 	}
-	
+
 	// 有密码，检查是否已经验证
 	cookie, err := r.Cookie("tgstate_auth")
 	if err != nil || cookie.Value != api.config.Pass {
@@ -1152,7 +1251,7 @@ func (api *ManagementAPI) handleRoot(w http.ResponseWriter, r *http.Request) {
 		api.handlePasswordCheck(w, r)
 		return
 	}
-	
+
 	// 已验证，显示图片上传测试页面
 	api.handleUploadPage(w, r)
 }
@@ -1172,12 +1271,12 @@ func (api *ManagementAPI) handlePasswordCheck(w http.ResponseWriter, r *http.Req
 				HttpOnly: true,
 			}
 			http.SetCookie(w, cookie)
-			
+
 			// 重定向到上传页面
 			http.Redirect(w, r, "/upload", http.StatusSeeOther)
 			return
 		}
-		
+
 		// 密码错误，显示错误页面
 		html := `<!DOCTYPE html>
 <html>
@@ -1209,7 +1308,7 @@ func (api *ManagementAPI) handlePasswordCheck(w http.ResponseWriter, r *http.Req
 		w.Write([]byte(html))
 		return
 	}
-	
+
 	// 显示密码输入页面
 	html := `<!DOCTYPE html>
 <html>
@@ -1251,7 +1350,7 @@ func (api *ManagementAPI) handleUploadPage(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	
+
 	html := `<!DOCTYPE html>
 <html>
 <head>
@@ -1390,7 +1489,7 @@ func (api *ManagementAPI) handleAdminPage(w http.ResponseWriter, r *http.Request
 			return
 		}
 	}
-	
+
 	// 显示原来的管理页面
 	api.handleStatic(w, r)
 }

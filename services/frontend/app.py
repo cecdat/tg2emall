@@ -1197,6 +1197,15 @@ def telegram_verification_status():
             code_result = cursor.fetchone()
             has_code = code_result and code_result['config_value'] != ''
             
+            # 检查采集服务是否正在运行
+            cursor.execute("""
+                SELECT status FROM services_status 
+                WHERE service_name = 'scraper-service' 
+                ORDER BY last_check DESC LIMIT 1
+            """)
+            service_result = cursor.fetchone()
+            service_running = service_result and service_result['status'] == 'running'
+            
             # 根据实际状态判断
             if needs_verification and not is_submitted:
                 status = 'waiting'
@@ -1204,9 +1213,24 @@ def telegram_verification_status():
             elif needs_verification and is_submitted and has_code:
                 status = 'submitted'
                 message = '验证码已提交，等待验证...'
-            elif not needs_verification:
-                status = 'idle'
-                message = '无需验证或验证已完成'
+            elif not needs_verification and service_running:
+                # 检查是否有有效的会话文件
+                cursor.execute("""
+                    SELECT config_value FROM system_config 
+                    WHERE config_key = 'telegram_session_valid'
+                """)
+                session_result = cursor.fetchone()
+                session_valid = session_result and session_result['config_value'] == 'true'
+                
+                if session_valid:
+                    status = 'idle'
+                    message = '验证已完成，服务正常运行'
+                else:
+                    status = 'waiting'
+                    message = '需要重新验证Telegram'
+            elif not service_running:
+                status = 'waiting'
+                message = '采集服务未运行，请先启动服务'
             else:
                 status = 'unknown'
                 message = '状态未知'

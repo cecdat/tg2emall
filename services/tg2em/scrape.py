@@ -238,6 +238,42 @@ async def get_tgstate_config(config_key):
     """从数据库获取配置（保留兼容性）"""
     return await get_config_from_db(config_key)
 
+async def mark_verification_completed():
+    """标记Telegram验证完成"""
+    try:
+        async with MySQLConnectionManager() as conn:
+            cursor = await conn.cursor()
+            
+            # 标记验证完成
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_verification_required', 'false', 'boolean', '需要验证码', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = 'false', updated_at = NOW()
+            """)
+            
+            # 标记会话有效
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_session_valid', 'true', 'boolean', 'Telegram会话有效', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = 'true', updated_at = NOW()
+            """)
+            
+            # 清除验证码
+            await cursor.execute("""
+                INSERT INTO system_config (config_key, config_value, config_type, description, category)
+                VALUES ('telegram_verification_code', '', 'string', 'Telegram验证码', 'telegram')
+                ON DUPLICATE KEY UPDATE 
+                config_value = '', updated_at = NOW()
+            """)
+            
+            await conn.commit()
+            logging.info("✅ 已标记Telegram验证完成")
+            
+    except Exception as e:
+        logging.error(f"❌ 标记验证完成失败: {e}")
+
 async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
@@ -460,6 +496,9 @@ async def init_telegram_client():
             me = await client.get_me()
             logging.info(f"✅ Telegram登录成功！当前用户: {me.username or me.first_name}")
             logging.info(f"📁 会话已保存至: {session_file}")
+            
+            # 标记验证完成和会话有效
+            await mark_verification_completed()
             return True
             
         except Exception as start_error:
@@ -478,6 +517,9 @@ async def init_telegram_client():
                 me = await client.get_me()
                 logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
                 logging.info(f"📁 会话已保存至: {session_file}")
+                
+                # 标记验证完成和会话有效
+                await mark_verification_completed()
                 return True
                 
             except Exception as auth_error:
@@ -662,9 +704,10 @@ def get_code_input():
         # 清除提交状态
         cursor.execute("""
             INSERT INTO system_config (config_key, config_value, config_type, description, category)
-            VALUES ('telegram_verification_submitted', 'false', 'boolean')
-
-        """, ('verification_code', ''))
+            VALUES ('telegram_verification_submitted', 'false', 'boolean', '验证码已提交', 'telegram')
+            ON DUPLICATE KEY UPDATE 
+            config_value = 'false', updated_at = NOW()
+        """)
         
         conn.commit()
         conn.close()
