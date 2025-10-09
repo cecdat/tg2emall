@@ -1207,14 +1207,20 @@ def telegram_verification_status():
             service_running = service_result and service_result['status'] == 'running'
             
             # 根据实际状态判断
-            if needs_verification and not is_submitted:
+            if not service_running:
+                # 服务未运行，优先提示启动服务
+                status = 'waiting'
+                message = '采集服务未运行，请先启动服务'
+            elif needs_verification and not is_submitted:
+                # 需要验证且未提交验证码
                 status = 'waiting'
                 message = '等待输入验证码'
             elif needs_verification and is_submitted and has_code:
+                # 需要验证且已提交验证码
                 status = 'submitted'
                 message = '验证码已提交，等待验证...'
-            elif not needs_verification and service_running:
-                # 检查是否有有效的会话文件
+            elif not needs_verification:
+                # 不需要验证，检查是否有有效的会话文件
                 cursor.execute("""
                     SELECT config_value FROM system_config 
                     WHERE config_key = 'telegram_session_valid'
@@ -1226,11 +1232,9 @@ def telegram_verification_status():
                     status = 'idle'
                     message = '验证已完成，服务正常运行'
                 else:
+                    # 没有验证记录，需要验证
                     status = 'waiting'
-                    message = '需要重新验证Telegram'
-            elif not service_running:
-                status = 'waiting'
-                message = '采集服务未运行，请先启动服务'
+                    message = '需要验证Telegram'
             else:
                 status = 'unknown'
                 message = '状态未知'
