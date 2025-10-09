@@ -336,8 +336,163 @@ async def parse_log(message):
         logging.error(f"解析日志时发生错误: {e}")
         return "未知标题", "无法解析内容", [], None
 
+async def check_session_validity(session_file, api_id, api_hash):
+    """检查会话文件是否存在且有效"""
+    if not os.path.exists(session_file):
+        logging.info("📄 会话文件不存在，需要首次登录")
+        return False
+    
+    logging.info(f"📄 发现会话文件: {session_file}")
+    logging.info("🔍 检查会话有效性...")
+    
+    try:
+        # 创建临时客户端测试会话
+        test_client = TelegramClient(session_file, api_id, api_hash)
+        await test_client.connect()
+        
+        # 检查是否已授权
+        if not await test_client.is_user_authorized():
+            logging.warning("⚠️ 会话文件存在但未授权，需要重新登录")
+            await test_client.disconnect()
+            return False
+        
+        # 测试实际连接
+        try:
+            me = await test_client.get_me()
+            logging.info(f"✅ 会话有效！当前用户: {me.username or me.first_name} (ID: {me.id})")
+            await test_client.disconnect()
+            return True
+        except Exception as e:
+            logging.warning(f"⚠️ 会话测试失败: {e}")
+            await test_client.disconnect()
+            return False
+            
+    except Exception as e:
+        logging.warning(f"⚠️ 会话检查失败: {e}")
+        return False
+
+async def init_telegram_client():
+    """初始化并登录 Telegram 客户端"""
+    global client
+    
+    try:
+        # 第一步：检查内存中的client是否存在且连接正常
+        if client is not None and client.is_connected():
+            try:
+                me = await client.get_me()
+                logging.info(f"✅ Telegram客户端已连接，无需重新登录 (用户: {me.username or me.first_name})")
+                return True
+            except Exception as e:
+                logging.info(f"⚠️ 现有连接已失效: {e}")
+                try:
+                    await client.disconnect()
+                except:
+                    pass
+                client = None
+        
+        # 第二步：从数据库获取配置
+        api_id = await get_config_from_db("telegram_api_id") or config["telegram"]["api_id"]
+        api_hash = await get_config_from_db("telegram_api_hash") or config["telegram"]["api_hash"]
+        phone_number = await get_config_from_db("telegram_phone") or config["telegram"]["phone_number"]
+        
+        if not api_id or not api_hash or not phone_number:
+            logging.error("❌ Telegram配置不完整，请在后台管理页面配置API ID、API Hash和手机号")
+            logging.error("必需的配置:")
+            logging.error(f"  - API ID: {'已配置' if api_id else '未配置'}")
+            logging.error(f"  - API Hash: {'已配置' if api_hash else '未配置'}")  
+            logging.error(f"  - 手机号: {'已配置' if phone_number else '未配置'}")
+            raise Exception("Telegram配置不完整")
+        
+        logging.info("✅ 已从数据库获取Telegram配置")
+        
+        # 确保sessions目录存在
+        sessions_dir = "/app/sessions"
+        os.makedirs(sessions_dir, exist_ok=True)
+        
+        # 使用映射的sessions目录
+        session_file = os.path.join(sessions_dir, 'tg2em_scraper.session')
+        
+        # 第三步：检查会话文件是否存在且有效
+        session_valid = await check_session_validity(session_file, api_id, api_hash)
+        
+        # 第四步：创建客户端
+        client = TelegramClient(session_file, api_id, api_hash)
+        
+        # 使用的手机号
+        phone = phone_number
+        two_factor_password = config["telegram"].get("two_factor_password")
+        
+        # 第五步：根据会话有效性决定登录方式
+        if session_valid:
+            # 会话有效，直接连接
+            logging.info("🔄 使用已保存的有效会话，直接连接...")
+            try:
+                await client.connect()
+                if await client.is_user_authorized():
+                    me = await client.get_me()
+                    logging.info(f"✅ Telegram客户端启动成功 (用户: {me.username or me.first_name})")
+                    return True
+                else:
+                    logging.warning("⚠️ 连接成功但未授权，需要重新登录")
+                    # 删除无效会话文件
+                    if os.path.exists(session_file):
+                        os.remove(session_file)
+                        logging.info("🗑️ 已删除无效会话文件")
+            except Exception as e:
+                logging.warning(f"⚠️ 使用已保存会话连接失败: {e}")
+                # 删除无效会话文件
+                if os.path.exists(session_file):
+                    os.remove(session_file)
+                    logging.info("🗑️ 已删除无效会话文件")
+        
+        # 第六步：会话无效或不存在，执行完整登录流程
+        logging.info("🔐 开始Telegram登录流程...")
+        
+        try:
+            # 尝试使用手机号登录（会自动检测是否需要验证码）
+            await client.start(phone=lambda: phone)
+            
+            # 验证连接
+            me = await client.get_me()
+            logging.info(f"✅ Telegram登录成功！当前用户: {me.username or me.first_name}")
+            logging.info(f"📁 会话已保存至: {session_file}")
+            return True
+            
+        except Exception as start_error:
+            logging.warning(f"自动登录失败: {start_error}")
+            logging.info("📱 需要验证码，等待Web界面输入...")
+            
+            # 需要验证码的情况
+            try:
+                await client.start(
+                    phone=lambda: phone,
+                    code_callback=get_code_input,
+                    password=lambda: two_factor_password if two_factor_password else get_password_input()
+                )
+                
+                # 验证登录成功
+                me = await client.get_me()
+                logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
+                logging.info(f"📁 会话已保存至: {session_file}")
+                return True
+                
+            except Exception as auth_error:
+                logging.error(f"❌ Telegram验证失败: {auth_error}")
+                raise Exception(f"Telegram登录失败: {auth_error}")
+    
+    except Exception as e:
+        logging.error(f"❌ 初始化Telegram客户端失败: {e}")
+        raise
+
 async def scrape_channel():
     """抓取 Telegram 频道消息"""
+    global client
+    
+    # 确保 Telegram 客户端已初始化和登录
+    if client is None or not client.is_connected():
+        logging.info("🔄 Telegram客户端未连接，开始初始化和登录...")
+        await init_telegram_client()
+    
     try:
         logging.info("Telegram 客户端启动成功")
         collect_start_time = datetime.now()

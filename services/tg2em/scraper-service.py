@@ -108,6 +108,11 @@ class ScraperService:
             # 初始化数据库连接
             await self.scrape_module.init_mysql_pool()
             
+            # 初始化并登录 Telegram 客户端
+            logger.info("🔐 初始化 Telegram 客户端...")
+            await self.scrape_module.init_telegram_client()
+            logger.info("✅ Telegram 客户端初始化成功")
+            
             # 执行采集任务
             await self.scrape_module.scrape_channel()
             
