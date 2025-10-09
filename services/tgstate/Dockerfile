@@ -53,7 +53,7 @@ RUN chown -R tgstate:tgstate /app && chmod +x ./management-service && chmod +x .
 USER tgstate
 
 # 设置暴露的端口
-EXPOSE 6001 6002
+EXPOSE 8001 8002
 
 # 设置容器启动时要执行的命令（启动管理服务）
 CMD ["./management-service"]

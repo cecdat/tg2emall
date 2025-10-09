@@ -51,8 +51,8 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 -- 双服务架构配置
 ('scraper_management_port', '2003', 'number', '采集服务管理端口', 'scraper'),
 ('scraper_service_port', '5002', 'number', '采集服务业务端口', 'scraper'),
-('tgstate_management_port', '6001', 'number', '图片服务管理端口', 'tgstate'),
-('tgstate_upload_port', '6002', 'number', '图片上传服务端口', 'tgstate'),
+('tgstate_management_port', '8001', 'number', '图片服务管理端口', 'tgstate'),
+('tgstate_upload_port', '8002', 'number', '图片上传服务端口', 'tgstate'),
 
 -- 管理员配置
 ('admin_password', 'admin', 'string', '管理员密码', 'admin'),

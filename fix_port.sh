@@ -48,7 +48,7 @@ fi
 # 更新或添加配置
 grep -q "^FRONTEND_PORT=" .env && sed -i "s/^FRONTEND_PORT=.*/FRONTEND_PORT=8000/" .env || echo "FRONTEND_PORT=8000" >> .env
 grep -q "^PUBLIC_IP=" .env && sed -i "s/^PUBLIC_IP=.*/PUBLIC_IP=$PUBLIC_IP/" .env || echo "PUBLIC_IP=$PUBLIC_IP" >> .env
-grep -q "^TGSTATE_URL=" .env && sed -i "s|^TGSTATE_URL=.*|TGSTATE_URL=http://$PUBLIC_IP:6001|" .env || echo "TGSTATE_URL=http://$PUBLIC_IP:6001" >> .env
+grep -q "^TGSTATE_URL=" .env && sed -i "s|^TGSTATE_URL=.*|TGSTATE_URL=http://$PUBLIC_IP:8001|" .env || echo "TGSTATE_URL=http://$PUBLIC_IP:8001" >> .env
 
 echo -e "${GREEN}✅ 环境变量已更新${NC}"
 
@@ -85,7 +85,7 @@ sleep 10
 # 更新数据库中的URL配置
 docker exec tg2em-mysql mysql -u tg2emall -ptg2emall tg2em -e "
 UPDATE system_config 
-SET config_value = 'http://$PUBLIC_IP:6001' 
+SET config_value = 'http://$PUBLIC_IP:8001' 
 WHERE config_key = 'tgstate_url';
 " 2>/dev/null && echo -e "${GREEN}✅ 数据库配置已更新${NC}" || echo -e "${YELLOW}⚠️  数据库配置更新失败，请手动更新${NC}"
 
@@ -98,7 +98,7 @@ echo ""
 echo -e "${BLUE}📍 访问地址：${NC}"
 echo -e "  • 主站: ${YELLOW}http://$PUBLIC_IP:8000${NC}"
 echo -e "  • 管理后台: ${YELLOW}http://$PUBLIC_IP:8000/dm${NC}"
-echo -e "  • 图片服务: ${YELLOW}http://$PUBLIC_IP:6001${NC}"
+echo -e "  • 图片服务: ${YELLOW}http://$PUBLIC_IP:8001${NC}"
 echo -e "  • 采集管理: ${YELLOW}http://$PUBLIC_IP:2003${NC}"
 echo -e "  • NPM管理: ${YELLOW}http://$PUBLIC_IP:81${NC}"
 echo ""

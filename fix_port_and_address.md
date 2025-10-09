@@ -33,7 +33,7 @@ docker exec -it tg2em-mysql mysql -u tg2emall -ptg2emall tg2em
 
 -- 更新 tgState URL（使用实际的公网IP或域名）
 UPDATE system_config 
-SET config_value = 'http://YOUR_PUBLIC_IP:6001' 
+SET config_value = 'http://YOUR_PUBLIC_IP:8001' 
 WHERE config_key = 'tgstate_url';
 
 -- 或者使用域名
@@ -73,7 +73,8 @@ docker-compose logs -f frontend
 | 前端展示 | 6000 | **8000** | `http://公网IP:8000` | 主站 |
 | 管理后台 | 6000 | **8000** | `http://公网IP:8000/dm` | 管理界面 |
 | NPM管理 | 81 | 81 | `http://公网IP:81` | Nginx代理管理 |
-| 图片管理 | 6001 | 6001 | `http://公网IP:6001` | tgState管理 |
+| 图片管理 | 6001 | **8001** | `http://公网IP:8001` | tgState管理 |
+| 图片上传 | 6002 | **8002** | `http://公网IP:8002` | tgState上传 |
 | 采集管理 | 2003 | 2003 | `http://公网IP:2003` | 采集服务管理 |
 
 ### 容器间通信（使用容器名）
@@ -81,10 +82,10 @@ docker-compose logs -f frontend
 | 通信方向 | 容器名 | 端口 | 地址示例 |
 |----------|--------|------|----------|
 | Frontend → MySQL | `mysql` | 3306 | `mysql:3306` |
-| Frontend → tgState | `tg2em-tgstate` | 6001 | `tg2em-tgstate:6001` |
+| Frontend → tgState | `tg2em-tgstate` | 8001 | `tg2em-tgstate:8001` |
 | Frontend → Scraper | `tg2em-scrape` | 2003 | `tg2em-scrape:2003` |
 | Scraper → MySQL | `mysql` | 3306 | `mysql:3306` |
-| Scraper → tgState | `tg2em-tgstate` | 6001 | `tg2em-tgstate:6001` |
+| Scraper → tgState | `tg2em-tgstate` | 8001 | `tg2em-tgstate:8001` |
 
 ---
 
@@ -120,7 +121,7 @@ TGSTATE_TOKEN=your_bot_token
 TGSTATE_TARGET=@your_channel
 TGSTATE_PASS=your_password
 TGSTATE_MODE=p
-TGSTATE_URL=http://YOUR_PUBLIC_IP:6001
+TGSTATE_URL=http://YOUR_PUBLIC_IP:8001
 
 # ========== Telegram 采集配置 ==========
 API_ID=your_api_id
@@ -140,7 +141,7 @@ MYSQL_PASSWORD=tg2emall
 2. 登录：用户名 `admin`，密码 `admin`，验证码 `2025`
 3. 进入"配置管理"
 4. 修改以下配置：
-   - `tgstate_url`: `http://YOUR_PUBLIC_IP:6001`
+   - `tgstate_url`: `http://YOUR_PUBLIC_IP:8001`
    - 其他相关URL配置
 
 ---

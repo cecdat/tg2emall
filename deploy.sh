@@ -267,7 +267,7 @@ show_status() {
     echo "  - Nginx Proxy Manager: http://${public_ip}:81"
     echo "  - 前端展示系统: http://${public_ip}:${frontend_port}"
     echo "  - 后台管理系统: http://${public_ip}:${frontend_port}/dm"
-    echo "  - 图片上传服务: http://${public_ip}:6001"
+    echo "  - 图片上传服务: http://${public_ip}:8001"
     echo "  - 采集服务管理: http://${public_ip}:2003"
     
     echo ""

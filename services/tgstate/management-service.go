@@ -94,7 +94,7 @@ func main() {
 	
 	// 启动HTTP服务器
 	server := &http.Server{
-		Addr:    ":6001",
+		Addr:    ":8001",
 		Handler: router,
 	}
 	
