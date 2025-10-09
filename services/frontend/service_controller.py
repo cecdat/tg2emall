@@ -18,16 +18,20 @@ class ServiceController:
         # 服务名称映射：前端使用的名称 -> 实际的服务名称
         self.service_name_mapping = {
             'tgstate': 'tgstate-management',  # 前端使用tgstate，实际管理tgstate-management
-            'tgstate-service': 'tgstate-management',  # 兼容tgstate-service名称
+            'tgstate-service': 'tgstate-service',  # 直接使用tgstate-service
+            'tgstate-management': 'tgstate-management',  # 直接使用tgstate-management
             'scraper': 'scraper-management',  # 前端使用scraper，实际管理scraper-management
-            'scraper-service': 'scraper-management',  # 兼容scraper-service名称
+            'scraper-service': 'scraper-service',  # 直接使用scraper-service
+            'scraper-management': 'scraper-management',  # 直接使用scraper-management
         }
         
         self.service_urls = {
             'scraper': 'http://tg2em-scrape:2003',  # 管理服务端口
-            'scraper-service': 'http://tg2em-scrape:2003',  # 兼容scraper-service名称
+            'scraper-service': 'http://tg2em-scrape:5002',  # 采集服务端口
+            'scraper-management': 'http://tg2em-scrape:2003',  # 采集管理服务端口
             'tgstate': 'http://tgstate:8001',
-            'tgstate-service': 'http://tgstate:8001',  # 兼容tgstate-service名称
+            'tgstate-service': 'http://tgstate:8002',  # 图片上传服务端口
+            'tgstate-management': 'http://tgstate:8001',  # 图片管理服务端口
             'mysql': 'http://mysql:3306',  # 外部服务，通过端口检查
             'nginx-proxy-manager': 'http://nginx-proxy-manager:80'  # 外部服务，通过端口检查
         }
@@ -48,8 +52,15 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口获取状态
-            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
-                url = f"{self.service_urls[service_name]}/api/management/status"
+            if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
+                # 根据服务类型选择不同的API端点
+                if service_name in ['scraper-management', 'tgstate-management']:
+                    # 管理服务
+                    url = f"{self.service_urls[service_name]}/api/management/status"
+                else:
+                    # 业务服务
+                    url = f"{self.service_urls[service_name]}/api/status"
+                
                 response = requests.get(url, timeout=5)
                 
                 if response.status_code == 200:
@@ -61,7 +72,7 @@ class ServiceController:
                             'status': status_data.get('status', 'unknown'),
                             'pid': status_data.get('pid'),
                             'port': status_data.get('port'),
-                            'message': status_data.get('message', f'服务 {service_name} 状态')
+                            'message': status_data.get('message', f'服务 {service_name} 状态正常')
                         }
                 
                 return {
@@ -99,8 +110,15 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口启动
-            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
-                url = f"{self.service_urls[service_name]}/api/management/start"
+            if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
+                # 根据服务类型选择不同的API端点
+                if service_name in ['scraper-management', 'tgstate-management']:
+                    # 管理服务
+                    url = f"{self.service_urls[service_name]}/api/management/start"
+                else:
+                    # 业务服务
+                    url = f"{self.service_urls[service_name]}/api/start"
+                
                 response = requests.post(url, timeout=10)
                 
                 if response.status_code == 200:
@@ -135,8 +153,15 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口停止
-            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
-                url = f"{self.service_urls[service_name]}/api/management/stop"
+            if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
+                # 根据服务类型选择不同的API端点
+                if service_name in ['scraper-management', 'tgstate-management']:
+                    # 管理服务
+                    url = f"{self.service_urls[service_name]}/api/management/stop"
+                else:
+                    # 业务服务
+                    url = f"{self.service_urls[service_name]}/api/stop"
+                
                 response = requests.post(url, timeout=10)
                 
                 if response.status_code == 200:
@@ -170,8 +195,15 @@ class ServiceController:
         
         try:
             # 业务服务通过管理接口重启
-            if service_name in ['scraper', 'scraper-service', 'tgstate', 'tgstate-service']:
-                url = f"{self.service_urls[service_name]}/api/management/restart"
+            if service_name in ['scraper', 'scraper-service', 'scraper-management', 'tgstate', 'tgstate-service', 'tgstate-management']:
+                # 根据服务类型选择不同的API端点
+                if service_name in ['scraper-management', 'tgstate-management']:
+                    # 管理服务
+                    url = f"{self.service_urls[service_name]}/api/management/restart"
+                else:
+                    # 业务服务
+                    url = f"{self.service_urls[service_name]}/api/restart"
+                
                 response = requests.post(url, timeout=15)
                 
                 if response.status_code == 200:

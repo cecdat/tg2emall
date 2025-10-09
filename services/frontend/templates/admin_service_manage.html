@@ -47,7 +47,15 @@
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">
-                    {% if service_name in ['tgstate', 'tgstate-management', 'tgstate-service'] %}
+                    {% if service_name == 'tgstate-management' %}
+                        <i class="fas fa-cogs me-2"></i>图片上传管理服务
+                    {% elif service_name == 'tgstate-service' %}
+                        <i class="fas fa-image me-2"></i>图片上传服务
+                    {% elif service_name == 'scraper-management' %}
+                        <i class="fas fa-cogs me-2"></i>采集管理服务
+                    {% elif service_name == 'scraper-service' %}
+                        <i class="fas fa-download me-2"></i>采集服务
+                    {% elif service_name in ['tgstate', 'tgstate-management', 'tgstate-service'] %}
                         <i class="fas fa-image me-2"></i>图片上传服务管理
                     {% elif service_name in ['scraper', 'scraper-management', 'scraper-service'] %}
                         <i class="fas fa-download me-2"></i>采集服务管理

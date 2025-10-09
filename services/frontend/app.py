@@ -76,15 +76,91 @@ def get_server_url():
 try:
     from service_controller import ServiceController
     
-    def get_db_service_name(frontend_service_name):
-        """获取数据库中的服务名称"""
-        service_mapping = {
-            'tgstate': 'tgstate-management',
-            'tgstate-service': 'tgstate-management',  # 兼容tgstate-service名称
-            'scraper': 'scraper-management',
-            'scraper-service': 'scraper-management',  # 兼容scraper-service名称
-        }
-        return service_mapping.get(frontend_service_name, frontend_service_name)
+def get_db_service_name(frontend_service_name):
+    """获取数据库中的服务名称"""
+    service_mapping = {
+        'tgstate': 'tgstate-management',
+        'tgstate-service': 'tgstate-management',  # 兼容tgstate-service名称
+        'scraper': 'scraper-management',
+        'scraper-service': 'scraper-management',  # 兼容scraper-service名称
+    }
+    return service_mapping.get(frontend_service_name, frontend_service_name)
+
+def update_services_status_to_db():
+    """更新服务状态到数据库"""
+    try:
+        controller = ServiceController()
+        
+        # 需要检查的服务列表
+        services_to_check = [
+            'tgstate-management',
+            'tgstate-service', 
+            'scraper-management',
+            'scraper-service',
+            'mysql',
+            'frontend'
+        ]
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            for service_name in services_to_check:
+                try:
+                    # 获取服务状态
+                    if service_name in ['tgstate-management', 'tgstate-service', 'scraper-management', 'scraper-service']:
+                        # 业务服务通过管理接口获取状态
+                        status_result = controller.get_service_status(service_name)
+                        
+                        if status_result['success']:
+                            status = status_result['status']
+                            pid = status_result.get('pid')
+                            port = status_result.get('port')
+                            message = status_result.get('message', f'服务 {service_name} 状态正常')
+                        else:
+                            status = 'error'
+                            pid = None
+                            port = None
+                            message = status_result.get('message', f'服务 {service_name} 状态异常')
+                    else:
+                        # 系统服务假设运行中
+                        status = 'running'
+                        pid = None
+                        port = None
+                        message = f'服务 {service_name} 运行中'
+                    
+                    # 更新数据库
+                    cursor.execute("""
+                        INSERT INTO services_status 
+                        (service_name, status, last_check, pid, port, message, updated_at)
+                        VALUES (%s, %s, NOW(), %s, %s, %s, NOW())
+                        ON DUPLICATE KEY UPDATE
+                        status = VALUES(status),
+                        last_check = VALUES(last_check),
+                        pid = VALUES(pid),
+                        port = VALUES(port),
+                        message = VALUES(message),
+                        updated_at = VALUES(updated_at)
+                    """, (service_name, status, pid, port, message))
+                    
+                except Exception as e:
+                    logger.error(f"更新服务状态失败: {service_name}, 错误: {e}")
+                    # 更新为错误状态
+                    cursor.execute("""
+                        INSERT INTO services_status 
+                        (service_name, status, last_check, message, updated_at)
+                        VALUES (%s, 'error', NOW(), %s, NOW())
+                        ON DUPLICATE KEY UPDATE
+                        status = 'error',
+                        last_check = NOW(),
+                        message = VALUES(message),
+                        updated_at = VALUES(updated_at)
+                    """, (service_name, f'状态检查失败: {str(e)}'))
+            
+            conn.commit()
+            logger.info("服务状态更新完成")
+            
+    except Exception as e:
+        logger.error(f"更新服务状态到数据库失败: {e}")
     
     def start_service_via_docker(service_name):
         """通过服务管理接口启动服务"""
@@ -859,6 +935,9 @@ def admin_services():
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 更新服务状态到数据库
+            update_services_status_to_db()
             
             # 获取服务状态
             cursor.execute("SELECT * FROM services_status ORDER BY created_at")

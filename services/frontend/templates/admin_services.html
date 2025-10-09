@@ -187,6 +187,38 @@
                     </div>
                 </div>
                 
+                <!-- 快速操作 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tools text-primary me-2"></i>
+                            快速操作
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-success w-100 mb-3" onclick="startAllServices()">
+                                    <i class="fas fa-play me-2"></i>
+                                    启动所有业务服务
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-outline-danger w-100 mb-3" onclick="stopAllServices()">
+                                    <i class="fas fa-stop me-2"></i>
+                                    停止所有业务服务
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('admin_config') }}" class="btn btn-outline-primary w-100 mb-3">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    前往配置管理
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 服务状态说明 -->
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -224,7 +256,19 @@
                                 <div class="card-header">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="d-flex align-items-center">
-                                            {% if service.service_name in ['tgstate', 'tgstate-management', 'tgstate-service'] %}
+                                            {% if service.service_name == 'tgstate-management' %}
+                                                <i class="fas fa-cogs text-info me-2"></i>
+                                                <h5 class="mb-0">图片上传管理服务</h5>
+                                            {% elif service.service_name == 'tgstate-service' %}
+                                                <i class="fas fa-cloud-upload-alt text-success me-2"></i>
+                                                <h5 class="mb-0">图片上传服务</h5>
+                                            {% elif service.service_name == 'scraper-management' %}
+                                                <i class="fas fa-cogs text-info me-2"></i>
+                                                <h5 class="mb-0">采集管理服务</h5>
+                                            {% elif service.service_name == 'scraper-service' %}
+                                                <i class="fab fa-telegram text-primary me-2"></i>
+                                                <h5 class="mb-0">采集服务</h5>
+                                            {% elif service.service_name in ['tgstate', 'tgstate-management', 'tgstate-service'] %}
                                                 <i class="fas fa-cloud-upload-alt text-success me-2"></i>
                                                 <h5 class="mb-0">图片上传服务</h5>
                                             {% elif service.service_name in ['scraper', 'scraper-management', 'scraper-service'] %}
@@ -366,37 +410,6 @@
                     {% endif %}
                 </div>
                 
-                <!-- 快速操作 -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-tools text-primary me-2"></i>
-                            快速操作
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-outline-success w-100 mb-3" onclick="startAllServices()">
-                                    <i class="fas fa-play me-2"></i>
-                                    启动所有业务服务
-                                </button>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-outline-danger w-100 mb-3" onclick="stopAllServices()">
-                                    <i class="fas fa-stop me-2"></i>
-                                    停止所有业务服务
-                                </button>
-                            </div>
-                            <div class="col-md-4">
-                                <a href="{{ url_for('admin_config') }}" class="btn btn-outline-primary w-100 mb-3">
-                                    <i class="fas fa-cogs me-2"></i>
-                                    前往配置管理
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -497,9 +510,8 @@
             fetch(`/admin/services/${serviceName}/status`)
                 .then(response => response.json())
                 .then(data => {
-                    showSweetAlert(`${serviceName} 服务状态`, `状态：${data.status}\n消息：${data.message}`, 'info');
-                    // 刷新页面以获得最新状态
-                    setTimeout(() => location.reload(), 1500);
+                    // 只刷新页面，不弹窗显示状态
+                    location.reload();
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -513,21 +525,12 @@
             refreshBtn.classList.add('loading');
             refreshBtn.disabled = true;
             
-            // 检查所有业务服务的状态
-            const businessServices = ['tgstate', 'scraper'];
-            let completed = 0;
-            
-            businessServices.forEach(serviceName => {
-                checkServiceStatus(serviceName);
-                completed++;
-                if (completed === businessServices.length) {
-                    setTimeout(() => {
-                        refreshBtn.classList.remove('loading');
-                        refreshBtn.disabled = false;
-                        location.reload();
-                    }, 2000);
-                }
-            });
+            // 直接刷新页面，不进行状态检查弹窗
+            setTimeout(() => {
+                refreshBtn.classList.remove('loading');
+                refreshBtn.disabled = false;
+                location.reload();
+            }, 1000);
         }
         
         // 启动所有服务
@@ -596,8 +599,8 @@
             }
         }
         
-        // 自动刷新状态（每30秒）
-        setInterval(refreshAllStatus, 30000);
+        // 移除自动刷新功能，避免频繁弹窗
+        // setInterval(refreshAllStatus, 30000);
     </script>
 </body>
 </html>
