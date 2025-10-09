@@ -218,6 +218,30 @@ init_database_structure() {
     fi
 }
 
+# 获取公网IP
+get_public_ip() {
+    local ip=""
+    
+    # 尝试多个服务获取公网IP
+    for service in "ifconfig.me" "api.ipify.org" "ipinfo.io/ip" "api.ip.sb/ip"; do
+        ip=$(curl -s --connect-timeout 3 $service 2>/dev/null || echo "")
+        if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+    
+    # 如果无法获取公网IP，尝试获取本地IP
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$ip"
+        return 0
+    fi
+    
+    # 默认返回localhost
+    echo "localhost"
+}
+
 # 显示服务状态
 show_status() {
     log_info "服务状态："
@@ -225,17 +249,26 @@ show_status() {
     
     echo ""
     log_info "访问地址："
+    
     # 获取前端端口
-    local frontend_port=6000
+    local frontend_port=8000
     if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
         frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
     fi
     
-    echo "  - Nginx Proxy Manager: http://localhost:81"
-    echo "  - 前端展示系统: http://localhost:${frontend_port}"
-    echo "  - 后台管理系统: http://localhost:${frontend_port}/admin"
-    echo "  - 图片上传服务: http://localhost:8088"
-    echo "  - 采集服务管理: http://localhost:5001"
+    # 获取公网IP
+    local public_ip=$(get_public_ip)
+    
+    if [ "$public_ip" != "localhost" ]; then
+        log_success "检测到公网IP: $public_ip"
+        echo ""
+    fi
+    
+    echo "  - Nginx Proxy Manager: http://${public_ip}:81"
+    echo "  - 前端展示系统: http://${public_ip}:${frontend_port}"
+    echo "  - 后台管理系统: http://${public_ip}:${frontend_port}/dm"
+    echo "  - 图片上传服务: http://${public_ip}:6001"
+    echo "  - 采集服务管理: http://${public_ip}:2003"
     
     echo ""
     log_info "查看日志："
@@ -249,29 +282,38 @@ show_status() {
 first_time_setup() {
     log_warning "首次配置提示："
     echo ""
-    echo "1. 配置 Nginx Proxy Manager:"
-    echo "   - 访问 http://localhost:81"
-    echo "   - 默认账号: admin@example.com / changeme"
-    echo "   - 配置域名和 SSL 证书"
-    echo ""
-    echo "2. 配置 Telegram 验证:"
+    
     # 获取前端端口
-    local frontend_port=6000
+    local frontend_port=8000
     if [ -f ".env" ] && grep -q "FRONTEND_PORT" .env; then
         frontend_port=$(grep "FRONTEND_PORT" .env | cut -d'=' -f2)
     fi
     
-    echo "   - 访问管理后台: http://localhost:${frontend_port}/admin"
+    # 获取公网IP
+    local public_ip=$(get_public_ip)
+    
+    echo "1. 配置 Nginx Proxy Manager:"
+    echo "   - 访问 http://${public_ip}:81"
+    echo "   - 默认账号: admin@example.com / changeme"
+    echo "   - 配置域名和 SSL 证书"
+    echo ""
+    echo "2. 配置 Telegram 验证:"
+    echo "   - 访问管理后台: http://${public_ip}:${frontend_port}/dm"
     echo "   - 用户名: admin, 密码: admin, 验证码: 2025"
     echo "   - 在配置管理页面配置 Telegram API 参数"
     echo "   - 在服务管理页面启动采集服务"
     echo ""
     echo "3. 检查配置文件:"
     echo "   - 编辑 .env 文件配置 tgState 参数"
-    echo "   - 访问 http://localhost:6000 查看前端展示"
+    echo "   - 访问 http://${public_ip}:${frontend_port} 查看前端展示"
     echo ""
     echo "4. 重启服务应用配置:"
     echo "   - docker-compose restart"
+    echo ""
+    if [ "$public_ip" != "localhost" ]; then
+        log_success "提示: 请使用上述公网IP地址 ($public_ip) 访问服务"
+        echo "      如需使用域名，请在 Nginx Proxy Manager 中配置反向代理"
+    fi
 }
 
 # 主函数
