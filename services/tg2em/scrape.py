@@ -222,8 +222,8 @@ async def compress_image(input_path, output_path):
     except Exception as e:
         logging.error(f"压缩图片时出错: {e}")
 
-async def get_tgstate_config(config_key):
-    """从数据库获取配置"""
+async def get_config_from_db(config_key):
+    """从数据库获取配置（通用函数）"""
     try:
         async with MySQLConnectionManager() as conn:
             cursor = await conn.cursor(aiomysql.DictCursor)
@@ -233,6 +233,10 @@ async def get_tgstate_config(config_key):
     except Exception as e:
         logging.error(f"获取配置失败 {config_key}: {e}")
         return None
+
+async def get_tgstate_config(config_key):
+    """从数据库获取配置（保留兼容性）"""
+    return await get_config_from_db(config_key)
 
 async def upload_image(image_path):
     """上传图片到图床"""
