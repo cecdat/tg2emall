@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"csz.net/tgstate/conf"
 	"csz.net/tgstate/utils"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 // ServiceStatus 服务状态
@@ -37,6 +37,7 @@ type ServiceConfig struct {
 	Pass   string `json:"pass"`
 	Mode   string `json:"mode"`
 	URL    string `json:"url"`
+	Port   string `json:"port"`
 }
 
 // ManagementAPI 管理API
