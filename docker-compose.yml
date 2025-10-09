@@ -92,6 +92,7 @@ services:
     ports:
       - "8001:8001"  # 管理服务端口
       - "8002:8002"  # 上传服务端口
+      - "8088:8088"  # 管理页面端口
     environment:
       TZ: "Asia/Shanghai"
       # tgState 配置参数

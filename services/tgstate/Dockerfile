@@ -23,6 +23,7 @@ RUN go mod tidy
 # 编译管理服务和上传服务
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management-service management-service.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o upload-service upload-service.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o management management.go
 
 # 第二阶段：运行环境
 FROM alpine:latest
@@ -39,6 +40,7 @@ WORKDIR /app
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/management-service .
 COPY --from=builder /app/upload-service .
+COPY --from=builder /app/management .
 
 # 复制模板文件
 COPY --from=builder /app/assets/templates ./assets/templates
@@ -47,13 +49,20 @@ COPY --from=builder /app/assets/templates ./assets/templates
 RUN mkdir -p ./web
 
 # 设置文件权限  
-RUN chown -R tgstate:tgstate /app && chmod +x ./management-service && chmod +x ./upload-service
+RUN chown -R tgstate:tgstate /app && chmod +x ./management-service && chmod +x ./upload-service && chmod +x ./management
 
 # 切换到非 root 用户
 USER tgstate
 
 # 设置暴露的端口
-EXPOSE 8001 8002
+EXPOSE 8001 8002 8088
 
-# 设置容器启动时要执行的命令（启动管理服务）
-CMD ["./management-service"]
+# 创建启动脚本
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo './management-service &' >> /app/start.sh && \
+    echo './management &' >> /app/start.sh && \
+    echo 'wait' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# 设置容器启动时要执行的命令（同时启动管理服务和8088端口管理页面）
+CMD ["/app/start.sh"]
