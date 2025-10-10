@@ -959,9 +959,15 @@ def admin_config():
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             
-            # 获取所有配置，按分类分组
+            # 获取所有配置，按分类分组（排除不需要显示的验证参数）
             cursor.execute("""
                 SELECT * FROM system_config 
+                WHERE config_key NOT IN (
+                    'telegram_session_valid',
+                    'telegram_verification_code', 
+                    'telegram_verification_required',
+                    'telegram_verification_submitted'
+                )
                 ORDER BY category, config_key
             """)
             configs = cursor.fetchall()
@@ -998,6 +1004,19 @@ def admin_config_update():
             
             conn.commit()
             logger.info(f"配置更新成功: {list(config_data.keys())}")
+            
+            # 通知采集服务清除配置缓存
+            try:
+                import requests
+                # 尝试调用采集服务的配置刷新接口
+                response = requests.post('http://tg2em-scrape:2003/api/config/refresh', timeout=5)
+                if response.status_code == 200:
+                    logger.info("已通知采集服务刷新配置缓存")
+                else:
+                    logger.warning(f"采集服务配置刷新失败: {response.status_code}")
+            except Exception as e:
+                logger.warning(f"无法通知采集服务刷新配置: {e}")
+            
             return jsonify({'success': True, 'message': '配置更新成功'})
     except Exception as e:
         logger.error(f"配置更新失败: {e}")
