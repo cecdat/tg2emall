@@ -292,7 +292,7 @@ def record_visit():
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO site_visits (visitor_ip, user_agent, page_path, referrer, visit_source, session_id)
+                INSERT INTO visit_logs (visitor_ip, user_agent, page_path, referrer, visit_source, session_id)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (visitor_ip, user_agent, page_path, referrer, visit_source, session.get('session_id')))
             conn.commit()
@@ -539,6 +539,19 @@ def get_published_articles(limit=10, offset=0):
         logger.error(f"获取已发布文章失败: {e}")
         return []
 
+def log_search(query, results_count):
+    """记录搜索日志"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO search_logs (search_keyword, visitor_ip, user_agent, results_count)
+                VALUES (%s, %s, %s, %s)
+            """, (query, request.remote_addr, request.headers.get('User-Agent', ''), results_count))
+            conn.commit()
+    except Exception as e:
+        logger.error(f"记录搜索日志失败: {e}")
+
 def search_articles(query, limit=10, offset=0):
     """搜索文章"""
     try:
@@ -647,6 +660,9 @@ def search():
         # 执行搜索
         articles = search_articles(query, per_page, offset)
         total_count = count_search_results(query)
+        
+        # 记录搜索日志
+        log_search(query, total_count)
     else:
         # 显示所有文章
         articles = get_articles(per_page, offset)

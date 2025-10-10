@@ -123,10 +123,27 @@ CREATE TABLE IF NOT EXISTS `processed_messages` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='已处理消息表，防止重复采集';
 
 -- --------------------------------------------------------
--- 表的结构 `site_visits` - 网站访问记录表
+-- 表的结构 `search_logs` - 搜索日志表
 -- --------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS `site_visits` (
+CREATE TABLE IF NOT EXISTS `search_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `search_keyword` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '搜索关键字',
+  `visitor_ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '搜索者IP',
+  `user_agent` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理字符串',
+  `results_count` int(11) DEFAULT 0 COMMENT '搜索结果数量',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '搜索时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_search_keyword` (`search_keyword`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_visitor_ip` (`visitor_ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='搜索日志表';
+
+-- --------------------------------------------------------
+-- 表的结构 `visit_logs` - 访问日志表（重命名site_visits）
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `visit_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `visitor_ip` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '访问者IP',
   `user_agent` text COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户代理字符串',
@@ -139,7 +156,7 @@ CREATE TABLE IF NOT EXISTS `site_visits` (
   KEY `idx_visitor_ip` (`visitor_ip`),
   KEY `idx_created_at` (`created_at`),
   KEY `idx_visit_source` (`visit_source`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='网站访问记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访问日志表';
 
 -- --------------------------------------------------------
 -- 表的结构 `channels` - 频道信息表
