@@ -262,11 +262,12 @@
         
         document.getElementById("confirmDelete").addEventListener("click", function() {
             if (deleteArticleId) {
-                fetch(`/admin/article/${deleteArticleId }/delete`, {
+                fetch(`/admin/articles/${deleteArticleId}/delete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(data => {

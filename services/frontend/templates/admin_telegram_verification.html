@@ -474,6 +474,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     verification_code: code
                 })
@@ -507,7 +508,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    credentials: 'same-origin'
                 })
                 .then(response => response.json())
                 .then(data => {
