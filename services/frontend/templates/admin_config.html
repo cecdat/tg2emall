@@ -199,7 +199,7 @@
                     </div>
                 </div>
                 
-                <form id="configForm" method="POST" action="{{ url_for('admin_config_update') }}">
+                <form id="configForm" method="POST" action="{{ url_for('admin_config_update') }}" onsubmit="return false;">
                     {% if config_groups %}
                         {% for category, configs in config_groups.items() %}
                         <div class="config-section">
@@ -408,7 +408,7 @@
                                 <i class="fas fa-undo me-2"></i>
                                 重置为初始值
                             </button>
-                            <button type="submit" class="btn btn-success btn-lg">
+                            <button type="button" class="btn btn-success btn-lg" onclick="saveConfig()">
                                 <i class="fas fa-save me-2"></i>
                                 保存所有配置
                             </button>
@@ -500,7 +500,7 @@
             {% endif %}
             
             // 显示加载状态
-            const submitBtn = document.querySelector('button[type="submit"]');
+            const submitBtn = document.querySelector('button[onclick="saveConfig()"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>保存中...';
             submitBtn.disabled = true;
@@ -585,16 +585,7 @@
             return false;
         }, true); // 使用捕获阶段
         
-        // 监听提交按钮点击
-        document.querySelector('button[type="submit"]').addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            // 手动触发配置保存
-            saveConfig();
-            return false;
-        });
+        // 提交按钮现在直接调用saveConfig()，不需要额外的事件监听器
         
         // 监听离开页面事件
         window.addEventListener('beforeunload', function(e) {
