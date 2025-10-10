@@ -435,7 +435,7 @@
         {% if config_groups %}
         {% for category, configs in config_groups.items() %}
         {% for config in configs %}
-        originalValues['{{ config.config_key }}'] = '{{ config.config_value }}';
+        originalValues['{{ config.config_key }}'] = {{ config.config_value|tojson }};
         {% endfor %}
         {% endfor %}
         {% endif %}
@@ -466,7 +466,7 @@
                     {% if config.config_type == 'boolean' %}
                     input{{ config.config_key }}.checked = {{ config.config_value|lower }} == 'true';
                     {% else %}
-                    input{{ config.config_key }}.value = '{{ config.config_value }}';
+                    input{{ config.config_key }}.value = {{ config.config_value|tojson }};
                     {% endif %}
                 }
                 {% endfor %}
