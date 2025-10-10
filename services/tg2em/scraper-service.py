@@ -216,8 +216,25 @@ def handle_start_scraping():
             import traceback
             logger.error(f"异常堆栈: {traceback.format_exc()}")
         finally:
-            loop.close()
-            logger.info("🔄 采集线程结束")
+            # 安全关闭事件循环
+            try:
+                # 取消所有待处理的任务
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                
+                # 等待所有任务完成
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                
+                loop.close()
+                logger.info("🔄 采集线程结束")
+            except Exception as cleanup_error:
+                logger.error(f"❌ 清理事件循环时出错: {cleanup_error}")
+                try:
+                    loop.close()
+                except:
+                    pass
     
     thread = threading.Thread(target=run_scraping)
     thread.daemon = True

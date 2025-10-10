@@ -11,9 +11,14 @@ import aiohttp
 from PIL import Image
 import signal
 import sys
+import builtins
 
 # 限制并发数为 5
 semaphore = asyncio.Semaphore(5)
+
+# 确保open函数可用
+if not hasattr(builtins, 'open'):
+    builtins.open = open
 
 # 日志函数
 def setup_logging(config):
