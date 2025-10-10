@@ -38,7 +38,7 @@ type ServiceConfig struct {
 type UploadResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-	ImgUrl  string `json:"imgUrl"`
+	Url     string `json:"url"`
 }
 
 func main() {
@@ -211,7 +211,7 @@ func (us *UploadService) handleImageUpload(w http.ResponseWriter, r *http.Reques
 	response := UploadResponse{
 		Code:    1,
 		Message: imgPath,
-		ImgUrl:  imgUrl,
+		Url:     imgUrl,
 	}
 	
 	w.Header().Set("Content-Type", "application/json")

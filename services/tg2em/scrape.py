@@ -377,11 +377,15 @@ async def upload_image(image_path, image_config=None):
                     async with session.post(container_api_url, data=form_data) as response:
                         result = await response.json()
                         if result.get("code") == 1:
-                            # 使用配置的基础URL构建返回地址
-                            img_path = result.get('message', '')
-                            if img_path.startswith('/'):
-                                img_path = img_path[1:]  # 移除开头的斜杠
-                            image_url = f"{base_url}/{img_path}"
+                            # 使用API返回的完整URL
+                            image_url = result.get('url', '')
+                            if not image_url:
+                                # 如果没有url字段，使用message字段手动构建
+                                img_path = result.get('message', '')
+                                if img_path.startswith('/'):
+                                    img_path = img_path[1:]  # 移除开头的斜杠
+                                image_url = f"{base_url}/{img_path}"
+                            
                             os.remove(image_path)
                             logging.info(f"图片上传成功并删除本地文件: {image_url}")
                             return image_url
