@@ -60,6 +60,7 @@ EXPOSE 8001 8002 8088
 # 创建启动脚本
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo './management-service &' >> /app/start.sh && \
+    echo './upload-service &' >> /app/start.sh && \
     echo './management management &' >> /app/start.sh && \
     echo 'wait' >> /app/start.sh && \
     chmod +x /app/start.sh

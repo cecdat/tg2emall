@@ -358,7 +358,7 @@ async def upload_image(image_path, image_config=None):
                 tgstate_url = image_config.tgstate_url
                 tgstate_pass = image_config.tgstate_pass
             else:
-                tgstate_port = await get_tgstate_config('tgstate_port') or '8088'
+                tgstate_port = await get_tgstate_config('tgstate_port') or '8002'
                 tgstate_url = await get_tgstate_config('tgstate_url') or 'http://localhost:8088'
                 tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
             
@@ -664,7 +664,7 @@ class ImageConfig:
         self.compression_quality = 50
         self.compression_format = "webp"
         self.tgstate_url = "http://tgstate:8001"
-        self.tgstate_port = "8088"
+        self.tgstate_port = "8002"
         self.tgstate_pass = "none"
         self.db_config = db_config_manager or DatabaseConfigManager()
         
@@ -675,7 +675,7 @@ class ImageConfig:
             self.compression_quality = await self.db_config.get_config("image_compression_quality", config["image_compression"].get("quality", 50), "int")
             self.compression_format = await self.db_config.get_config("image_compression_format", config["image_compression"].get("format", "webp"))
             self.tgstate_url = await self.db_config.get_config("tgstate_url", "http://tgstate:8001")
-            self.tgstate_port = await self.db_config.get_config("tgstate_port", "8088")
+            self.tgstate_port = await self.db_config.get_config("tgstate_port", "8002")
             self.tgstate_pass = await self.db_config.get_config("tgstate_pass", "none")
             
             logging.info("✅ 已从数据库加载图片配置")
