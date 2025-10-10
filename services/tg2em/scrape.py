@@ -460,7 +460,16 @@ class DatabaseConfigManager:
         try:
             # 检查缓存
             if self._is_cache_valid():
-                return self.config_cache.get(config_key, default_value)
+                value = self.config_cache.get(config_key, default_value)
+                # 即使从缓存获取，也需要进行类型转换
+                if value is not None and config_type != "string":
+                    if config_type == "int":
+                        value = int(value)
+                    elif config_type == "bool":
+                        value = value.lower() in ('true', '1', 'yes', 'on')
+                    elif config_type == "list":
+                        value = value.split(',') if isinstance(value, str) else value
+                return value
             
             # 从数据库获取
             value = await get_config_from_db(config_key)

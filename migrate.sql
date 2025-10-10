@@ -82,12 +82,7 @@ INSERT IGNORE INTO `search_logs` (`search_keyword`, `visitor_ip`, `results_count
 ('移动云盘', '127.0.0.1', 6),
 ('网盘资源', '127.0.0.1', 25);
 
--- 插入一些示例访问数据（用于测试）
-INSERT IGNORE INTO `visit_logs` (`visitor_ip`, `page_path`, `visit_source`) VALUES
-('127.0.0.1', '/', '直接访问'),
-('127.0.0.1', '/search', '搜索引擎'),
-('127.0.0.1', '/article/1', '外部网站'),
-('127.0.0.1', '/', '社交媒体'),
-('127.0.0.1', '/search', '即时通讯');
+-- 修改 visit_logs 表的 referrer 字段长度
+ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;
 
 SELECT 'Database migration completed successfully!' as status;
