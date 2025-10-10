@@ -22,7 +22,7 @@ COPY . .
 RUN mkdir -p /app/logs
 
 # 暴露管理服务和采集服务端口
-EXPOSE 5001 5002
+EXPOSE 2003 5002
 
 # 默认启动管理服务
 CMD ["python", "management-service.py"]

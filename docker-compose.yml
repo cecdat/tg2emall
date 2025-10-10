@@ -126,6 +126,8 @@ services:
       MYSQL_PASSWORD: "tg2emall"
       API_ID: "${API_ID}"
       API_HASH: "${API_HASH}"
+      PHONE_NUMBER: "${PHONE_NUMBER}"
+      TELEGRAM_VERIFICATION_TIMEOUT: "${TELEGRAM_VERIFICATION_TIMEOUT:-600}"
       TGSTATE_URL: "http://tgstate:8001"
     volumes:
       - ./data/uploads:/app/upload

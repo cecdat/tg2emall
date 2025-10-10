@@ -3,7 +3,8 @@ telegram:
   api_id: ""  # 将从数据库读取
   api_hash: ""  # 将从数据库读取
   phone_number: ""  # 将从数据库读取
-  # two_factor_password: "your_2fa_password"  # 可选的两步验证密码
+  session_name: "tg2em_scraper"  # 会话文件名（不含扩展名）
+  two_factor_password: ""  # 可选的两步验证密码
   channel_urls:
     # 支持频道URL方式
     - url: "https://t.me/yunpanshare"
