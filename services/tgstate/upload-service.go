@@ -251,7 +251,7 @@ func (us *UploadService) sendErrorResponse(w http.ResponseWriter, message string
 	response := UploadResponse{
 		Code:    0,
 		Message: message,
-		ImgUrl:  "",
+		Url:     "",
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
