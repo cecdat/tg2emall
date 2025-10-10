@@ -30,6 +30,16 @@ if [ $? -eq 0 ]; then
     echo "   - search_logs (搜索日志表)"
     echo "   - visit_logs (访问日志表)"
     echo "📈 已添加示例数据用于测试"
+    
+    # 修改 referrer 字段长度
+    echo "🔧 修改 referrer 字段长度..."
+    mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ referrer 字段长度修改成功！"
+    else
+        echo "⚠️ referrer 字段长度修改失败，但不影响主要功能"
+    fi
 else
     echo "❌ 数据库迁移失败！"
     echo "💡 请检查数据库连接和权限"

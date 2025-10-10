@@ -82,7 +82,4 @@ INSERT IGNORE INTO `search_logs` (`search_keyword`, `visitor_ip`, `results_count
 ('移动云盘', '127.0.0.1', 6),
 ('网盘资源', '127.0.0.1', 25);
 
--- 修改 visit_logs 表的 referrer 字段长度
-ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;
-
 SELECT 'Database migration completed successfully!' as status;
