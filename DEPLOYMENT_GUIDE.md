@@ -21,35 +21,26 @@ cp env.example .env
 nano .env
 ```
 
-**必需配置项**：
+**必需配置项**（只需要配置这些）：
 ```bash
-# Telegram API 配置
+# Telegram API 配置（必需）
 API_ID=your_api_id_here
 API_HASH=your_api_hash_here
 PHONE_NUMBER=+1234567890
 
-# Telegram 验证配置
-TELEGRAM_VERIFICATION_TIMEOUT=600
+# 公网访问地址（重要）
+PUBLIC_URL=http://your-domain.com:8088
 
-# tgState 图片上传服务配置 (可选)
+# 可选配置
+TELEGRAM_VERIFICATION_TIMEOUT=600
 TGSTATE_TOKEN=your_bot_token_here
 TGSTATE_TARGET=@your_channel_name
 TGSTATE_PASS=your_password_here
 TGSTATE_MODE=p
 TGSTATE_URL=http://your-domain.com:8088
-
-# 公网访问地址
-PUBLIC_URL=http://your-domain.com:8088
-
-# MySQL 数据库配置
-MYSQL_ROOT_PASSWORD=tg2emall
-MYSQL_DATABASE=tg2em
-MYSQL_USER=tg2emall
-MYSQL_PASSWORD=tg2emall
-
-# 时区配置
-TZ=Asia/Shanghai
 ```
+
+**注意**：数据库配置、端口配置、时区等已在 `docker-compose.yml` 中硬编码，无需在 `.env` 中配置。
 
 ### 3. **启动服务**
 ```bash
