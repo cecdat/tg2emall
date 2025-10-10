@@ -851,9 +851,31 @@ async def scrape_channel():
             elif "id" in channel_config:
                 channel_id = channel_config["id"]
                 logging.info(f"开始抓取频道ID: {channel_id} (limit={limit})")
+                
+                # 验证频道ID格式
+                try:
+                    if isinstance(channel_id, str):
+                        channel_id = int(channel_id)
+                except ValueError:
+                    logging.error(f"❌ 频道ID格式错误: {channel_id}，必须是数字")
+                    continue
+                
+                if channel_id > 0:
+                    logging.warning(f"⚠️ 频道ID是正数: {channel_id}，这通常是群组ID而不是频道ID")
+                    logging.info("💡 频道ID通常是负数，如 -1002726412745")
+                
                 try:
                     channel = await client.get_entity(channel_id)
-                    logging.info(f"✅ 成功获取频道: {channel.title}")
+                    logging.info(f"✅ 成功获取频道: {channel.title} (ID: {channel.id})")
+                    
+                    # 检查频道类型
+                    if hasattr(channel, 'broadcast') and channel.broadcast:
+                        logging.info("📺 这是一个广播频道")
+                    elif hasattr(channel, 'megagroup') and channel.megagroup:
+                        logging.info("👥 这是一个超级群组")
+                    else:
+                        logging.info("💬 这是一个普通群组")
+                    
                 except Exception as e:
                     logging.error(f"❌ 获取频道实体失败: {e}")
                     
@@ -866,8 +888,19 @@ async def scrape_channel():
                         logging.error("   4. 频道是私有的 - 建议使用公开频道的用户名")
                         logging.error("   5. 权限不足 - 确保机器人有读取消息的权限")
                         logging.error("")
-                        logging.error("🔧 建议使用频道诊断工具检查:")
-                        logging.error(f"   python check_channel.py <API_ID> <API_HASH> <PHONE_NUMBER> {channel_id}")
+                        logging.error("🔧 建议使用频道ID验证工具检查:")
+                        logging.error(f"   python verify_channel_id.py <API_ID> <API_HASH> <PHONE_NUMBER> {channel_id}")
+                    elif "Channel is private" in str(e):
+                        logging.error("🔒 频道是私有的，机器人没有加入该频道")
+                        logging.error("💡 解决方案:")
+                        logging.error("   1. 将机器人添加到频道中")
+                        logging.error("   2. 给机器人管理员权限")
+                        logging.error("   3. 或者使用公开频道")
+                    elif "Chat admin required" in str(e):
+                        logging.error("👑 需要管理员权限才能访问该频道")
+                        logging.error("💡 解决方案:")
+                        logging.error("   1. 给机器人管理员权限")
+                        logging.error("   2. 或者使用公开频道")
                     
                     continue
             else:

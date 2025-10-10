@@ -203,7 +203,7 @@ func (us *UploadService) handleImageUpload(w http.ResponseWriter, r *http.Reques
 	
 	// 构建完整的图片URL
 	baseUrl := strings.TrimSuffix(us.config.URL, "/")
-	imgUrl := baseUrl + imgPath
+	imgUrl := baseUrl + "/" + imgPath
 	
 	log.Printf("✅ 图片上传成功: %s", imgUrl)
 	
