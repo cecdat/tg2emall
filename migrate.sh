@@ -96,13 +96,25 @@ if [ -f /.dockerenv ]; then
     echo "📦 检测到Docker环境"
     MYSQL_HOST="mysql"
     MYSQL_PORT="3306"
+    USE_DOCKER_EXEC=false
 else
     echo "🖥️ 检测到本地环境"
     # 检查Docker容器是否运行
     if docker ps | grep -q "tg2em-mysql"; then
-        echo "🐳 检测到Docker容器运行中，使用容器连接"
-        MYSQL_HOST="localhost"
-        MYSQL_PORT="3306"
+        echo "🐳 检测到Docker容器运行中"
+        
+        # 检查MySQL端口是否映射到主机
+        if docker port tg2em-mysql 3306 2>/dev/null | grep -q "0.0.0.0:3306"; then
+            echo "🔗 使用主机端口连接"
+            MYSQL_HOST="localhost"
+            MYSQL_PORT="3306"
+            USE_DOCKER_EXEC=false
+        else
+            echo "🔗 使用Docker exec连接（端口未映射）"
+            MYSQL_HOST="localhost"
+            MYSQL_PORT="3306"
+            USE_DOCKER_EXEC=true
+        fi
     else
         echo "❌ 未检测到Docker容器，请先启动服务："
         echo "   docker-compose up -d"
@@ -119,7 +131,13 @@ echo "🔗 连接到数据库: $MYSQL_HOST:$MYSQL_PORT"
 
 # 测试数据库连接
 echo "🔍 测试数据库连接..."
-mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1;" "$MYSQL_DATABASE" > /dev/null 2>&1
+if [ "$USE_DOCKER_EXEC" = true ]; then
+    # 使用Docker exec连接
+    docker exec tg2em-mysql mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1;" "$MYSQL_DATABASE" > /dev/null 2>&1
+else
+    # 使用直接连接
+    mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1;" "$MYSQL_DATABASE" > /dev/null 2>&1
+fi
 
 if [ $? -ne 0 ]; then
     echo "❌ 数据库连接失败！"
@@ -133,7 +151,13 @@ fi
 echo "✅ 数据库连接成功！"
 
 # 执行迁移脚本
-mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < migrate.sql
+if [ "$USE_DOCKER_EXEC" = true ]; then
+    echo "📝 通过Docker exec执行迁移脚本..."
+    docker exec -i tg2em-mysql mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < migrate.sql
+else
+    echo "📝 直接执行迁移脚本..."
+    mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < migrate.sql
+fi
 
 if [ $? -eq 0 ]; then
     echo "✅ 数据库迁移完成！"
@@ -144,7 +168,11 @@ if [ $? -eq 0 ]; then
     
     # 修改 referrer 字段长度
     echo "🔧 修改 referrer 字段长度..."
-    mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;"
+    if [ "$USE_DOCKER_EXEC" = true ]; then
+        docker exec tg2em-mysql mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;"
+    else
+        mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "ALTER TABLE visit_logs MODIFY COLUMN referrer TEXT;"
+    fi
     
     if [ $? -eq 0 ]; then
         echo "✅ referrer 字段长度修改成功！"
