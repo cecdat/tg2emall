@@ -116,31 +116,40 @@ docker-compose logs -f
 当首次启动采集服务时，Telegram会要求手机验证码：
 
 ```bash
+# 方法1: 使用 docker attach（推荐）
 # 1. 启动采集服务
 docker-compose up -d tg2em-scrape
 
 # 2. 连接到容器终端
 docker attach tg2em-scrape
 
-# 3. 当看到以下提示时：
-# ==================================================
-# 🔔 Telegram 需要验证码验证
-# 📱 请检查手机短信，输入5位数字验证码
-# ==================================================
-# 请输入验证码: 
+# 3. 当看到验证码提示时，直接输入5位数字验证码
+# 4. 验证成功后，按 Ctrl+P, Ctrl+Q 退出 attach 模式
 
-# 4. 输入手机收到的5位数字验证码，按回车
+# 方法2: 使用环境变量（适合自动化部署）
+# 1. 设置验证码环境变量
+export TELEGRAM_CODE=12345
 
-# 5. 如果需要两步验证密码，会提示输入密码
+# 2. 启动服务
+docker-compose up -d tg2em-scrape
 
-# 6. 验证成功后，按 Ctrl+P, Ctrl+Q 退出 attach 模式
+# 方法3: 重新启动容器（如果遇到输入问题）
+# 1. 停止服务
+docker-compose down
+
+# 2. 重新启动
+docker-compose up -d
+
+# 3. 立即连接
+docker attach tg2em-scrape
 ```
 
 ### 2. **验证码输入注意事项**
 - 确保手机能正常接收短信
 - 验证码通常是5位数字
-- 输入错误可以重新输入
+- 输入错误可以重新输入（最多3次）
 - 如果多次输入错误，可能需要等待一段时间
+- 如果遇到 `EOF when reading a line` 错误，请使用 `docker attach` 方式
 
 ### 3. **会话文件保存**
 验证成功后，会话文件会保存在 `data/telegram-sessions/` 目录下，下次启动时无需再次验证。

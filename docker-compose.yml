@@ -115,6 +115,8 @@ services:
       dockerfile: Dockerfile
     container_name: tg2em-scrape
     restart: always
+    stdin_open: true  # 保持stdin开放
+    tty: true         # 分配TTY
     ports:
       - "2003:2003"  # 管理服务端口
       - "5002:5002"  # 采集服务端口

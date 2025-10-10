@@ -882,27 +882,64 @@ async def run_periodic_scraper():
                 await asyncio.sleep(interval_minutes * 60)
 
 def get_code_input():
-    """获取验证码输入的交互函数（简化版本 - 直接终端输入）"""
+    """获取验证码输入的交互函数（Docker容器兼容版本）"""
+    import sys
+    
     print("\n" + "="*50)
     print("🔔 Telegram 需要验证码验证")
     print("📱 请检查手机短信，输入5位数字验证码")
     print("="*50)
     
-    while True:
+    # 检查stdin是否可用
+    if not sys.stdin.isatty():
+        print("⚠️ 检测到非交互式环境，请使用以下方式输入验证码：")
+        print("1. 使用 docker attach tg2em-scrape 连接到容器")
+        print("2. 或者重启容器时添加 -it 参数")
+        print("3. 或者通过环境变量传递验证码")
+        
+        # 尝试从环境变量获取验证码
+        import os
+        code = os.environ.get('TELEGRAM_CODE')
+        if code and len(code) == 5 and code.isdigit():
+            print(f"✅ 从环境变量获取验证码: {code}")
+            logging.info(f"从环境变量获取验证码: {code}")
+            return code
+        else:
+            raise Exception("无法在非交互式环境中获取验证码，请使用 docker attach 或设置 TELEGRAM_CODE 环境变量")
+    
+    # 交互式输入
+    max_attempts = 3
+    for attempt in range(max_attempts):
         try:
-            code = input("请输入验证码: ").strip()
+            print(f"请输入验证码 (尝试 {attempt + 1}/{max_attempts}): ", end='', flush=True)
+            code = input().strip()
+            
             if len(code) == 5 and code.isdigit():
                 print(f"✅ 收到验证码: {code}")
                 logging.info(f"用户输入验证码: {code}")
                 return code
             else:
                 print("❌ 验证码格式错误，请输入5位数字")
+                
+        except EOFError:
+            print("\n❌ 输入流结束，无法读取验证码")
+            print("💡 请使用以下方式重新启动：")
+            print("   docker-compose down")
+            print("   docker-compose up -d")
+            print("   docker attach tg2em-scrape")
+            raise Exception("无法读取验证码输入")
+            
         except KeyboardInterrupt:
             print("\n❌ 用户取消输入")
             raise Exception("用户取消验证码输入")
+            
         except Exception as e:
             print(f"❌ 输入错误: {e}")
+            if attempt == max_attempts - 1:
+                raise Exception(f"验证码输入失败: {e}")
             continue
+    
+    raise Exception("验证码输入尝试次数过多")
 
 def get_password_input():
     """获取两步验证密码的交互函数"""
