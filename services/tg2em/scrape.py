@@ -572,19 +572,47 @@ async def init_telegram_client():
                 
                 # 检查是否是验证码重发限制错误
                 if "ResendCodeRequest" in error_msg or "all available options" in error_msg:
-                    logging.warning("⚠️ 检测到验证码重发限制，删除会话文件重新开始...")
+                    logging.warning("⚠️ 检测到验证码重发限制，尝试等待后重试...")
+                    
+                    # 等待一段时间后重试
+                    import time
+                    wait_time = 60  # 等待60秒
+                    logging.info(f"⏳ 等待 {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
+                    
                     try:
-                        # 删除会话文件
-                        if os.path.exists(session_file):
-                            os.remove(session_file)
-                            logging.info("🗑️ 已删除会话文件，请等待24小时后重新尝试")
+                        # 重试登录
+                        logging.info("🔄 重试Telegram登录...")
+                        await client.start(
+                            phone=lambda: phone,
+                            code_callback=get_code_input,
+                            password=lambda: two_factor_password if two_factor_password else get_password_input()
+                        )
                         
-                        # 清除数据库中的验证状态
-                        await clear_verification_status()
+                        # 验证登录成功
+                        me = await client.get_me()
+                        logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
+                        logging.info(f"📁 会话已保存至: {session_file}")
                         
-                        raise Exception("验证码重发限制：请等待24小时后重新尝试，或联系管理员删除会话文件")
-                    except Exception as clear_error:
-                        logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                        # 标记验证完成和会话有效
+                        await mark_verification_completed()
+                        return True
+                        
+                    except Exception as retry_error:
+                        logging.error(f"❌ 重试登录失败: {retry_error}")
+                        
+                        # 如果重试仍然失败，删除会话文件
+                        try:
+                            if os.path.exists(session_file):
+                                os.remove(session_file)
+                                logging.info("🗑️ 已删除会话文件")
+                            
+                            await clear_verification_status()
+                            
+                        except Exception as clear_error:
+                            logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                        
+                        raise Exception("验证码重发限制：请等待更长时间后重新尝试")
                 
                 raise Exception(f"Telegram登录失败: {auth_error}")
     
@@ -736,8 +764,8 @@ def get_code_input():
     DB_CONFIG = {
         'host': os.environ.get('MYSQL_HOST', 'mysql'),
         'port': int(os.environ.get('MYSQL_PORT', 3306)),
-        'user': os.environ.get('MYSQL_USER', 'tg2em'),
-        'password': os.environ.get('MYSQL_PASSWORD', 'tg2em2025'),
+        'user': os.environ.get('MYSQL_USER', 'tg2emall'),
+        'password': os.environ.get('MYSQL_PASSWORD', 'tg2emall'),
         'database': os.environ.get('MYSQL_DATABASE', 'tg2em'),
         'charset': 'utf8mb4'
     }
@@ -780,7 +808,7 @@ def get_code_input():
         logging.error(f"❌ 数据库操作失败: {e}")
     
     # 等待Web界面输入验证码
-    max_wait_time = 300  # 最多等待5分钟
+    max_wait_time = 600  # 最多等待10分钟（增加等待时间）
     check_interval = 2    # 每2秒检查一次
     waited_time = 0
     
