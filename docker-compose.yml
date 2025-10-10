@@ -101,7 +101,7 @@ services:
       PASS: "${TGSTATE_PASS:-none}"
       MODE: "${TGSTATE_MODE:-p}"
       URL: "${TGSTATE_URL:-http://your-domain.com:8088}"
-      PORT: "8001"
+      PORT: "8002"
       # 公网访问地址
       PUBLIC_URL: "${PUBLIC_URL:-http://your-domain.com:8088}"
     # volumes: 图片存储在Telegram频道，无需本地存储

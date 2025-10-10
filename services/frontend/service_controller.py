@@ -29,7 +29,7 @@ class ServiceController:
             'scraper': 'http://tg2em-scrape:2003',  # 管理服务端口
             'scraper-service': 'http://tg2em-scrape:5002',  # 采集服务端口
             'scraper-management': 'http://tg2em-scrape:2003',  # 采集管理服务端口
-            'tgstate': 'http://tgstate:8001',  # 图片管理服务端口
+            'tgstate': 'http://tgstate:8001',
             'tgstate-service': 'http://tgstate:8002',  # 图片上传服务端口
             'tgstate-management': 'http://tgstate:8001',  # 图片管理服务端口
             'mysql': 'http://mysql:3306',  # 外部服务，通过端口检查
