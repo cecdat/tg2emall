@@ -460,108 +460,9 @@ async def check_session_validity(session_file, api_id, api_hash):
         logging.warning(f"⚠️ 会话检查失败: {e}")
         return False
 
-async def wait_for_manual_verification():
-    """等待手动验证码输入"""
-    import time
-    import pymysql
-    
-    logging.info("🔔 Telegram需要手动验证")
-    logging.info("📱 请前往管理后台输入验证码")
-    logging.info("🌐 访问地址: http://your-server:8000/dm")
-    logging.info("⏳ 系统将等待您输入验证码...")
-    
-    # 数据库配置
-    DB_CONFIG = {
-        'host': os.environ.get('MYSQL_HOST', 'mysql'),
-        'port': int(os.environ.get('MYSQL_PORT', 3306)),
-        'user': os.environ.get('MYSQL_USER', 'tg2emall'),
-        'password': os.environ.get('MYSQL_PASSWORD', 'tg2emall'),
-        'database': os.environ.get('MYSQL_DATABASE', 'tg2em'),
-        'charset': 'utf8mb4'
-    }
-    
-    # 标记需要验证码
-    try:
-        conn = pymysql.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO system_config (config_key, config_value, config_type, description, category)
-            VALUES ('telegram_verification_required', 'true', 'boolean', '需要验证码', 'telegram')
-            ON DUPLICATE KEY UPDATE 
-            config_value = 'true', updated_at = NOW()
-        """)
-        
-        conn.commit()
-        conn.close()
-        
-        logging.info("✅ 已在数据库中标记需要验证码")
-        
-    except Exception as e:
-        logging.error(f"❌ 数据库操作失败: {e}")
-    
-    # 等待验证码输入
-    max_wait_time = 1800  # 最多等待30分钟
-    check_interval = 5    # 每5秒检查一次
-    waited_time = 0
-    
-    while waited_time < max_wait_time:
-        try:
-            conn = pymysql.connect(**DB_CONFIG)
-            cursor = conn.cursor()
-            
-            # 检查是否有验证码
-            cursor.execute("""
-                SELECT config_value FROM system_config 
-                WHERE config_key = 'telegram_verification_code'
-            """)
-            result = cursor.fetchone()
-            
-            # 检查是否已提交
-            cursor.execute("""
-                SELECT config_value FROM system_config 
-                WHERE config_key = 'telegram_verification_submitted'
-            """)
-            submitted_result = cursor.fetchone()
-            
-            conn.close()
-            
-            if submitted_result and submitted_result[0] == 'true' and result and result[0].strip():
-                verification_code = result[0].strip()
-                
-                if len(verification_code) == 5 and verification_code.isdigit():
-                    logging.info(f"✅ 收到Web界面验证码: {verification_code}")
-                    
-                    # 清除验证状态
-                    try:
-                        conn = pymysql.connect(**DB_CONFIG)
-                        cursor = conn.cursor()
-                        cursor.execute("DELETE FROM system_config WHERE config_key = 'telegram_verification_required'")
-                        cursor.execute("DELETE FROM system_config WHERE config_key = 'telegram_verification_submitted'")
-                        conn.commit()
-                        conn.close()
-                    except:
-                        pass
-                    
-                    return verification_code
-                else:
-                    logging.warning(f"❌ 验证码格式错误: {verification_code}")
-            
-            logging.info(f"⏳ 等待验证码输入... ({waited_time}s/{max_wait_time}s)")
-            time.sleep(check_interval)
-            waited_time += check_interval
-            
-        except Exception as e:
-            logging.error(f"❌ 检查验证码时发生错误: {e}")
-            time.sleep(check_interval)
-            waited_time += check_interval
-    
-    # 超时处理
-    logging.error("❌ 验证码输入超时")
-    raise Exception("验证码输入超时，请重新启动服务")
 
 async def init_telegram_client():
-    """初始化并登录 Telegram 客户端"""
+    """初始化并登录 Telegram 客户端（简化版本）"""
     global client
     
     try:
@@ -594,52 +495,20 @@ async def init_telegram_client():
         
         logging.info("✅ 已从数据库获取Telegram配置")
         
-        # 确保sessions目录存在
+        # 第三步：确保sessions目录存在
         sessions_dir = "/app/sessions"
         os.makedirs(sessions_dir, exist_ok=True)
-        
-        # 使用映射的sessions目录
         session_file = os.path.join(sessions_dir, 'tg2em_scraper.session')
         
-        # 第三步：检查会话文件是否存在且有效
-        session_valid = await check_session_validity(session_file, api_id, api_hash)
-        
-        # 第四步：创建客户端
+        # 第四步：创建客户端（参考脚本的简单方式）
         client = TelegramClient(session_file, api_id, api_hash)
         
-        # 使用的手机号
-        phone = phone_number
-        two_factor_password = config["telegram"].get("two_factor_password")
-        
-        # 第五步：根据会话有效性决定登录方式
-        if session_valid:
-            # 会话有效，直接连接
-            logging.info("🔄 使用已保存的有效会话，直接连接...")
-            try:
-                await client.connect()
-                if await client.is_user_authorized():
-                    me = await client.get_me()
-                    logging.info(f"✅ Telegram客户端启动成功 (用户: {me.username or me.first_name})")
-                    return True
-                else:
-                    logging.warning("⚠️ 连接成功但未授权，需要重新登录")
-                    # 删除无效会话文件
-                    if os.path.exists(session_file):
-                        os.remove(session_file)
-                        logging.info("🗑️ 已删除无效会话文件")
-            except Exception as e:
-                logging.warning(f"⚠️ 使用已保存会话连接失败: {e}")
-                # 删除无效会话文件
-                if os.path.exists(session_file):
-                    os.remove(session_file)
-                    logging.info("🗑️ 已删除无效会话文件")
-        
-        # 第六步：会话无效或不存在，执行完整登录流程
+        # 第五步：非交互式启动（参考脚本的方式）
         logging.info("🔐 开始Telegram登录流程...")
         
         try:
-            # 尝试使用手机号登录（会自动检测是否需要验证码）
-            await client.start(phone=lambda: phone)
+            # 使用参考脚本的简单启动方式
+            await client.start(phone=lambda: phone_number)
             
             # 验证连接
             me = await client.get_me()
@@ -651,15 +520,14 @@ async def init_telegram_client():
             return True
             
         except Exception as start_error:
-            logging.warning(f"自动登录失败: {start_error}")
-            logging.info("📱 需要验证码，等待Web界面输入...")
+            logging.warning(f"非交互式登录失败: {start_error}")
+            logging.info("📱 需要验证码，尝试交互式登录...")
             
-            # 需要验证码的情况
+            # 需要验证码的情况，使用简单的code_callback
             try:
                 await client.start(
-                    phone=lambda: phone,
-                    code_callback=get_code_input,
-                    password=lambda: two_factor_password if two_factor_password else get_password_input()
+                    phone=lambda: phone_number,
+                    code_callback=get_code_input
                 )
                 
                 # 验证登录成功
@@ -672,81 +540,25 @@ async def init_telegram_client():
                 return True
                 
             except Exception as auth_error:
-                error_msg = str(auth_error)
                 logging.error(f"❌ Telegram验证失败: {auth_error}")
                 
                 # 检查是否是验证码重发限制错误
-                if "ResendCodeRequest" in error_msg or "all available options" in error_msg:
-                    logging.warning("⚠️ 检测到验证码重发限制，尝试等待后重试...")
+                if "ResendCodeRequest" in str(auth_error) or "all available options" in str(auth_error):
+                    logging.warning("⚠️ 检测到验证码重发限制")
+                    logging.info("💡 建议：等待24小时后重新尝试，或使用不同的手机号")
                     
-                    # 等待更长时间后重试
-                    import time
-                    wait_time = 300  # 等待5分钟
-                    logging.info(f"⏳ 等待 {wait_time} 秒后重试...")
-                    time.sleep(wait_time)
-                    
+                    # 删除会话文件
                     try:
-                        # 重试登录
-                        logging.info("🔄 重试Telegram登录...")
-                        await client.start(
-                            phone=lambda: phone,
-                            code_callback=get_code_input,
-                            password=lambda: two_factor_password if two_factor_password else get_password_input()
-                        )
+                        if os.path.exists(session_file):
+                            os.remove(session_file)
+                            logging.info("🗑️ 已删除会话文件")
                         
-                        # 验证登录成功
-                        me = await client.get_me()
-                        logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
-                        logging.info(f"📁 会话已保存至: {session_file}")
+                        await clear_verification_status()
                         
-                        # 标记验证完成和会话有效
-                        await mark_verification_completed()
-                        return True
-                        
-                    except Exception as retry_error:
-                        logging.error(f"❌ 重试登录失败: {retry_error}")
-                        
-                        # 如果重试仍然失败，尝试手动等待验证码
-                        if "ResendCodeRequest" in str(retry_error) or "all available options" in str(retry_error):
-                            logging.warning("⚠️ 重试仍然遇到重发限制，尝试手动等待验证码...")
-                            
-                            # 使用新的等待验证码函数
-                            try:
-                                verification_code = await wait_for_manual_verification()
-                                
-                                # 使用获取到的验证码重新尝试登录
-                                logging.info("🔄 使用手动输入的验证码重新登录...")
-                                await client.start(
-                                    phone=lambda: phone,
-                                    code=lambda: verification_code,
-                                    password=lambda: two_factor_password if two_factor_password else get_password_input()
-                                )
-                                
-                                # 验证登录成功
-                                me = await client.get_me()
-                                logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
-                                logging.info(f"📁 会话已保存至: {session_file}")
-                                
-                                # 标记验证完成和会话有效
-                                await mark_verification_completed()
-                                return True
-                                
-                            except Exception as manual_error:
-                                logging.error(f"❌ 手动验证失败: {manual_error}")
-                                raise Exception("手动验证失败，请检查验证码是否正确")
-                        
-                        # 删除会话文件
-                        try:
-                            if os.path.exists(session_file):
-                                os.remove(session_file)
-                                logging.info("🗑️ 已删除会话文件")
-                            
-                            await clear_verification_status()
-                            
-                        except Exception as clear_error:
-                            logging.error(f"❌ 清理会话文件失败: {clear_error}")
-                        
-                        raise Exception("验证码重发限制：请等待更长时间后重新尝试")
+                    except Exception as clear_error:
+                        logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                    
+                    raise Exception("验证码重发限制：请等待24小时后重新尝试，或使用不同的手机号")
                 
                 raise Exception(f"Telegram登录失败: {auth_error}")
     
