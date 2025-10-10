@@ -453,7 +453,7 @@ class DatabaseConfigManager:
     def __init__(self):
         self.config_cache = {}
         self.cache_time = None
-        self.cache_duration = 60  # 缓存60秒
+        self.cache_duration = 30  # 缓存30秒，减少缓存时间
         
     async def get_config(self, config_key, default_value=None, config_type="string"):
         """从数据库获取单个配置项"""
@@ -520,6 +520,13 @@ class DatabaseConfigManager:
         """清除配置缓存"""
         self.config_cache = {}
         self.cache_time = None
+        logging.info("🔄 已清除配置缓存")
+    
+    async def force_refresh(self):
+        """强制刷新配置缓存"""
+        self.clear_cache()
+        await self.get_all_configs()
+        logging.info("🔄 已强制刷新配置缓存")
 
 class TelegramConfig:
     """Telegram配置管理类"""
@@ -781,6 +788,8 @@ async def scrape_channel():
         scrape_config = ScrapeConfig(db_config_manager)
         image_config = ImageConfig(db_config_manager)
         
+        # 强制刷新配置，确保获取最新配置
+        await db_config_manager.force_refresh()
         await scrape_config.load_from_db()
         await image_config.load_from_db()
         
@@ -872,6 +881,10 @@ async def run_periodic_scraper():
     while not shutdown_requested:
         try:
             logging.info("⏰ 开始定时采集任务...")
+            
+            # 强制刷新配置缓存，确保获取最新的频道配置
+            await db_config_manager.force_refresh()
+            
             await scrape_channel()
             logging.info("✅ 定时采集任务完成")
             
