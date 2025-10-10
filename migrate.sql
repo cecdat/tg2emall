@@ -76,10 +76,10 @@ DEALLOCATE PREPARE stmt;
 
 -- 插入一些示例搜索数据（用于测试）
 INSERT IGNORE INTO `search_logs` (`search_keyword`, `visitor_ip`, `results_count`) VALUES
-('百度网盘', '127.0.0.1', 15),
-('阿里云盘', '127.0.0.1', 12),
-('夸克网盘', '127.0.0.1', 8),
-('移动云盘', '127.0.0.1', 6),
-('网盘资源', '127.0.0.1', 25);
+('Baidu Cloud', '127.0.0.1', 15),
+('Aliyun Drive', '127.0.0.1', 12),
+('Quark Drive', '127.0.0.1', 8),
+('Mobile Cloud', '127.0.0.1', 6),
+('Cloud Storage', '127.0.0.1', 25);
 
 SELECT 'Database migration completed successfully!' as status;
