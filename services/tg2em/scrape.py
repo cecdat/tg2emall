@@ -506,61 +506,47 @@ async def init_telegram_client():
         # 第五步：非交互式启动（参考脚本的方式）
         logging.info("🔐 开始Telegram登录流程...")
         
+        # 直接使用交互式登录，让Telegram客户端处理验证码
+        logging.info("📱 开始Telegram登录，等待验证码...")
+        
         try:
-            # 使用参考脚本的简单启动方式
-            await client.start(phone=lambda: phone_number)
+            # 使用交互式登录，让code_callback处理验证码输入
+            await client.start(
+                phone=lambda: phone_number,
+                code_callback=get_code_input
+            )
             
-            # 验证连接
+            # 验证登录成功
             me = await client.get_me()
-            logging.info(f"✅ Telegram登录成功！当前用户: {me.username or me.first_name}")
+            logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
             logging.info(f"📁 会话已保存至: {session_file}")
             
             # 标记验证完成和会话有效
             await mark_verification_completed()
             return True
             
-        except Exception as start_error:
-            logging.warning(f"非交互式登录失败: {start_error}")
-            logging.info("📱 需要验证码，尝试交互式登录...")
+        except Exception as auth_error:
+            logging.error(f"❌ Telegram验证失败: {auth_error}")
             
-            # 需要验证码的情况，使用简单的code_callback
-            try:
-                await client.start(
-                    phone=lambda: phone_number,
-                    code_callback=get_code_input
-                )
+            # 检查是否是验证码重发限制错误
+            if "ResendCodeRequest" in str(auth_error) or "all available options" in str(auth_error):
+                logging.warning("⚠️ 检测到验证码重发限制")
+                logging.info("💡 建议：等待24小时后重新尝试，或使用不同的手机号")
                 
-                # 验证登录成功
-                me = await client.get_me()
-                logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
-                logging.info(f"📁 会话已保存至: {session_file}")
-                
-                # 标记验证完成和会话有效
-                await mark_verification_completed()
-                return True
-                
-            except Exception as auth_error:
-                logging.error(f"❌ Telegram验证失败: {auth_error}")
-                
-                # 检查是否是验证码重发限制错误
-                if "ResendCodeRequest" in str(auth_error) or "all available options" in str(auth_error):
-                    logging.warning("⚠️ 检测到验证码重发限制")
-                    logging.info("💡 建议：等待24小时后重新尝试，或使用不同的手机号")
+                # 删除会话文件
+                try:
+                    if os.path.exists(session_file):
+                        os.remove(session_file)
+                        logging.info("🗑️ 已删除会话文件")
                     
-                    # 删除会话文件
-                    try:
-                        if os.path.exists(session_file):
-                            os.remove(session_file)
-                            logging.info("🗑️ 已删除会话文件")
-                        
-                        await clear_verification_status()
-                        
-                    except Exception as clear_error:
-                        logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                    await clear_verification_status()
                     
-                    raise Exception("验证码重发限制：请等待24小时后重新尝试，或使用不同的手机号")
+                except Exception as clear_error:
+                    logging.error(f"❌ 清理会话文件失败: {clear_error}")
                 
-                raise Exception(f"Telegram登录失败: {auth_error}")
+                raise Exception("验证码重发限制：请等待24小时后重新尝试，或使用不同的手机号")
+            
+            raise Exception(f"Telegram登录失败: {auth_error}")
     
     except Exception as e:
         logging.error(f"❌ 初始化Telegram客户端失败: {e}")
