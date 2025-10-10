@@ -487,15 +487,24 @@ function restartService() {
 function startScrapingTask() {
     Swal.fire({
         title: '启动采集任务',
-        html: '<p>即将启动Telegram采集任务</p>' +
-              '<p class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>首次运行需要输入验证码</p>' +
-              '<p class="text-info"><small>如需验证，请前往"Telegram验证"页面输入验证码</small></p>',
+        html: '<div class="text-start">' +
+              '<p class="mb-3">即将启动Telegram采集任务，开始从配置的频道采集资源。</p>' +
+              '<div class="alert alert-warning d-flex align-items-center mb-3">' +
+              '<i class="fas fa-exclamation-triangle me-2"></i>' +
+              '<div><strong>重要提示：</strong>首次运行需要Telegram验证</div>' +
+              '</div>' +
+              '<div class="alert alert-info d-flex align-items-center mb-0">' +
+              '<i class="fas fa-info-circle me-2"></i>' +
+              '<div><small>如需输入验证码，请使用命令：<code>docker attach tg2em-scrape</code></small></div>' +
+              '</div>' +
+              '</div>',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: '启动任务',
         cancelButtonText: '取消',
-        confirmButtonColor: '#007bff',
-        cancelButtonColor: '#6c757d'
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        width: '500px'
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({
@@ -517,13 +526,30 @@ function startScrapingTask() {
             .then(data => {
                 Swal.close();
                 if (data.success) {
-                    showSweetAlert('成功', data.message + '<br><small class="text-muted">请查看日志了解采集进度</small>', 'success');
+                    showSweetAlert('启动成功', 
+                        '<div class="text-start">' +
+                        '<p class="mb-2">' + data.message + '</p>' +
+                        '<div class="alert alert-success d-flex align-items-center mb-0">' +
+                        '<i class="fas fa-check-circle me-2"></i>' +
+                        '<div><small>采集任务已启动，系统将自动从配置的频道采集资源</small></div>' +
+                        '</div>' +
+                        '</div>', 
+                        'success');
                 } else {
                     let errorMsg = data.message;
                     if (errorMsg.includes('验证') || errorMsg.includes('登录')) {
-                        errorMsg += '<br><br><a href="/dm" class="btn btn-sm btn-warning mt-2">前往Telegram验证</a>';
+                        errorMsg = '<div class="text-start">' +
+                                  '<p class="mb-3">' + errorMsg + '</p>' +
+                                  '<div class="alert alert-warning d-flex align-items-center mb-3">' +
+                                  '<i class="fas fa-exclamation-triangle me-2"></i>' +
+                                  '<div><strong>解决方案：</strong>请使用命令输入验证码</div>' +
+                                  '</div>' +
+                                  '<div class="text-center">' +
+                                  '<code class="bg-light p-2 rounded d-inline-block">docker attach tg2em-scrape</code>' +
+                                  '</div>' +
+                                  '</div>';
                     }
-                    showSweetAlert('提示', errorMsg, 'info');
+                    showSweetAlert('启动失败', errorMsg, 'error');
                 }
             })
             .catch(error => {
