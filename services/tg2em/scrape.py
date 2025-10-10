@@ -853,8 +853,22 @@ async def scrape_channel():
                 logging.info(f"开始抓取频道ID: {channel_id} (limit={limit})")
                 try:
                     channel = await client.get_entity(channel_id)
+                    logging.info(f"✅ 成功获取频道: {channel.title}")
                 except Exception as e:
-                    logging.error(f"获取频道实体失败: {e}")
+                    logging.error(f"❌ 获取频道实体失败: {e}")
+                    
+                    # 提供更详细的错误信息和解决方案
+                    if "Cannot find any entity corresponding to" in str(e):
+                        logging.error("💡 可能的原因和解决方案:")
+                        logging.error("   1. 频道ID不正确 - 请检查频道ID是否准确")
+                        logging.error("   2. 机器人未加入频道 - 请将机器人添加到频道中")
+                        logging.error("   3. 频道不存在或已删除 - 请确认频道仍然存在")
+                        logging.error("   4. 频道是私有的 - 建议使用公开频道的用户名")
+                        logging.error("   5. 权限不足 - 确保机器人有读取消息的权限")
+                        logging.error("")
+                        logging.error("🔧 建议使用频道诊断工具检查:")
+                        logging.error(f"   python check_channel.py <API_ID> <API_HASH> <PHONE_NUMBER> {channel_id}")
+                    
                     continue
             else:
                 logging.error("频道配置必须包含 'url' 或 'id' 字段")
