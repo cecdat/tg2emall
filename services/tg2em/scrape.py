@@ -211,12 +211,23 @@ async def compress_image(input_path, output_path, image_config=None):
         quality = int(compression_quality)
         format_type = compression_format.lower()
         
+        # 检查是否使用tgState服务，如果是则强制使用JPEG格式
+        if image_config and image_config.tgstate_url and image_config.tgstate_url != 'http://localhost:8088':
+            # 使用tgState服务时，强制使用JPEG格式
+            format_type = "jpeg"
+            # 修改输出路径为.jpg
+            if output_path.endswith('.webp'):
+                output_path = output_path.replace('.webp', '.jpg')
+        
         if format_type == "webp":
             img.save(output_path, "WEBP", quality=quality, lossless=False)
         else:
             img.save(output_path, "JPEG", quality=quality)
 
         compressed_size_bytes = os.path.getsize(output_path)
+        
+        # 返回实际的文件路径
+        return output_path
         compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
 
         if compressed_size_bytes > original_size_bytes:
@@ -397,19 +408,27 @@ async def download_image_from_message(message, date_str, image_config=None):
             else:
                 compression_format = await get_tgstate_config('image_compression_format') or 'webp'
             
-            compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
-            await compress_image(local_path, compressed_path, image_config)
+            # 根据是否使用tgState服务确定压缩格式
+            if image_config and image_config.tgstate_url and image_config.tgstate_url != 'http://localhost:8088':
+                # 使用tgState服务时，强制使用JPEG格式
+                compressed_path = local_path.replace(".jpg", "_compressed.jpg")
+            else:
+                # 使用配置的格式
+                compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
+            
+            # 压缩图片并获取实际输出路径
+            actual_compressed_path = await compress_image(local_path, compressed_path, image_config)
             
             # 尝试上传图片
-            image_url = await upload_image(compressed_path, image_config)
+            image_url = await upload_image(actual_compressed_path, image_config)
             if image_url:
                 # 上传成功，删除本地文件
                 os.remove(local_path)
                 return f"![]({image_url})"
             else:
                 # 上传失败，保留本地文件，使用相对路径
-                logging.warning(f"图片上传失败，使用本地文件: {compressed_path}")
-                local_url = compressed_path.replace("./", "")
+                logging.warning(f"图片上传失败，使用本地文件: {actual_compressed_path}")
+                local_url = actual_compressed_path.replace("./", "")
                 return f"![]({local_url})"
         return None
     except Exception as e:
