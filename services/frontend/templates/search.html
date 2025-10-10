@@ -169,7 +169,7 @@
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-folder text-primary"></i> 资源分类
+                    <i class="fas fa-cloud text-primary"></i> 网盘分类
                 </h5>
             </div>
             <div class="card-body">
@@ -178,7 +178,7 @@
                     {% for category in categories %}
                     <a href="{{ url_for('index', category=category.sort_id) }}" 
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <span>分类 {{ category.sort_id }}</span>
+                        <span>{{ category.category_name }}</span>
                         <span class="badge bg-primary rounded-pill">{{ category.count }}</span>
                     </a>
                     {% endfor %}

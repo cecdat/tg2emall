@@ -415,12 +415,21 @@ def get_article_by_id(article_id):
         return None
 
 def get_categories():
-    """获取分类统计"""
+    """获取网盘类型分类统计"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             sql = """
-                SELECT sort_id, COUNT(*) as count 
+                SELECT 
+                    CASE 
+                        WHEN sort_id = 1 THEN '夸克网盘'
+                        WHEN sort_id = 2 THEN '阿里云盘'
+                        WHEN sort_id = 3 THEN '百度网盘'
+                        WHEN sort_id = 4 THEN '移动云盘'
+                        ELSE '其他网盘'
+                    END as category_name,
+                    sort_id,
+                    COUNT(*) as count 
                 FROM messages 
                 WHERE sort_id IS NOT NULL 
                 GROUP BY sort_id 
@@ -428,11 +437,69 @@ def get_categories():
             """
             cursor.execute(sql)
             categories = cursor.fetchall()
-            logger.info(f"成功获取 {len(categories)} 个分类")
+            logger.info(f"成功获取 {len(categories)} 个网盘分类")
             return categories if categories else []
     except Exception as e:
-        logger.error(f"获取分类失败: {e}")
+        logger.error(f"获取网盘分类失败: {e}")
         logger.info("数据库连接失败或无分类数据，返回空列表")
+        return []
+
+def get_visit_sources():
+    """获取访问来源统计"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            sql = """
+                SELECT 
+                    CASE 
+                        WHEN visit_source = '搜索引擎' THEN '搜索引擎'
+                        WHEN visit_source = '直接访问' THEN '直接访问'
+                        WHEN visit_source = '社交媒体' THEN '社交媒体'
+                        WHEN visit_source = '即时通讯' THEN '即时通讯'
+                        WHEN visit_source = '外部网站' THEN '外部网站'
+                        ELSE '其他'
+                    END as source,
+                    COUNT(*) as count
+                FROM visit_logs 
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY 
+                    CASE 
+                        WHEN visit_source = '搜索引擎' THEN '搜索引擎'
+                        WHEN visit_source = '直接访问' THEN '直接访问'
+                        WHEN visit_source = '社交媒体' THEN '社交媒体'
+                        WHEN visit_source = '即时通讯' THEN '即时通讯'
+                        WHEN visit_source = '外部网站' THEN '外部网站'
+                        ELSE '其他'
+                    END
+                ORDER BY count DESC
+                LIMIT 6
+            """
+            cursor.execute(sql)
+            sources = cursor.fetchall()
+            logger.info(f"成功获取 {len(sources)} 个访问来源")
+            return sources if sources else []
+    except Exception as e:
+        logger.error(f"获取访问来源统计失败: {e}")
+        return []
+def get_popular_searches():
+    """获取最近24小时的热门搜索关键字"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            sql = """
+                SELECT search_keyword, COUNT(*) as search_count
+                FROM search_logs 
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                GROUP BY search_keyword 
+                ORDER BY search_count DESC 
+                LIMIT 5
+            """
+            cursor.execute(sql)
+            searches = cursor.fetchall()
+            logger.info(f"成功获取 {len(searches)} 个热门搜索")
+            return searches if searches else []
+    except Exception as e:
+        logger.error(f"获取热门搜索失败: {e}")
         return []
 
 def get_recent_articles(limit=5):
@@ -545,6 +612,7 @@ def index():
         # 获取数据
         articles = get_articles(20, 0)
         recent_articles = get_recent_articles(5)
+        popular_searches = get_popular_searches()
         
         # 统计信息
         stats = {
@@ -557,6 +625,7 @@ def index():
         return render_template('index.html', 
                              articles=articles, 
                              recent_articles=recent_articles,
+                             popular_searches=popular_searches,
                              stats=stats)
     except Exception as e:
         logger.error(f"首页路由处理失败: {e}")
@@ -741,12 +810,7 @@ def admin_index():
             total_visitors = total_articles * 15  # 模拟计算
             
             # 访问来源 statistical（模拟）
-            visit_sources = [
-                {'source': '搜索引擎', 'count': 145},
-                {'source': '直接访问', 'count': 89},
-                {'source': '社交媒体', 'count': 67},
-                {'source': '其他', 'count': 23}
-            ]
+            visit_sources = get_visit_sources()
             
             stats = {
                 'total_articles': total_articles,

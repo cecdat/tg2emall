@@ -230,51 +230,52 @@
                     </div>
                 </div>
                 
-                <!-- 验证码输入区域 -->
+                <!-- 验证码输入说明 -->
                 <div class="verification-container mb-4" id="verificationArea" style="display: none;">
                     <div class="instruction-card p-4 mb-4">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <i class="fas fa-mobile-alt fa-3x opacity-75"></i>
+                                <i class="fas fa-terminal fa-3x opacity-75"></i>
                             </div>
                             <div class="col">
-                                <h4 class="mb-2">📱 Telegram 验证码</h4>
-                                <p class="mb-0">Telegram 已向您的手机发送了5位数字验证码，请输入下方验证码完成验证。</p>
+                                <h4 class="mb-2">🔐 Telegram 验证码输入</h4>
+                                <p class="mb-0">Telegram 已向您的手机发送了5位数字验证码，请按照下方说明在服务器终端输入验证码。</p>
                             </div>
                         </div>
                     </div>
                     
-                    <form id="verificationForm">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="text-center mb-4">
-                                    <label for="verificationCode" class="form-label h5">输入5位验证码</label>
-                                    <input type="text" 
-                                           class="form-control code-input border-3" 
-                                           id="verificationCode"
-                                           name="verification_code"
-                                           maxlength="5"
-                                           placeholder="00000"
-                                           required>
-                                    <div class="form-text mt-2">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        请检查手机短信并输入Telegram发送的验证码
-                                    </div>
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle"></i> 验证码输入步骤
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-mobile-alt"></i> 第一步：检查手机短信</h6>
+                                <p class="mb-2">Telegram会向您的手机发送5位数字验证码，请查看短信。</p>
+                                
+                                <h6><i class="fas fa-terminal"></i> 第二步：在服务器终端输入验证码</h6>
+                                <p class="mb-2">在服务器终端执行以下命令：</p>
+                                <div class="bg-dark text-light p-3 rounded mb-3">
+                                    <code>docker attach tg2em-scrape</code>
                                 </div>
                                 
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-check-circle me-2"></i>
-                                        提交验证码
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="resendCode()">
-                                        <i class="fas fa-redo me-2"></i>
-                                        重新获取验证码
-                                    </button>
-                                </div>
+                                <h6><i class="fas fa-keyboard"></i> 第三步：输入验证码</h6>
+                                <p class="mb-0">当看到验证码提示时，直接输入5位数字并按回车即可。</p>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>重要提示：</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>验证码输入必须在服务器终端进行</li>
+                                    <li>无法通过Web界面输入验证码</li>
+                                    <li>输入完成后按 <kbd>Ctrl+P</kbd> <kbd>Ctrl+Q</kbd> 退出attach模式</li>
+                                </ul>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
                 
                 <!-- 完成状态显示 -->
@@ -452,54 +453,7 @@
             return div.innerHTML;
         }
         
-        // 提交验证码
-        document.getElementById('verificationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const code = document.getElementById('verificationCode').value.trim();
-            
-            if (!code || code.length !== 5 || !/^\d{5}$/.test(code)) {
-                alert('请输入有效的5位数字验证码');
-                return;
-            }
-            
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            submitBtn.innerHTML = '<div class="refresh-indicator me-2"></div>提交中...';
-            submitBtn.disabled = true;
-            
-            fetch('/admin/telegram/verification/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    verification_code: code
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('验证码已提交！系统正在验证，请稍候...');
-                    document.getElementById('verificationCode').value = '';
-                    
-                    // 立即刷新状态
-                    setTimeout(refreshStatus, 2000);
-                } else {
-                    alert('提交失败: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('提交失败:', error);
-                alert('提交失败，请重试');
-            })
-            .finally(() => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            });
-        });
+        // 删除验证码提交相关的JavaScript代码，因为现在通过终端输入
         
         // 重置验证
         function resetVerification() {
@@ -547,21 +501,8 @@
             }, 1000);
         }
         
-        // 自动格式化验证码输入
-        document.getElementById('verificationCode').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // 只保留数字
-            if (value.length > 5) {
-                value = value.slice(0, 5); // 限制5位
-            }
-            e.target.value = value;
-            
-            // 自动提交（当输入满5位时）
-            if (value.length === 5) {
-                setTimeout(() => {
-                    document.getElementById('verificationForm').dispatchEvent(new Event('submit'));
-                }, 500);
-            }
-        });
+        // 删除验证码输入相关的JavaScript代码，因为现在通过终端输入
+        // 验证码输入功能已移除，用户需要在服务器终端使用 docker attach tg2em-scrape 命令输入验证码
         
         // 初始加载日志
         refreshLogs();

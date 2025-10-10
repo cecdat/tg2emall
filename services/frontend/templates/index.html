@@ -32,10 +32,15 @@
                 <!-- 快捷搜索标签 -->
                 <div class="quick-search mt-3">
                     <span class="text-muted me-2">热门搜索:</span>
-                    <a href="{{ url_for('search', q='百度网盘') }}" class="badge bg-light text-dark me-1">百度网盘</a>
-                    <a href="{{ url_for('search', q='阿里云盘') }}" class="badge bg-light text-dark me-1">阿里云盘</a>
-                    <a href="{{ url_for('search', q='夸克网盘') }}" class="badge bg-light text-dark me-1">夸克网盘</a>
-                    <a href="{{ url_for('search', q='移动云盘') }}" class="badge bg-light text-dark me-1">移动云盘</a>
+                    {% if popular_searches %}
+                        {% for search in popular_searches %}
+                        <a href="{{ url_for('search', q=search.search_keyword) }}" class="badge bg-light text-dark me-1">
+                            {{ search.search_keyword }} ({{ search.search_count }})
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <span class="text-muted">暂无搜索数据</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -43,8 +48,8 @@
         <!-- 最近资源 -->
         <div class="recent-resources">
             <h3 class="mb-4">
-                <i class="fas fa-clock text-primary"></i> 最近资源
-                <small class="text-muted">(最近20条)</small>
+                <i class="fas fa-clock text-primary"></i> 最新采集资源
+                <small class="text-muted">(最新5条)</small>
             </h3>
             
             {% if articles %}
