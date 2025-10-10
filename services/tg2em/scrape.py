@@ -201,7 +201,12 @@ async def compress_image(input_path, output_path, image_config=None):
         img = Image.open(input_path)
 
         max_size = (1024, 1024)
-        img.thumbnail(max_size, Image.Resampling.LANCAZOS)
+        # 使用兼容的重采样方法
+        try:
+            img.thumbnail(max_size, Image.Resampling.LANCAZOS)
+        except AttributeError:
+            # 对于较老版本的Pillow，使用旧的方法
+            img.thumbnail(max_size, Image.LANCZOS)
 
         quality = int(compression_quality)
         format_type = compression_format.lower()
@@ -862,24 +867,35 @@ async def run_periodic_scraper():
     await scrape_config.load_from_db()
     
     interval_minutes = scrape_config.interval_minutes
+    logging.info(f"🔄 启动定时采集任务，间隔: {interval_minutes} 分钟")
     
     while not shutdown_requested:
         try:
+            logging.info("⏰ 开始定时采集任务...")
             await scrape_channel()
+            logging.info("✅ 定时采集任务完成")
             
             # 可中断的等待
             wait_seconds = interval_minutes * 60
-            for _ in range(wait_seconds):
+            logging.info(f"⏳ 等待 {interval_minutes} 分钟后进行下次采集...")
+            
+            for i in range(wait_seconds):
                 if shutdown_requested:
                     logging.info("收到退出请求，停止等待")
                     break
+                # 每30秒显示一次倒计时
+                if i % 30 == 0 and i > 0:
+                    remaining_minutes = (wait_seconds - i) // 60
+                    logging.info(f"⏳ 距离下次采集还有 {remaining_minutes} 分钟...")
                 await asyncio.sleep(1)
                 
         except Exception as e:
-            logging.error(f"采集中出现错误: {e}")
+            logging.error(f"定时采集中出现错误: {e}")
             if not shutdown_requested:
                 logging.info(f"错误后等待 {interval_minutes} 分钟后重试...")
                 await asyncio.sleep(interval_minutes * 60)
+    
+    logging.info("🛑 定时采集任务已停止")
 
 def get_code_input():
     """获取验证码输入的交互函数（Docker容器兼容版本）"""

@@ -119,6 +119,10 @@ class ScraperService:
             self.last_scrape_time = datetime.now()
             self.scrape_count += 1
             
+            # 启动定时采集任务
+            logger.info("🔄 启动定时采集任务...")
+            await self.scrape_module.run_periodic_scraper()
+            
             logger.info("✅ 采集任务完成")
             
             return {
