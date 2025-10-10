@@ -3,7 +3,93 @@
 # tg2emall 数据库迁移脚本
 # 用于添加缺失的表：search_logs 和 visit_logs
 
+# 使用说明
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "📖 tg2emall 数据库迁移脚本使用说明"
+    echo ""
+    echo "用法: $0 [选项]"
+    echo ""
+    echo "选项:"
+    echo "  --help, -h          显示此帮助信息"
+    echo "  --skip-install      跳过MySQL客户端自动安装"
+    echo ""
+    echo "示例:"
+    echo "  $0                  # 自动安装MySQL客户端并执行迁移"
+    echo "  $0 --skip-install   # 跳过安装，仅执行迁移（需要手动安装MySQL客户端）"
+    echo ""
+    echo "注意:"
+    echo "  - 需要sudo权限来安装MySQL客户端"
+    echo "  - 确保Docker容器正在运行"
+    echo "  - 支持Ubuntu/Debian、CentOS/RHEL、Arch Linux系统"
+    exit 0
+fi
+
 echo "🔄 开始数据库迁移..."
+
+# 检查并安装MySQL客户端
+check_mysql_client() {
+    if ! command -v mysql &> /dev/null; then
+        echo "📦 MySQL客户端未安装"
+        
+        # 检查是否有跳过安装的参数
+        if [ "$1" = "--skip-install" ]; then
+            echo "⏭️ 跳过MySQL客户端安装"
+            echo "💡 请手动安装MySQL客户端后重新运行脚本"
+            echo "   安装命令："
+            echo "   Ubuntu/Debian: sudo apt install mysql-client"
+            echo "   CentOS/RHEL: sudo yum install mysql"
+            echo "   Arch Linux: sudo pacman -S mysql-clients"
+            exit 1
+        fi
+        
+        echo "🔧 开始自动安装MySQL客户端..."
+        
+        # 检测操作系统类型
+        if [ -f /etc/debian_version ]; then
+            # Debian/Ubuntu系统
+            echo "🐧 检测到Debian/Ubuntu系统，使用apt安装MySQL客户端"
+            echo "📝 执行命令: sudo apt update && sudo apt install -y mysql-client"
+            sudo apt update
+            sudo apt install -y mysql-client-core-8.0 || sudo apt install -y mysql-client
+        elif [ -f /etc/redhat-release ]; then
+            # CentOS/RHEL系统
+            echo "🐧 检测到CentOS/RHEL系统，使用yum安装MySQL客户端"
+            echo "📝 执行命令: sudo yum install -y mysql"
+            sudo yum install -y mysql || sudo yum install -y mysql-client
+        elif [ -f /etc/arch-release ]; then
+            # Arch Linux系统
+            echo "🐧 检测到Arch Linux系统，使用pacman安装MySQL客户端"
+            echo "📝 执行命令: sudo pacman -S mysql-clients"
+            sudo pacman -S --noconfirm mysql-clients
+        else
+            echo "❌ 不支持的操作系统，请手动安装MySQL客户端"
+            echo "💡 安装命令："
+            echo "   Ubuntu/Debian: sudo apt install mysql-client"
+            echo "   CentOS/RHEL: sudo yum install mysql"
+            echo "   Arch Linux: sudo pacman -S mysql-clients"
+            echo "   Alpine Linux: apk add mysql-client"
+            exit 1
+        fi
+        
+        # 验证安装是否成功
+        if command -v mysql &> /dev/null; then
+            echo "✅ MySQL客户端安装成功！"
+        else
+            echo "❌ MySQL客户端安装失败"
+            echo "💡 请手动安装MySQL客户端："
+            echo "   Ubuntu/Debian: sudo apt install mysql-client"
+            echo "   CentOS/RHEL: sudo yum install mysql"
+            echo "   Arch Linux: sudo pacman -S mysql-clients"
+            echo "   或使用 --skip-install 参数跳过自动安装"
+            exit 1
+        fi
+    else
+        echo "✅ MySQL客户端已安装"
+    fi
+}
+
+# 检查MySQL客户端
+check_mysql_client "$1"
 
 # 检查是否在Docker环境中
 if [ -f /.dockerenv ]; then
