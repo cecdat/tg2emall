@@ -531,68 +531,303 @@
         
         // 启动所有服务
         function startAllServices() {
-            if (confirm('确定要启动所有业务服务吗？')) {
-                const services = ['tgstate', 'scraper'];
-                let started = 0;
-                
-                services.forEach(serviceName => {
-                    fetch(`/admin/services/${serviceName}/start`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            started++;
-                            if (started === services.length) {
-                                alert('所有服务启动完成');
-                                location.reload();
-                            }
-                        } else {
-                            alert(`启动 ${serviceName} 失败: ${data.message}`);
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`启动 ${serviceName} 失败:`, error);
-                        alert(`启动 ${serviceName} 失败，请重试 B`);
+            Swal.fire({
+                title: '<div class="text-center"><i class="fas fa-play-circle fa-2x text-success mb-2"></i><br>启动所有业务服务</div>',
+                html: '<div class="text-center">' +
+                      '<div class="mb-3">' +
+                      '<p class="mb-3">🚀 即将启动所有业务服务</p>' +
+                      '<p class="text-muted">包括图片上传服务和采集服务</p>' +
+                      '</div>' +
+                      '<div class="alert alert-info border-info">' +
+                      '<div class="d-flex align-items-center">' +
+                      '<i class="fas fa-info-circle fa-2x text-info me-3"></i>' +
+                      '<div class="text-start">' +
+                      '<h6 class="mb-1 text-info">📋 服务列表</h6>' +
+                      '<small>• 图片上传服务 (tgstate)<br>• 采集服务 (scraper)</small>' +
+                      '</div>' +
+                      '</div>' +
+                      '</div>' +
+                      '</div>',
+                icon: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-play me-2"></i>启动所有服务',
+                cancelButtonText: '<i class="fas fa-times me-2"></i>取消',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                width: '500px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 显示启动进度
+                    Swal.fire({
+                        title: '<div class="text-center"><i class="fas fa-cog fa-spin fa-2x text-primary mb-2"></i><br>正在启动服务...</div>',
+                        html: '<div class="text-center">' +
+                              '<p class="mb-3">🔄 正在启动业务服务</p>' +
+                              '<div class="progress mb-3" style="height: 20px;">' +
+                              '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>' +
+                              '</div>' +
+                              '<p class="text-muted">请稍候，这可能需要几秒钟...</p>' +
+                              '</div>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        width: '400px'
                     });
-                });
-            }
+                    
+                    const services = ['tgstate', 'scraper'];
+                    let started = 0;
+                    let failed = 0;
+                    const progressBar = document.querySelector('.progress-bar');
+                    
+                    services.forEach((serviceName, index) => {
+                        fetch(`/admin/services/${serviceName}/start`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                started++;
+                            } else {
+                                failed++;
+                                console.error(`启动 ${serviceName} 失败:`, data.message);
+                            }
+                            
+                            // 更新进度条
+                            const progress = ((started + failed) / services.length) * 100;
+                            progressBar.style.width = progress + '%';
+                            
+                            if (started + failed === services.length) {
+                                // 所有服务处理完成
+                                Swal.close();
+                                if (failed === 0) {
+                                    showSweetAlert('启动成功', 
+                                        '<div class="text-center">' +
+                                        '<div class="mb-3">' +
+                                        '<i class="fas fa-check-circle fa-3x text-success mb-3"></i>' +
+                                        '<h5 class="text-success mb-2">🎉 所有服务启动成功！</h5>' +
+                                        '</div>' +
+                                        '<div class="alert alert-success border-success">' +
+                                        '<div class="d-flex align-items-center">' +
+                                        '<i class="fas fa-server fa-2x text-success me-3"></i>' +
+                                        '<div class="text-start">' +
+                                        '<h6 class="mb-1 text-success">服务状态</h6>' +
+                                        '<small>所有业务服务已成功启动并运行中</small>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>', 
+                                        'success');
+                                    setTimeout(() => location.reload(), 2000);
+                                } else {
+                                    showSweetAlert('部分失败', 
+                                        '<div class="text-center">' +
+                                        '<div class="mb-3">' +
+                                        '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>' +
+                                        '<h5 class="text-warning mb-2">⚠️ 部分服务启动失败</h5>' +
+                                        '</div>' +
+                                        '<div class="alert alert-warning border-warning">' +
+                                        '<div class="d-flex align-items-center">' +
+                                        '<i class="fas fa-info-circle fa-2x text-warning me-3"></i>' +
+                                        '<div class="text-start">' +
+                                        '<h6 class="mb-1 text-warning">启动结果</h6>' +
+                                        '<small>成功: ' + started + ' 个服务<br>失败: ' + failed + ' 个服务</small>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>', 
+                                        'warning');
+                                    setTimeout(() => location.reload(), 3000);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            failed++;
+                            console.error(`启动 ${serviceName} 失败:`, error);
+                            
+                            // 更新进度条
+                            const progress = ((started + failed) / services.length) * 100;
+                            progressBar.style.width = progress + '%';
+                            
+                            if (started + failed === services.length) {
+                                Swal.close();
+                                showSweetAlert('启动失败', 
+                                    '<div class="text-center">' +
+                                    '<div class="mb-3">' +
+                                    '<i class="fas fa-times-circle fa-3x text-danger mb-3"></i>' +
+                                    '<h5 class="text-danger mb-2">❌ 服务启动失败</h5>' +
+                                    '</div>' +
+                                    '<div class="alert alert-danger border-danger">' +
+                                    '<div class="d-flex align-items-center">' +
+                                    '<i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>' +
+                                    '<div class="text-start">' +
+                                    '<h6 class="mb-1 text-danger">错误信息</h6>' +
+                                    '<small>网络连接失败，请检查服务状态后重试</small>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>', 
+                                    'error');
+                            }
+                        });
+                    });
+                }
+            });
         }
         
         // 停止所有服务
         function stopAllServices() {
-            if (confirm('确定要停止所有业务服务吗？')) {
-                const services = ['tgstate', 'scraper'];
-                let stopped = 0;
-                
-                services.forEach(serviceName => {
-                    fetch(`/admin/services/${serviceName}/stop`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            stopped++;
-                            if (stopped === services.length) {
-                                alert('所有服务停止完成');
-                                location.reload();
-                            }
-                        } else {
-                            await(`停止 ${serviceName} 失败: ${data.message}`);
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`停止 ${serviceName} 失败:`, error);
-                        alert(`停止 ${serviceName} 失败，请重试`);
+            Swal.fire({
+                title: '<div class="text-center"><i class="fas fa-stop-circle fa-2x text-danger mb-2"></i><br>停止所有业务服务</div>',
+                html: '<div class="text-center">' +
+                      '<div class="mb-3">' +
+                      '<p class="mb-3">🛑 即将停止所有业务服务</p>' +
+                      '<p class="text-muted">这将停止图片上传服务和采集服务</p>' +
+                      '</div>' +
+                      '<div class="alert alert-warning border-warning">' +
+                      '<div class="d-flex align-items-center">' +
+                      '<i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>' +
+                      '<div class="text-start">' +
+                      '<h6 class="mb-1 text-warning">⚠️ 重要提示</h6>' +
+                      '<small>停止服务后，相关功能将不可用</small>' +
+                      '</div>' +
+                      '</div>' +
+                      '</div>' +
+                      '<div class="alert alert-info border-info mt-3">' +
+                      '<div class="d-flex align-items-center">' +
+                      '<i class="fas fa-info-circle fa-2x text-info me-3"></i>' +
+                      '<div class="text-start">' +
+                      '<h6 class="mb-1 text-info">📋 服务列表</h6>' +
+                      '<small>• 图片上传服务 (tgstate)<br>• 采集服务 (scraper)</small>' +
+                      '</div>' +
+                      '</div>' +
+                      '</div>' +
+                      '</div>',
+                icon: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-stop me-2"></i>停止所有服务',
+                cancelButtonText: '<i class="fas fa-times me-2"></i>取消',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                width: '500px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // 显示停止进度
+                    Swal.fire({
+                        title: '<div class="text-center"><i class="fas fa-cog fa-spin fa-2x text-danger mb-2"></i><br>正在停止服务...</div>',
+                        html: '<div class="text-center">' +
+                              '<p class="mb-3">🛑 正在停止业务服务</p>' +
+                              '<div class="progress mb-3" style="height: 20px;">' +
+                              '<div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>' +
+                              '</div>' +
+                              '<p class="text-muted">请稍候，这可能需要几秒钟...</p>' +
+                              '</div>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        width: '400px'
                     });
-                });
-            }
+                    
+                    const services = ['tgstate', 'scraper'];
+                    let stopped = 0;
+                    let failed = 0;
+                    const progressBar = document.querySelector('.progress-bar');
+                    
+                    services.forEach((serviceName, index) => {
+                        fetch(`/admin/services/${serviceName}/stop`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                stopped++;
+                            } else {
+                                failed++;
+                                console.error(`停止 ${serviceName} 失败:`, data.message);
+                            }
+                            
+                            // 更新进度条
+                            const progress = ((stopped + failed) / services.length) * 100;
+                            progressBar.style.width = progress + '%';
+                            
+                            if (stopped + failed === services.length) {
+                                // 所有服务处理完成
+                                Swal.close();
+                                if (failed === 0) {
+                                    showSweetAlert('停止成功', 
+                                        '<div class="text-center">' +
+                                        '<div class="mb-3">' +
+                                        '<i class="fas fa-check-circle fa-3x text-success mb-3"></i>' +
+                                        '<h5 class="text-success mb-2">✅ 所有服务停止成功！</h5>' +
+                                        '</div>' +
+                                        '<div class="alert alert-success border-success">' +
+                                        '<div class="d-flex align-items-center">' +
+                                        '<i class="fas fa-server fa-2x text-success me-3"></i>' +
+                                        '<div class="text-start">' +
+                                        '<h6 class="mb-1 text-success">服务状态</h6>' +
+                                        '<small>所有业务服务已成功停止</small>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>', 
+                                        'success');
+                                    setTimeout(() => location.reload(), 2000);
+                                } else {
+                                    showSweetAlert('部分失败', 
+                                        '<div class="text-center">' +
+                                        '<div class="mb-3">' +
+                                        '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>' +
+                                        '<h5 class="text-warning mb-2">⚠️ 部分服务停止失败</h5>' +
+                                        '</div>' +
+                                        '<div class="alert alert-warning border-warning">' +
+                                        '<div class="d-flex align-items-center">' +
+                                        '<i class="fas fa-info-circle fa-2x text-warning me-3"></i>' +
+                                        '<div class="text-start">' +
+                                        '<h6 class="mb-1 text-warning">停止结果</h6>' +
+                                        '<small>成功: ' + stopped + ' 个服务<br>失败: ' + failed + ' 个服务</small>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>' +
+                                        '</div>', 
+                                        'warning');
+                                    setTimeout(() => location.reload(), 3000);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            failed++;
+                            console.error(`停止 ${serviceName} 失败:`, error);
+                            
+                            // 更新进度条
+                            const progress = ((stopped + failed) / services.length) * 100;
+                            progressBar.style.width = progress + '%';
+                            
+                            if (stopped + failed === services.length) {
+                                Swal.close();
+                                showSweetAlert('停止失败', 
+                                    '<div class="text-center">' +
+                                    '<div class="mb-3">' +
+                                    '<i class="fas fa-times-circle fa-3x text-danger mb-3"></i>' +
+                                    '<h5 class="text-danger mb-2">❌ 服务停止失败</h5>' +
+                                    '</div>' +
+                                    '<div class="alert alert-danger border-danger">' +
+                                    '<div class="d-flex align-items-center">' +
+                                    '<i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>' +
+                                    '<div class="text-start">' +
+                                    '<h6 class="mb-1 text-danger">错误信息</h6>' +
+                                    '<small>网络连接失败，请检查服务状态后重试</small>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</div>', 
+                                    'error');
+                            }
+                        });
+                    });
+                }
+            });
         }
         
         // 移除自动刷新功能，避免频繁弹窗
