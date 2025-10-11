@@ -300,8 +300,9 @@ async def upload_image(image_path):
             # 容器内网络调用地址（用于API调用）
             container_api_url = f"http://tgstate:{tgstate_port}/api"
             
-            # 配置的基础URL（用于返回给用户）
-            base_url = tgstate_url.rstrip('/')
+            # 优先使用public_url作为返回URL，如果没有则使用tgstate_url
+            public_url = await get_tgstate_config('public_url') or tgstate_url
+            base_url = public_url.rstrip('/')
             
             # 从数据库动态获取tgstate_pass配置
             tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
@@ -311,6 +312,7 @@ async def upload_image(image_path):
             logging.info(f"🔍 图片上传调试信息:")
             logging.info(f"  - tgstate_port: {tgstate_port}")
             logging.info(f"  - tgstate_url: {tgstate_url}")
+            logging.info(f"  - public_url: {public_url}")
             logging.info(f"  - container_api_url: {container_api_url}")
             logging.info(f"  - base_url: {base_url}")
             logging.info(f"  - tgstate_pass: {'已配置' if tgstate_pass != 'none' else '未配置'}")
@@ -325,7 +327,7 @@ async def upload_image(image_path):
                         result = await response.json()
                         logging.info(f"📡 图片上传响应内容: {result}")
                         if result.get("code") == 1:
-                            # 使用配置的基础URL构建返回地址
+                            # 使用public_url构建返回地址
                             img_path = result.get('message', '')
                             if img_path.startswith('/'):
                                 img_path = img_path[1:]  # 移除开头的斜杠
