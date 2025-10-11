@@ -100,10 +100,10 @@ services:
       TARGET: "${TGSTATE_TARGET:-}"
       PASS: "${TGSTATE_PASS:-none}"
       MODE: "${TGSTATE_MODE:-p}"
-      URL: "${TGSTATE_URL:-http://your-domain.com:8088}"
+      URL: "${TGSTATE_URL:-https://img.237890.xyz}"
       PORT: "8002"
       # 公网访问地址
-      PUBLIC_URL: "${PUBLIC_URL:-http://your-domain.com:8088}"
+      PUBLIC_URL: "${PUBLIC_URL:-https://img.237890.xyz}"
     # volumes: 图片存储在Telegram频道，无需本地存储
     networks:
       - tg2em-network
