@@ -178,22 +178,32 @@ def format_size(size_bytes):
         return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
 
 async def compress_image(input_path, output_path):
-    """压缩图片，确保文件大小变小"""
+    """压缩图片，确保文件大小变小并兼容旧版 Pillow"""
     try:
-        # 从数据库动态获取图片压缩配置
+        if not os.path.exists(input_path):
+            logging.error(f"❌ 压缩失败，源文件不存在: {input_path}")
+            return None
+
+        # 动态获取配置
         compression_quality = await get_tgstate_config('image_compression_quality') or '50'
-        compression_format = await get_tgstate_config('image_compression_format') or 'webp'
-        
-        original_size_bytes = os.path.getsize(input_path)
+        compression_format = (await get_tgstate_config('image_compression_format') or 'webp').lower()
+
+        # 兼容旧 Pillow 版本
+        try:
+            resample_filter = Image.Resampling.LANCZOS
+        except AttributeError:
+            resample_filter = Image.LANCZOS
+
         img = Image.open(input_path)
-
+        original_size_bytes = os.path.getsize(input_path)
         max_size = (1024, 1024)
-        img.thumbnail(max_size, Image.Resampling.LANCAZOS)
+        img.thumbnail(max_size, resample_filter)
 
+        # 保存压缩图像
         quality = int(compression_quality)
-        format_type = compression_format.lower()
-        
-        if format_type == "webp":
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        if compression_format == "webp":
             img.save(output_path, "WEBP", quality=quality, lossless=False)
         else:
             img.save(output_path, "JPEG", quality=quality)
@@ -201,27 +211,31 @@ async def compress_image(input_path, output_path):
         compressed_size_bytes = os.path.getsize(output_path)
         compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
 
-        if compressed_size_bytes > original_size_bytes:
-            logging.warning(f"初次压缩后文件变大: {format_size(original_size_bytes)} -> {format_size(compressed_size_bytes)}")
-            quality = max(10, quality - 20)
-            if format_type == "webp":
-                img.save(output_path, "WEBP", quality=quality, lossless=False)
-            else:
-                img.save(output_path, "JPEG", quality=quality)
-            compressed_size_bytes = os.path.getsize(output_path)
-            compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
-
         logging.info(
-            f"图片压缩完成: {input_path} -> {output_path}\n"
-            f"原始大小: {format_size(original_size_bytes)}\n"
-            f"压缩后大小: {format_size(compressed_size_bytes)}\n"
+            f"📦 图片压缩完成: {input_path} -> {output_path} | "
+            f"原始: {original_size_bytes/1024:.1f}KB | 压缩后: {compressed_size_bytes/1024:.1f}KB | "
             f"压缩率: {compression_ratio:.2f}%"
         )
 
+        # 如果压缩后比原图还大，再次降质重试
         if compressed_size_bytes > original_size_bytes:
-            logging.warning(f"压缩后文件仍大于原始大小，请调整 quality 或 format 参数")
+            quality = max(10, quality - 20)
+            logging.warning(f"⚠️ 压缩后文件仍偏大，尝试降低质量至 {quality}")
+            if compression_format == "webp":
+                img.save(output_path, "WEBP", quality=quality, lossless=False)
+            else:
+                img.save(output_path, "JPEG", quality=quality)
+            
+            # 重新计算压缩率
+            compressed_size_bytes = os.path.getsize(output_path)
+            compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
+            logging.info(f"📦 二次压缩完成，最终压缩率: {compression_ratio:.2f}%")
+
+        return output_path
+
     except Exception as e:
-        logging.error(f"压缩图片时出错: {e}")
+        logging.error(f"❌ 压缩图片时出错: {e}")
+        return None
 
 async def get_config_from_db(config_key):
     """从数据库获取配置（通用函数）"""
@@ -339,7 +353,14 @@ async def download_image_from_message(message, date_str):
             # 动态获取压缩格式
             compression_format = await get_tgstate_config('image_compression_format') or 'webp'
             compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
-            await compress_image(local_path, compressed_path)
+            
+            # 压缩图片，检查是否成功
+            compressed_result = await compress_image(local_path, compressed_path)
+            if not compressed_result or not os.path.exists(compressed_path):
+                logging.error(f"❌ 图片压缩失败，跳过上传: {local_path}")
+                # 压缩失败，使用原始文件
+                local_url = local_path.replace("./", "")
+                return f"![]({local_url})"
             
             # 尝试上传图片
             image_url = await upload_image(compressed_path)
@@ -835,6 +856,11 @@ async def main():
     
     try:
         await init_mysql_pool()
+        
+        # 确保上传目录存在
+        upload_dir = "./upload"
+        os.makedirs(upload_dir, exist_ok=True)
+        logging.info(f"✅ 上传目录已确保存在: {upload_dir}")
         
         # 从数据库动态获取 Telegram 配置
         api_id = await get_config_from_db("telegram_api_id") or config["telegram"]["api_id"]
