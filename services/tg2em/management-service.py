@@ -383,7 +383,7 @@ def handle_config_refresh():
         print("🔄 收到配置缓存刷新请求")
         
         # 重新加载配置
-        scraper_service.reload_config()
+        management_service.reload_config()
         print("✅ 配置已重新加载")
         
         return jsonify({
