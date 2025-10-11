@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 import asyncio
 import yaml
 from telethon import TelegramClient
+from telethon.tl.types import PeerChannel
 from datetime import datetime, timedelta
 import aiomysql
 from urllib.parse import quote
@@ -568,19 +569,10 @@ async def scrape_channel():
         channel_urls = []
         if channels_config:
             for line in channels_config.strip().split('\n'):
-                line = line.strip()
-                if line:
-                    if line.startswith('http'):
-                        channel_urls.append({"url": line, "limit": scrape_limit})
-                    elif line.startswith('@') or line.startswith('-'):
-                        channel_urls.append({"id": line, "limit": scrape_limit})
-                    else:
-                        # 尝试作为频道ID处理
-                        try:
-                            channel_id = int(line)
-                            channel_urls.append({"id": channel_id, "limit": scrape_limit})
-                        except ValueError:
-                            channel_urls.append({"id": f"@{line}", "limit": scrape_limit})
+                normalized = normalize_channel(line)
+                if normalized:
+                    normalized["limit"] = scrape_limit
+                    channel_urls.append(normalized)
         
         if not channel_urls:
             logging.error("❌ 未配置采集频道，请在后台管理页面配置scrape_channels参数")
@@ -605,7 +597,23 @@ async def scrape_channel():
                 channel_id = channel_config["id"]
                 logging.info(f"开始抓取频道ID: {channel_id} (limit={limit})")
                 try:
-                    channel = await client.get_entity(channel_id)
+                    # 处理字符串ID转换为整数
+                    if isinstance(channel_id, str):
+                        if channel_id.startswith('-') and channel_id[1:].isdigit():
+                            # 负数字符串ID，转换为整数
+                            entity_id = PeerChannel(int(channel_id))
+                        elif channel_id.isdigit():
+                            # 正数字符串ID，转换为整数
+                            entity_id = PeerChannel(int(channel_id))
+                        else:
+                            # 其他字符串格式（如@username）
+                            entity_id = channel_id
+                    else:
+                        # 已经是整数，使用PeerChannel
+                        entity_id = PeerChannel(channel_id)
+                    
+                    channel = await client.get_entity(entity_id)
+                    channel_id = channel.id
                 except Exception as e:
                     logging.error(f"获取频道实体失败: {e}")
                     continue
@@ -799,6 +807,26 @@ def get_password_input():
     password = getpass.getpass("请输入两步验证密码: ").strip()
     print("✅ 密码已输入")
     return password
+
+def normalize_channel(line):
+    """标准化频道配置，支持URL/@/ID三种格式"""
+    line = line.strip()
+    if not line:
+        return None
+    
+    if line.startswith('http'):
+        return {'url': line}
+    
+    if line.startswith('@'):
+        return {'id': line}
+    
+    if line.startswith('-') and line[1:].isdigit():
+        return {'id': int(line)}
+    
+    if line.isdigit():
+        return {'id': int(line)}
+    
+    return {'id': f"@{line}"}
 
 async def main():
     """主函数"""
