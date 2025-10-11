@@ -1159,12 +1159,12 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 	}
 
 	// 检查文件类型
-	allowedExts := []string{".jpg", ".jpeg", ".png"}
+	allowedExts := []string{".jpg", ".jpeg", ".png", ".webp"}
 	filename := header.Filename
-	ext := strings.ToLower(filename)
+	ext := strings.ToLower(filepath.Ext(filename))
 	valid := false
 	for _, allowedExt := range allowedExts {
-		if strings.HasSuffix(ext, allowedExt) {
+		if ext == allowedExt {
 			valid = true
 			break
 		}
@@ -1173,7 +1173,7 @@ func (api *ManagementAPI) handleImageUpload(w http.ResponseWriter, r *http.Reque
 	if !valid {
 		response := map[string]interface{}{
 			"code":    0,
-			"message": "Invalid file type. Only .jpg, .jpeg, and .png are allowed.",
+			"message": "Invalid file type. Only .jpg, .jpeg, .png, and .webp are allowed.",
 			"imgUrl":  "",
 		}
 		w.Header().Set("Content-Type", "application/json")
