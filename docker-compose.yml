@@ -95,6 +95,11 @@ services:
       - "8088:8088"  # 管理页面端口
     environment:
       TZ: "Asia/Shanghai"
+      # MySQL 数据库连接配置
+      MYSQL_HOST: "mysql"
+      MYSQL_DATABASE: "tg2em"
+      MYSQL_USER: "tg2emall"
+      MYSQL_PASSWORD: "tg2emall"
       # tgState 配置参数
       TOKEN: "${TGSTATE_TOKEN:-}"
       TARGET: "${TGSTATE_TARGET:-}"
@@ -105,6 +110,9 @@ services:
       # 公网访问地址
       PUBLIC_URL: "${PUBLIC_URL:-https://img.237890.xyz}"
     # volumes: 图片存储在Telegram频道，无需本地存储
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - tg2em-network
 
