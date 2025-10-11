@@ -364,10 +364,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-function showSweetAlert(title, text, icon) {
+function showSweetAlert(title, content, icon) {
     Swal.fire({
         title: title,
-        text: text,
+        html: content,  // 使用html参数来渲染HTML内容
         icon: icon,
         confirmButtonText: '确定',
         confirmButtonColor: icon === 'success' ? '#28a745' : 
