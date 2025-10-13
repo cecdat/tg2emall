@@ -13,8 +13,8 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <h6 class="card-title mb-0">{{ service.service_name }}</h6>
-                                    <span class="badge {% if service.status == '运行中' %}bg-success{% elif service.status == '已停止' %}bg-danger{% else %}bg-warning{% endif %}">
-                                        {{ service.status }}
+                                    <span class="badge {% if service.status == 'running' or service.status == '运行中' %}bg-success{% elif service.status == 'error' or service.status == '已停止' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {% if service.status == 'running' %}运行中{% elif service.status == 'error' %}错误{% elif service.status == 'stopped' %}已停止{% else %}未知{% endif %}
                                     </span>
                                 </div>
                                 
@@ -25,19 +25,17 @@
                                     </small>
                                 </div>
                                 
-                                {% if service.pid %}
                                 <div class="mb-3">
                                     <small class="text-muted">
                                         <i class="fas fa-cog me-1"></i>
-                                        PID: {{ service.pid }}
+                                        PID: {{ service.pid or '未知' }}
                                     </small>
                                 </div>
-                                {% endif %}
                                 
                                 <div class="btn-group w-100" role="group">
                                     <button class="btn btn-sm btn-success" 
                                             onclick="startService('{{ service.service_name }}')"
-                                            {% if service.status == '运行中' %}disabled{% endif %}>
+                                            {% if service.status == 'running' or service.status == '运行中' %}disabled{% endif %}>
                                         <i class="fas fa-play me-1"></i>启动
                                     </button>
                                     <button class="btn btn-sm btn-warning" 
@@ -46,7 +44,7 @@
                                     </button>
                                     <button class="btn btn-sm btn-danger" 
                                             onclick="stopService('{{ service.service_name }}')"
-                                            {% if service.status == '已停止' %}disabled{% endif %}>
+                                            {% if service.status == 'stopped' or service.status == '已停止' %}disabled{% endif %}>
                                         <i class="fas fa-stop me-1"></i>停止
                                     </button>
                                 </div>
@@ -63,7 +61,15 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <button class="btn btn-success" onclick="initTelegram()">
+                                    <i class="fas fa-mobile-alt me-1"></i>初始化Telegram
+                                </button>
+                                <small class="text-muted d-block mt-2">
+                                    初始化Telegram客户端，建立连接
+                                </small>
+                            </div>
+                            <div class="col-md-4">
                                 <button class="btn btn-primary" onclick="startScraping()">
                                     <i class="fas fa-play me-1"></i>启动采集任务
                                 </button>
@@ -71,7 +77,7 @@
                                     启动一次性的采集任务，用于测试或手动采集
                                 </small>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <button class="btn btn-info" onclick="refreshServiceStatus()">
                                     <i class="fas fa-sync-alt me-1"></i>刷新状态
                                 </button>
@@ -348,6 +354,63 @@ function startScraping() {
                 Swal.fire({
                     icon: 'error',
                     title: '采集服务启动失败',
+                    text: '网络错误，请重试'
+                });
+            });
+        }
+    });
+}
+
+function initTelegram() {
+    Swal.fire({
+        title: '初始化Telegram客户端',
+        text: '确定要初始化Telegram客户端吗？这将建立与Telegram的连接。',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '确定初始化',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#28a745'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 显示加载状态
+            Swal.fire({
+                title: '正在初始化Telegram客户端...',
+                text: '请稍候，这可能需要一些时间',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // 调用Telegram初始化API
+            fetch('/admin/services/scraper/telegram/init', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '初始化成功',
+                        text: data.message,
+                        timer: 3000
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '初始化失败',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '初始化失败',
                     text: '网络错误，请重试'
                 });
             });

@@ -70,7 +70,7 @@
                                     <div class="config-item">
                                         <div class="config-key">{{ config.config_key }}</div>
                                         <label for="{{ config.config_key }}" class="form-label">
-                                            {{ config.description or config.config_key }}
+                                            {{ config.config_key|replace('_', ' ')|title }}
                                         </label>
                                         
                                         {% if config.config_type == 'boolean' %}

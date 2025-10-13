@@ -1505,6 +1505,49 @@ def admin_scrape_task_start(service_name):
         logger.error(f"启动采集任务失败: {e}")
         return jsonify({'success': False, 'message': f'启动采集任务失败: {str(e)}'}), 500
 
+@app.route('/admin/services/<service_name>/telegram/init', methods=['POST'])
+@login_required
+def admin_telegram_init(service_name):
+    """初始化Telegram客户端"""
+    try:
+        # 只允许采集服务调用
+        if service_name not in ['scraper', 'scraper-management', 'scraper-service']:
+            return jsonify({'success': False, 'message': '此操作仅适用于采集服务'}), 400
+        
+        # 调用采集管理服务的Telegram初始化API
+        import requests
+        init_url = 'http://tg2em-scrape:2003/api/telegram/init'
+        
+        try:
+            response = requests.post(init_url, timeout=60)
+            result = response.json()
+            
+            if result.get('success'):
+                return jsonify({
+                    'success': True,
+                    'message': result.get('message', 'Telegram客户端初始化成功')
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': result.get('message', 'Telegram客户端初始化失败')
+                })
+                
+        except requests.exceptions.ConnectionError:
+            return jsonify({
+                'success': False,
+                'message': '无法连接到采集服务，请先启动采集服务'
+            }), 500
+        except requests.exceptions.Timeout:
+            return jsonify({
+                'success': False,
+                'message': 'Telegram客户端初始化超时，请检查网络连接'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"初始化Telegram客户端失败: {e}")
+        return jsonify({'success': False, 'message': f'初始化失败: {str(e)}'}), 500
+
 @app.route('/admin/services/<service_name>/status', methods=['GET'])
 @login_required
 def admin_service_status(service_name):
