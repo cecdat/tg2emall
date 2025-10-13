@@ -2,6 +2,29 @@
 
 {% block title %}缓存管理 - tg2emall{% endblock %}
 
+{% block extra_css %}
+<style>
+    .admin-sidebar {
+        min-height: 100vh;
+        background-color: #343a40;
+    }
+    .admin-sidebar .nav-link {
+        color: #adb5bd;
+    }
+    .admin-sidebar .nav-link:hover,
+    .admin-sidebar .nav-link.active {
+        color: #fff;
+        background-color: #495057;
+    }
+    .stats-card {
+        transition: transform 0.2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <div class="row">

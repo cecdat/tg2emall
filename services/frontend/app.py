@@ -313,6 +313,27 @@ def extract_image_url(markdown_image):
     # 如果不是Markdown格式，直接返回原值
     return markdown_image
 
+def render_content_preview(content, max_length=200):
+    """渲染内容预览，正确处理图片显示"""
+    if not content:
+        return ""
+    
+    # 截断内容
+    truncated = content[:max_length]
+    if len(content) > max_length:
+        truncated += "..."
+    
+    # 使用正则表达式匹配并替换图片语法
+    import re
+    def replace_image(match):
+        url = match.group(1)
+        return f'<img src="{url}" class="img-fluid rounded" style="max-width: 100%; height: auto; margin: 5px 0;">'
+    
+    # 替换 ![](url) 格式的图片
+    processed = re.sub(r'!\[.*?\]\((.*?)\)', replace_image, truncated)
+    
+    return processed
+
 # 获取广告位
 @cache_advertisements(ttl=CacheTTL.LONG)
 def get_advertisements(position):
@@ -427,6 +448,7 @@ def create_mixed_content(articles, ads):
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
 app.jinja_env.filters['extract_image_url'] = extract_image_url
+app.jinja_env.filters['content_preview'] = render_content_preview
 
 def analyze_visit_source(user_agent, referrer, page_path):
     """分析访问来源"""
