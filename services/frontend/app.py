@@ -324,6 +324,55 @@ def get_advertisements(position):
         logger.error(f"获取广告位失败: {e}")
         return []
 
+def get_popular_articles(limit=5):
+    """获取热门文章（按点击量排序）"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT id, title, tags, source_channel, created_at, click_count
+                FROM messages 
+                WHERE is_deleted = 0 
+                ORDER BY click_count DESC, created_at DESC 
+                LIMIT %s
+            """, (limit,))
+            articles = cursor.fetchall()
+            return articles if articles else []
+    except Exception as e:
+        logger.error(f"获取热门文章失败: {e}")
+        return []
+
+def track_article_click(article_id, request):
+    """记录文章点击"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 获取访问者信息
+            visitor_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', '127.0.0.1'))
+            user_agent = request.headers.get('User-Agent', '')
+            referrer = request.headers.get('Referer', '')
+            session_id = session.get('session_id', '')
+            
+            # 记录点击日志
+            cursor.execute("""
+                INSERT INTO article_click_logs (article_id, visitor_ip, user_agent, referrer, session_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (article_id, visitor_ip, user_agent, referrer, session_id))
+            
+            # 更新文章点击统计
+            cursor.execute("""
+                UPDATE messages 
+                SET click_count = click_count + 1, last_clicked_at = NOW()
+                WHERE id = %s
+            """, (article_id,))
+            
+            conn.commit()
+            logger.info(f"文章点击记录成功: article_id={article_id}, ip={visitor_ip}")
+            
+    except Exception as e:
+        logger.error(f"记录文章点击失败: {e}")
+
 def create_mixed_content(articles, ads):
     """创建资源列表和广告位的混合内容"""
     import random
@@ -729,6 +778,7 @@ def index():
         # 获取数据
         articles = get_articles(20, 0)  # 获取20个资源
         recent_articles = get_recent_articles(5)
+        popular_articles = get_popular_articles(5)  # 获取热门文章
         popular_searches = get_popular_searches()
         categories = get_categories()
         
@@ -750,6 +800,7 @@ def index():
         return render_template('index.html', 
                              articles=articles, 
                              recent_articles=recent_articles,
+                             popular_articles=popular_articles,
                              popular_searches=popular_searches,
                              categories=categories,
                              homepage_middle_ads=homepage_middle_ads,
@@ -761,6 +812,7 @@ def index():
         return render_template('index.html', 
                              articles=[], 
                              recent_articles=[],
+                             popular_articles=[],
                              popular_searches=[],
                              categories=[],
                              homepage_middle_ads=[],
@@ -809,6 +861,9 @@ def article_detail(article_id):
     article = get_article_by_id(article_id)
     if not article:
         return "文章不存在", 404
+    
+    # 记录文章点击
+    track_article_click(article_id, request)
     
     recent_articles = get_recent_articles(5)
     article_middle_ads = get_advertisements('article-middle')
