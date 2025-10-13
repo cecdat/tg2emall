@@ -1801,17 +1801,29 @@ def api_waterfall_load():
             if item['type'] == 'article':
                 # 处理文章数据
                 article = item['content']
-                processed_item = {
-                    'type': 'article',
-                    'content': {
-                        'id': article.id,
-                        'title': article.title,
-                        'content': article.content,
-                        'content_preview': render_content_preview(article.content),
-                        'created_at': article.created_at.isoformat() if article.created_at else '',
-                        'tags': article.tags
+                try:
+                    # 处理created_at字段
+                    created_at_str = ''
+                    if article.get('created_at'):
+                        if hasattr(article['created_at'], 'isoformat'):
+                            created_at_str = article['created_at'].isoformat()
+                        else:
+                            created_at_str = str(article['created_at'])
+                    
+                    processed_item = {
+                        'type': 'article',
+                        'content': {
+                            'id': article['id'],
+                            'title': article['title'],
+                            'content': article['content'],
+                            'content_preview': render_content_preview(article['content']),
+                            'created_at': created_at_str,
+                            'tags': article.get('tags', '')
+                        }
                     }
-                }
+                except Exception as e:
+                    logger.error(f"处理文章数据失败: {e}, article: {article}")
+                    continue
             else:
                 # 广告数据
                 processed_item = item
