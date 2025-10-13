@@ -60,9 +60,9 @@
                                         {{ article.title }}
                                     </a>
                                 </h5>
-                                <p class="card-text text-muted">
-                                    {{ article.content[:200] }}{% if article.content|length > 200 %}...{% endif %}
-                                </p>
+                                <div class="card-text text-muted">
+                                    {{ article.content[:200]|markdown|safe }}{% if article.content|length > 200 %}...{% endif %}
+                                </div>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="meta-info">
                                         <small class="text-muted me-3">
