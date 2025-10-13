@@ -43,17 +43,7 @@
                 <div class="result-item card mb-3">
                     <div class="card-body">
                         <div class="row">
-                            {% if article.image_url %}
-                            <div class="col-md-3">
-                                <img src="{{ article.image_url|extract_image_url }}" 
-                                     class="img-fluid rounded" 
-                                     alt="{{ article.title }}"
-                                     style="height: 120px; object-fit: cover;">
-                            </div>
-                            <div class="col-md-9">
-                            {% else %}
                             <div class="col-12">
-                            {% endif %}
                                 <h5 class="card-title">
                                     <a href="{{ url_for('article_detail', article_id=article.id) }}" 
                                        class="text-decoration-none">
