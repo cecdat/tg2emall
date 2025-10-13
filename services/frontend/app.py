@@ -992,7 +992,7 @@ def article_detail(article_id):
     """文章详情页"""
     article = get_article_by_id(article_id)
     if not article:
-        return "文章不存在", 404
+        return render_template('404.html'), 404
     
     # 记录文章点击
     track_article_click(article_id, request)
@@ -1226,7 +1226,7 @@ def admin_article_edit(article_id):
             article = cursor.fetchone()
             
             if not article:
-                return "文章不存在", 404
+                return render_template('404.html'), 404
                 
             return render_template('admin_article_edit.html', article=article)
     except Exception as e:
@@ -1542,7 +1542,7 @@ def admin_service_manage(service_name):
         # 验证服务名称
         valid_services = ['tgstate', 'tgstate-management', 'tgstate-service', 'scraper', 'scraper-management', 'scraper-service']
         if service_name not in valid_services:
-            return "无效的服务名称", 404
+            return render_template('404.html'), 404
         
         # 获取服务状态
         controller = ServiceController()

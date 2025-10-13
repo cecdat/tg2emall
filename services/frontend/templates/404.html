@@ -1,23 +1,121 @@
 {% extends "base.html" %}
 
-{% block title %}页面未找到 - tg2emall{% endblock %}
+{% block title %}页面未找到 - {{ seo_config.site_name|default('tg2emall') }}{% endblock %}
 
 {% block content %}
-<div class="text-center py-5">
-    <div class="error-page">
-        <h1 class="display-1 text-muted">404</h1>
-        <h2 class="mb-4">页面未找到</h2>
-        <p class="lead text-muted mb-4">
-            抱歉，您访问的页面不存在或已被删除。
-        </p>
-        <div class="error-actions">
-            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-3">
-                <i class="fas fa-home"></i> 返回首页
-            </a>
-            <a href="{{ url_for('search') }}" class="btn btn-outline-secondary btn-lg">
-                <i class="fas fa-search"></i> 搜索资源
-            </a>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center py-5">
+                <div class="error-page">
+                    <!-- 404图标 -->
+                    <div class="mb-4">
+                        <i class="fas fa-exclamation-triangle text-warning" style="font-size: 8rem;"></i>
+                    </div>
+                    
+                    <h1 class="display-1 text-muted mb-3">404</h1>
+                    <h2 class="mb-4 text-dark">页面未找到</h2>
+                    <p class="lead text-muted mb-4">
+                        抱歉，您访问的页面不存在或已被删除。
+                    </p>
+                    
+                    <!-- 倒计时提示 -->
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-clock me-2"></i>
+                        <span id="countdown-text">5秒后自动跳转到首页</span>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-info" id="countdown-progress" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="error-actions">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg me-3" id="home-btn">
+                            <i class="fas fa-home me-2"></i> 立即返回首页
+                        </a>
+                        <a href="{{ url_for('search') }}" class="btn btn-outline-secondary btn-lg me-3">
+                            <i class="fas fa-search me-2"></i> 搜索资源
+                        </a>
+                        <button class="btn btn-outline-warning btn-lg" onclick="stopCountdown()">
+                            <i class="fas fa-pause me-2"></i> 停止倒计时
+                        </button>
+                    </div>
+                    
+                    <!-- 帮助信息 -->
+                    <div class="mt-5">
+                        <h5 class="text-muted mb-3">可能的原因：</h5>
+                        <div class="row text-start">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 页面链接已失效</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 页面已被删除</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 输入了错误的URL</li>
+                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> 页面正在维护中</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let countdown = 5;
+let countdownInterval;
+let isCountdownStopped = false;
+
+function startCountdown() {
+    if (isCountdownStopped) return;
+    
+    countdownInterval = setInterval(() => {
+        countdown--;
+        
+        // 更新倒计时文本
+        document.getElementById('countdown-text').textContent = `${countdown}秒后自动跳转到首页`;
+        
+        // 更新进度条
+        const progress = (countdown / 5) * 100;
+        document.getElementById('countdown-progress').style.width = progress + '%';
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }, 1000);
+}
+
+function stopCountdown() {
+    isCountdownStopped = true;
+    clearInterval(countdownInterval);
+    document.getElementById('countdown-text').textContent = '倒计时已停止';
+    document.getElementById('countdown-progress').style.width = '0%';
+    document.querySelector('button[onclick="stopCountdown()"]').style.display = 'none';
+}
+
+// 页面加载完成后开始倒计时
+document.addEventListener('DOMContentLoaded', function() {
+    startCountdown();
+});
+
+// 鼠标移动时暂停倒计时（用户可能还在浏览）
+let mouseMoveTimer;
+document.addEventListener('mousemove', function() {
+    if (!isCountdownStopped) {
+        clearTimeout(mouseMoveTimer);
+        mouseMoveTimer = setTimeout(() => {
+            if (!isCountdownStopped) {
+                startCountdown();
+            }
+        }, 2000); // 鼠标停止移动2秒后重新开始倒计时
+    }
+});
+</script>
 {% endblock %}
