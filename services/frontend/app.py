@@ -2418,7 +2418,7 @@ def generate_meta_description(content, seo_config=None):
     if not seo_config:
         seo_config = get_seo_config()
     
-    max_length = int(seo_config.get('seo_description_length', 160))
+    max_length = 160  # 固定描述长度
     
     # 简单的描述生成逻辑
     if len(content) <= max_length:
