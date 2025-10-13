@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir Flask Flask-CORS
 # 复制项目文件
 COPY . .
 
-# 创建日志目录
-RUN mkdir -p /app/logs
+# 创建日志目录并设置权限
+RUN mkdir -p /app/logs && chmod 755 /app/logs
 
 # 暴露管理服务和采集服务端口
 EXPOSE 2003 5002

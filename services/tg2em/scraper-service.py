@@ -20,10 +20,16 @@ from typing import Dict, Any
 # 导入日志配置模块
 import sys
 sys.path.append('/app')
-from log_config import setup_service_logging
 
-# 设置日志配置（支持轮转）
-logger = setup_service_logging('scraper')
+try:
+    # 尝试使用完整日志配置（支持轮转）
+    from log_config import setup_service_logging
+    logger = setup_service_logging('scraper')
+except Exception as e:
+    # 如果完整日志配置失败，使用简化配置
+    print(f"警告: 无法使用完整日志配置: {e}")
+    from simple_log_config import setup_simple_logging
+    logger = setup_simple_logging('scraper')
 
 app = Flask(__name__)
 

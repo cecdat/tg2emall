@@ -255,11 +255,15 @@ if ServiceController is None:
             return {'success': False, 'message': f'状态检查失败: {str(e)}'}
 
 # 配置日志
-# 导入日志配置模块
-from log_config import setup_service_logging, get_logger
-
-# 设置日志配置（支持轮转）
-logger = setup_service_logging('frontend')
+try:
+    # 尝试使用完整日志配置（支持轮转）
+    from log_config import setup_service_logging, get_logger
+    logger = setup_service_logging('frontend')
+except Exception as e:
+    # 如果完整日志配置失败，使用简化配置
+    print(f"警告: 无法使用完整日志配置: {e}")
+    from simple_log_config import setup_simple_logging, get_simple_logger
+    logger = setup_simple_logging('frontend')
 
 # 设置特定模块的日志级别
 logging.getLogger('werkzeug').setLevel(logging.WARNING)  # 减少Flask请求日志

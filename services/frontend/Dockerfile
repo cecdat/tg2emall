@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制应用文件
 COPY . .
 
+# 创建日志目录并设置权限
+RUN mkdir -p /app/logs && chmod 755 /app/logs
+
 # 创建非 root 用户
 RUN useradd -m -u 1000 frontend && chown -R frontend:frontend /app
 USER frontend
