@@ -14,28 +14,25 @@ class ThemeManager {
 
     init() {
         this.applyTheme(this.theme);
-        this.createThemeToggle();
         this.bindEvents();
-    }
-
-    createThemeToggle() {
-        const toggle = document.createElement('button');
-        toggle.className = 'theme-toggle';
-        toggle.innerHTML = this.theme === 'dark' ? '☀️' : '🌙';
-        toggle.title = this.theme === 'dark' ? '切换到浅色模式' : '切换到深色模式';
-        toggle.onclick = () => this.toggleTheme();
-        document.body.appendChild(toggle);
     }
 
     applyTheme(theme) {
         document.documentElement.setAttribute('data-bs-theme', theme);
         localStorage.setItem('theme', theme);
         
-        // 更新主题切换按钮
-        const toggle = document.querySelector('.theme-toggle');
-        if (toggle) {
-            toggle.innerHTML = theme === 'dark' ? '☀️' : '🌙';
-            toggle.title = theme === 'dark' ? '切换到浅色模式' : '切换到深色模式';
+        // 更新导航栏中的主题切换按钮
+        const themeIcon = document.getElementById('themeIcon');
+        const themeToggle = document.getElementById('themeToggle');
+        
+        if (themeIcon && themeToggle) {
+            if (theme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+                themeToggle.className = 'btn btn-outline-warning btn-sm';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+                themeToggle.className = 'btn btn-outline-light btn-sm';
+            }
         }
     }
 
