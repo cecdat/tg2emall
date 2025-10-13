@@ -551,6 +551,19 @@ a:hover {
     text-overflow: ellipsis;
     line-height: 1.4;
     max-height: 4.2em;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+/* 确保内容预览中的图片正常显示 */
+.content-preview img {
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 120px !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 5px 0 !important;
+    border-radius: 4px !important;
 }
 
 /* 瀑布流布局 */
@@ -570,7 +583,20 @@ a:hover {
 .waterfall-item .resource-card {
     height: auto;
     min-height: 280px;
-    max-height: 500px;
+    max-height: none; /* 移除最大高度限制 */
+    display: flex;
+    flex-direction: column;
+}
+
+.waterfall-item .resource-card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.waterfall-item .resource-card .card-text {
+    flex: 1;
+    overflow: visible; /* 确保内容不被隐藏 */
 }
 
 .waterfall-item .resource-card .card-text img {
@@ -581,6 +607,53 @@ a:hover {
     border-radius: 4px;
     margin: 5px 0;
     display: block;
+}
+
+/* 确保卡片底部信息正常显示 */
+.waterfall-item .resource-card .card-footer {
+    margin-top: auto;
+    padding-top: 0.75rem;
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
+.waterfall-item .resource-card .card-footer .d-flex {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+/* 确保标签正常显示 */
+.waterfall-item .resource-card .tags {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.waterfall-item .resource-card .tags .badge {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* 调试样式 - 确保所有文本都可见 */
+.waterfall-item .resource-card .card-text {
+    color: #6c757d !important;
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+}
+
+.waterfall-item .resource-card .card-footer small {
+    color: #6c757d !important;
+    font-size: 0.75rem !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* 确保卡片内容区域不被遮挡 */
+.waterfall-item .resource-card .card-body {
+    padding: 1rem !important;
+    position: relative !important;
+    z-index: 1 !important;
 }
 
 .waterfall-item .ad-card {

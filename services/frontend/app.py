@@ -322,7 +322,7 @@ def render_content_preview(content, max_length=200):
     import re
     def replace_image(match):
         url = match.group(1)
-        return f'<img src="{url}" class="img-fluid rounded" style="max-width: 100%; height: auto; max-height: 120px; object-fit: cover; margin: 5px 0;">'
+        return f'<img src="{url}" class="img-fluid rounded" style="max-width: 100%; height: auto; max-height: 120px; object-fit: contain; margin: 5px 0; display: block;">'
     
     # 先处理图片，再截断内容
     processed = re.sub(r'!\[.*?\]\((.*?)\)', replace_image, content)
