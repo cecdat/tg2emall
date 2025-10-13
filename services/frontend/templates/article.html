@@ -36,16 +36,6 @@
                 </div>
             </header>
 
-            <!-- 文章图片 -->
-            {% if article.image_url %}
-            <div class="article-image mb-4">
-                <img src="{{ article.image_url }}" 
-                     class="img-fluid rounded shadow" 
-                     alt="{{ article.title }}"
-                     style="max-height: 400px; object-fit: cover;">
-            </div>
-            {% endif %}
-
             <!-- 文章正文 -->
             <div class="article-body">
                 <div class="content-text">

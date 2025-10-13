@@ -292,8 +292,24 @@ def render_markdown(text):
     
     return html
 
+# 提取图片URL的过滤器
+def extract_image_url(markdown_image):
+    """从Markdown格式的图片中提取纯URL"""
+    if not markdown_image:
+        return None
+    
+    # 匹配 ![](url) 格式
+    import re
+    match = re.search(r'!\[.*?\]\((.*?)\)', markdown_image)
+    if match:
+        return match.group(1)
+    
+    # 如果不是Markdown格式，直接返回原值
+    return markdown_image
+
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
+app.jinja_env.filters['extract_image_url'] = extract_image_url
 
 def analyze_visit_source(user_agent, referrer, page_path):
     """分析访问来源"""
