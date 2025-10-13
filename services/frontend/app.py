@@ -255,12 +255,11 @@ if ServiceController is None:
             return {'success': False, 'message': f'状态检查失败: {str(e)}'}
 
 # 配置日志
-# 配置日志级别，减少调试信息输出
-logging.basicConfig(
-    level=logging.WARNING,  # 只显示警告和错误
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# 导入日志配置模块
+from log_config import setup_service_logging, get_logger
+
+# 设置日志配置（支持轮转）
+logger = setup_service_logging('frontend')
 
 # 设置特定模块的日志级别
 logging.getLogger('werkzeug').setLevel(logging.WARNING)  # 减少Flask请求日志

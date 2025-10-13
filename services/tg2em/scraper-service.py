@@ -17,16 +17,13 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from typing import Dict, Any
 
-# 设置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('/app/logs/scraper-service.log')
-    ]
-)
-logger = logging.getLogger(__name__)
+# 导入日志配置模块
+import sys
+sys.path.append('/app')
+from log_config import setup_service_logging
+
+# 设置日志配置（支持轮转）
+logger = setup_service_logging('scraper')
 
 app = Flask(__name__)
 
