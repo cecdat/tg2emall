@@ -254,16 +254,14 @@ if ServiceController is None:
         except Exception as e:
             return {'success': False, 'message': f'状态检查失败: {str(e)}'}
 
-# 配置日志
-try:
-    # 尝试使用完整日志配置（支持轮转）
-    from log_config import setup_service_logging, get_logger
-    logger = setup_service_logging('frontend')
-except Exception as e:
-    # 如果完整日志配置失败，使用简化配置
-    print(f"警告: 无法使用完整日志配置: {e}")
-    from simple_log_config import setup_simple_logging, get_simple_logger
-    logger = setup_simple_logging('frontend')
+# 配置日志 - 简化版本，不使用轮转
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger('frontend')
 
 # 设置特定模块的日志级别
 logging.getLogger('werkzeug').setLevel(logging.WARNING)  # 减少Flask请求日志
@@ -2440,7 +2438,7 @@ def get_telegram_verification_status():
         }
 
 @app.route('/admin/article/<int:article_id>/update', methods=['POST'])
-def admin_article_update(article_id):
+def admin_article_update_v2(article_id):
     """更新文章"""
     try:
         data = request.get_json()
@@ -2472,7 +2470,7 @@ def admin_article_update(article_id):
         return jsonify({'success': False, 'message': '更新失败'}), 500
 
 @app.route('/admin/article/<int:article_id>/delete', methods=['POST'])
-def admin_article_delete(article_id):
+def admin_article_delete_v2(article_id):
     """删除文章"""
     try:
         with get_db_connection() as conn:
