@@ -488,10 +488,25 @@ def create_waterfall_content(articles, ads):
     
     return mixed_content
 
+def format_number(num):
+    """格式化数字显示，参考YouTube的显示方式"""
+    if not num or num == 0:
+        return "0"
+    
+    if num < 1000:
+        return str(num)
+    elif num < 1000000:
+        return f"{num/1000:.1f}k".rstrip('0').rstrip('.')
+    elif num < 1000000000:
+        return f"{num/1000000:.1f}M".rstrip('0').rstrip('.')
+    else:
+        return f"{num/1000000000:.1f}B".rstrip('0').rstrip('.')
+
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
 app.jinja_env.filters['extract_image_url'] = extract_image_url
 app.jinja_env.filters['content_preview'] = render_content_preview
+app.jinja_env.filters['format_number'] = format_number
 
 def analyze_visit_source(user_agent, referrer, page_path):
     """分析访问来源"""

@@ -61,7 +61,14 @@
                             <i class="fas fa-server me-2"></i>
                             服务管理
                         </a>
-                        <!-- 数据统计页面已删除 -->
+                        <a class="nav-link" href="{{ url_for('admin_ads') }}">
+                            <i class="fas fa-ad me-2"></i>
+                            广告位管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_cache') }}">
+                            <i class="fas fa-database me-2"></i>
+                            缓存管理
+                        </a>
                         <a class="nav-link" href="{{ url_for('telegram_verification') }}">
                             <i class="fab fa-telegram me-2"></i>
                             Telegram验证
@@ -112,7 +119,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ stats.total_articles or 0 }}</h4>
+                                        <h4 class="mb-1">{{ (stats.total_articles or 0)|format_number }}</h4>
                                         <p class="mb-0">总文章数</p>
                                     </div>
                                     <div class="fs-1 opacity-50">
@@ -128,7 +135,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ stats.today_articles or 0 }}</h4>
+                                        <h4 class="mb-1">{{ (stats.today_articles or 0)|format_number }}</h4>
                                         <p class="mb-0">今日新增</p>
                                     </div>
                                     <div class="fs-1 opacity-50">
@@ -144,7 +151,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ stats.yesterday_articles or 0 }}</h4>
+                                        <h4 class="mb-1">{{ (stats.yesterday_articles or 0)|format_number }}</h4>
                                         <p class="mb-0">昨日新增</p>
                                     </div>
                                     <div class="fs-1 opacity-50">
@@ -179,7 +186,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ stats.daily_visitors or 0 }}</h4>
+                                        <h4 class="mb-1">{{ (stats.daily_visitors or 0)|format_number }}</h4>
                                         <p class="mb-0">当日访问IP</p>
                                     </div>
                                     <div class="fs-1 opacity-50">
@@ -195,7 +202,7 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <h4 class="mb-1">{{ stats.total_visitors or 0 }}</h4>
+                                        <h4 class="mb-1">{{ (stats.total_visitors or 0)|format_number }}</h4>
                                         <p class="mb-0">总访问IP</p>
                                     </div>
                                     <div class="fs-1 opacity-50">
