@@ -307,6 +307,23 @@ def extract_image_url(markdown_image):
     # 如果不是Markdown格式，直接返回原值
     return markdown_image
 
+# 获取广告位
+def get_advertisements(position):
+    """获取指定位置的广告位"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT * FROM advertisements 
+                WHERE position = %s AND is_active = 1 
+                ORDER BY sort_order ASC, created_at DESC
+            """, (position,))
+            ads = cursor.fetchall()
+            return ads if ads else []
+    except Exception as e:
+        logger.error(f"获取广告位失败: {e}")
+        return []
+
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
 app.jinja_env.filters['extract_image_url'] = extract_image_url
@@ -678,9 +695,14 @@ def index():
     """首页"""
     try:
         # 获取数据
-        articles = get_articles(20, 0)
+        articles = get_articles(16, 0)
         recent_articles = get_recent_articles(5)
         popular_searches = get_popular_searches()
+        categories = get_categories()
+        
+        # 获取广告位
+        homepage_middle_ads = get_advertisements('homepage-middle')
+        homepage_resources_ads = get_advertisements('homepage-resources')
         
         # 统计信息
         stats = {
@@ -694,6 +716,9 @@ def index():
                              articles=articles, 
                              recent_articles=recent_articles,
                              popular_searches=popular_searches,
+                             categories=categories,
+                             homepage_middle_ads=homepage_middle_ads,
+                             homepage_resources_ads=homepage_resources_ads,
                              stats=stats)
     except Exception as e:
         logger.error(f"首页路由处理失败: {e}")
@@ -747,12 +772,14 @@ def article_detail(article_id):
         return "文章不存在", 404
     
     recent_articles = get_recent_articles(5)
-    ads = get_advertisements('article_detail')
+    article_middle_ads = get_advertisements('article-middle')
+    article_sidebar_ads = get_advertisements('article-sidebar')
     
     return render_template('article.html', 
                          article=article,
                          recent_articles=recent_articles,
-                         advertisement_ads=ads)
+                         article_middle_ads=article_middle_ads,
+                         article_sidebar_ads=article_sidebar_ads)
 
 @app.route('/api/articles')
 def api_articles():
@@ -1656,6 +1683,159 @@ def admin_captcha_change():
     except Exception as e:
         logger.error(f"修改验证码失败: {e}")
         return jsonify({'success': False, 'message': f'修改失败: {str(e)}'})
+
+# ==================== 广告位管理 ====================
+
+@app.route('/admin/ads')
+@login_required
+def admin_ads():
+    """广告位管理页面"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT * FROM advertisements 
+                ORDER BY sort_order ASC, created_at DESC
+            """)
+            ads = cursor.fetchall()
+            
+        return render_template('admin_ads.html', ads=ads)
+    except Exception as e:
+        logger.error(f"获取广告位列表失败: {e}")
+        return render_template('admin_ads.html', ads=[])
+
+@app.route('/admin/ads/create', methods=['GET', 'POST'])
+@login_required
+def admin_ads_create():
+    """创建广告位"""
+    if request.method == 'GET':
+        return render_template('admin_ad_edit.html')
+    
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        position = data.get('position', '')
+        ad_code = data.get('ad_code', '').strip()
+        is_active = data.get('is_active', True)
+        sort_order = data.get('sort_order', 0)
+        
+        # 验证参数
+        if not name:
+            return jsonify({'success': False, 'message': '广告名称不能为空'})
+        
+        if not position:
+            return jsonify({'success': False, 'message': '请选择广告位置'})
+        
+        if not ad_code:
+            return jsonify({'success': False, 'message': '广告代码不能为空'})
+        
+        # 保存到数据库
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO advertisements (name, position, ad_code, is_active, sort_order)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (name, position, ad_code, is_active, sort_order))
+            conn.commit()
+            
+        logger.info(f"广告位创建成功: {name} by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '广告位创建成功'})
+        
+    except Exception as e:
+        logger.error(f"创建广告位失败: {e}")
+        return jsonify({'success': False, 'message': f'创建失败: {str(e)}'})
+
+@app.route('/admin/ads/<int:ad_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_ads_edit(ad_id):
+    """编辑广告位"""
+    if request.method == 'GET':
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor(pymysql.cursors.DictCursor)
+                cursor.execute("SELECT * FROM advertisements WHERE id = %s", (ad_id,))
+                ad = cursor.fetchone()
+                
+            if not ad:
+                return jsonify({'success': False, 'message': '广告位不存在'})
+                
+            return render_template('admin_ad_edit.html', ad=ad)
+        except Exception as e:
+            logger.error(f"获取广告位详情失败: {e}")
+            return jsonify({'success': False, 'message': '获取广告位详情失败'})
+    
+    try:
+        data = request.get_json()
+        name = data.get('name', '').strip()
+        position = data.get('position', '')
+        ad_code = data.get('ad_code', '').strip()
+        is_active = data.get('is_active', True)
+        sort_order = data.get('sort_order', 0)
+        
+        # 验证参数
+        if not name:
+            return jsonify({'success': False, 'message': '广告名称不能为空'})
+        
+        if not position:
+            return jsonify({'success': False, 'message': '请选择广告位置'})
+        
+        if not ad_code:
+            return jsonify({'success': False, 'message': '广告代码不能为空'})
+        
+        # 更新数据库
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE advertisements 
+                SET name = %s, position = %s, ad_code = %s, is_active = %s, sort_order = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (name, position, ad_code, is_active, sort_order, ad_id))
+            conn.commit()
+            
+        logger.info(f"广告位更新成功: {name} by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '广告位更新成功'})
+        
+    except Exception as e:
+        logger.error(f"更新广告位失败: {e}")
+        return jsonify({'success': False, 'message': f'更新失败: {str(e)}'})
+
+@app.route('/admin/ads/<int:ad_id>/delete', methods=['POST'])
+@login_required
+def admin_ads_delete(ad_id):
+    """删除广告位"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM advertisements WHERE id = %s", (ad_id,))
+            conn.commit()
+            
+        logger.info(f"广告位删除成功: ID {ad_id} by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '广告位删除成功'})
+        
+    except Exception as e:
+        logger.error(f"删除广告位失败: {e}")
+        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
+
+@app.route('/admin/ads/<int:ad_id>/toggle', methods=['POST'])
+@login_required
+def admin_ads_toggle(ad_id):
+    """切换广告位启用状态"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE advertisements 
+                SET is_active = NOT is_active, updated_at = NOW()
+                WHERE id = %s
+            """, (ad_id,))
+            conn.commit()
+            
+        logger.info(f"广告位状态切换成功: ID {ad_id} by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '状态切换成功'})
+        
+    except Exception as e:
+        logger.error(f"切换广告位状态失败: {e}")
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
 
 @app.errorhandler(500)
 def internal_error(error):

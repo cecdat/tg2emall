@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if ad %}编辑{% else %}新建{% endif %}广告位 - tg2emall</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        .admin-sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .admin-sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: #fff;
+            background-color: #495057;
+        }
+        .code-editor {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <!-- 侧边栏 -->
+        <div class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+            <div class="position-sticky pt-3">
+                <nav class="nav flex-column">
+                    <h6 class="text-light mb-3">管理中心</h6>
+                    <a class="nav-link" href="{{ url_for('admin_index') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        控制台
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                        <i class="fas fa-list me-2"></i>
+                        文章管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_config') }}">
+                        <i class="fas fa-cogs me-2"></i>
+                        配置管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_services') }}">
+                        <i class="fas fa-server me-2"></i>
+                        服务管理
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('admin_ads') }}">
+                        <i class="fas fa-ad me-2"></i>
+                        广告位管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('telegram_verification') }}">
+                        <i class="fab fa-telegram me-2"></i>
+                        Telegram验证
+                    </a>
+                    
+                    <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                    <a class="nav-link" href="{{ url_for('index') }}">
+                        <i class="fas fa-home me-2"></i>
+                        返回前台
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                        <i class="fas fa-sign-out-alt me-2"></i>
+                        退出登录
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="col-md-10 p-4">
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-{% if ad %}edit{% else %}plus{% endif %} text-primary me-2"></i>
+                    {% if ad %}编辑广告位{% else %}新建广告位{% endif %}
+                </h2>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <a href="{{ url_for('admin_ads') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>返回列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 编辑表单 -->
+            <form id="adForm">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <!-- 基本信息 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                    基本信息
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>
+                                        广告名称 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="name" 
+                                           name="name" 
+                                           required
+                                           value="{{ ad.name if ad else '' }}"
+                                           placeholder="请输入广告名称">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="position" class="form-label">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        广告位置 <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="position" name="position" required>
+                                        <option value="">请选择广告位置</option>
+                                        <option value="homepage-middle" {% if ad and ad.position == 'homepage-middle' %}selected{% endif %}>
+                                            首页中间（统计信息和最新资源之间）
+                                        </option>
+                                        <option value="homepage-resources" {% if ad and ad.position == 'homepage-resources' %}selected{% endif %}>
+                                            首页资源列表（每4个资源后插入）
+                                        </option>
+                                        <option value="article-middle" {% if ad and ad.position == 'article-middle' %}selected{% endif %}>
+                                            文章中间（文章正文和底部之间）
+                                        </option>
+                                        <option value="article-sidebar" {% if ad and ad.position == 'article-sidebar' %}selected{% endif %}>
+                                            文章侧边栏（目录导航和最新资源之间）
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="sort_order" class="form-label">
+                                                <i class="fas fa-sort me-1"></i>
+                                                排序
+                                            </label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="sort_order" 
+                                                   name="sort_order" 
+                                                   value="{{ ad.sort_order if ad else 0 }}"
+                                                   placeholder="0">
+                                            <div class="form-text">数字越小排序越靠前</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-toggle-on me-1"></i>
+                                                状态
+                                            </label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" 
+                                                       type="checkbox" 
+                                                       id="is_active" 
+                                                       name="is_active"
+                                                       {% if not ad or ad.is_active %}checked{% endif %}>
+                                                <label class="form-check-label" for="is_active">
+                                                    启用此广告位
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 广告代码 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-code text-primary me-2"></i>
+                                    广告代码
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="ad_code" class="form-label">
+                                        <i class="fas fa-code me-1"></i>
+                                        广告代码 <span class="text-danger">*</span>
+                                    </label>
+                                    <textarea class="form-control code-editor" 
+                                              id="ad_code" 
+                                              name="ad_code" 
+                                              rows="10" 
+                                              required
+                                              placeholder="请输入Google AdSense或其他广告代码">{{ ad.ad_code if ad else '' }}</textarea>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        支持Google AdSense、百度联盟等广告代码
+                                    </div>
+                                </div>
+                                
+                                <!-- 代码预览 -->
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-eye me-1"></i>
+                                        代码预览
+                                    </label>
+                                    <div class="border rounded p-3 bg-light" id="codePreview" style="min-height: 100px;">
+                                        <div class="text-muted text-center">
+                                            <i class="fas fa-code fa-2x mb-2"></i>
+                                            <p>输入广告代码后显示预览</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <!-- 帮助信息 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-question-circle text-info me-2"></i>
+                                    帮助信息
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="text-primary">广告位置说明：</h6>
+                                <ul class="list-unstyled small">
+                                    <li class="mb-2">
+                                        <strong>首页中间：</strong><br>
+                                        在统计信息和最新资源之间显示
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>首页资源列表：</strong><br>
+                                        每4个资源卡片后插入一个广告位
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>文章中间：</strong><br>
+                                        在文章正文和底部信息之间显示
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong>文章侧边栏：</strong><br>
+                                        在目录导航和最新资源之间显示
+                                    </li>
+                                </ul>
+                                
+                                <h6 class="text-primary mt-3">Google AdSense 示例：</h6>
+                                <pre class="small bg-light p-2 rounded"><code>&lt;ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-xxxxxxxxxx"
+     data-ad-slot="xxxxxxxxxx"
+     data-ad-format="auto"
+     data-full-width-responsive="true"&gt;&lt;/ins&gt;
+&lt;script&gt;
+    (adsbygoogle = window.adsbygoogle || []).push({});
+&lt;/script&gt;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('admin_ads') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>取消
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        {% if ad %}更新广告位{% else %}创建广告位{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// 代码预览功能
+function updatePreview() {
+    const adCode = document.getElementById('ad_code').value;
+    const preview = document.getElementById('codePreview');
+    
+    if (adCode.trim()) {
+        preview.innerHTML = adCode;
+    } else {
+        preview.innerHTML = `
+            <div class="text-muted text-center">
+                <i class="fas fa-code fa-2x mb-2"></i>
+                <p>输入广告代码后显示预览</p>
+            </div>
+        `;
+    }
+}
+
+// 监听代码输入
+document.getElementById('ad_code').addEventListener('input', updatePreview);
+
+// 表单提交
+document.getElementById('adForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        position: document.getElementById('position').value,
+        ad_code: document.getElementById('ad_code').value,
+        is_active: document.getElementById('is_active').checked,
+        sort_order: parseInt(document.getElementById('sort_order').value) || 0
+    };
+    
+    // 验证必填字段
+    if (!formData.name.trim()) {
+        alert('请输入广告名称');
+        return;
+    }
+    
+    if (!formData.position) {
+        alert('请选择广告位置');
+        return;
+    }
+    
+    if (!formData.ad_code.trim()) {
+        alert('请输入广告代码');
+        return;
+    }
+    
+    // 提交数据
+    const url = {% if ad %}'/admin/ads/{{ ad.id }}/edit'{% else %}'/admin/ads/create'{% endif %};
+    const method = 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: '成功',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: '确定'
+            }).then(() => {
+                window.location.href = "{{ url_for('admin_ads') }}";
+            });
+        } else {
+            Swal.fire({
+                title: '失败',
+                text: data.message,
+                icon: 'error',
+                confirmButtonText: '确定'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: '错误',
+            text: '操作失败，请重试',
+            icon: 'error',
+            confirmButtonText: '确定'
+        });
+    });
+});
+
+// 页面加载时更新预览
+document.addEventListener('DOMContentLoaded', function() {
+    updatePreview();
+});
+</script>
+</body>
+</html>

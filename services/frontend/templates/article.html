@@ -43,6 +43,19 @@
                 </div>
             </div>
 
+            <!-- 广告位 -->
+            {% if article_middle_ads %}
+            {% for ad in article_middle_ads %}
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <div class="ad-slot" data-position="article-middle">
+                        {{ ad.ad_code|safe }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
             <!-- 文章底部 -->
             <footer class="article-footer mt-5">
                 <div class="card">
@@ -119,7 +132,18 @@
             </div>
         </div>
 
-        <!-- 分类功能已移除 -->
+        <!-- 广告位 -->
+        {% if article_sidebar_ads %}
+        {% for ad in article_sidebar_ads %}
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <div class="ad-slot" data-position="article-sidebar">
+                    {{ ad.ad_code|safe }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
 
         <!-- 最新资源 -->
         <div class="card">
