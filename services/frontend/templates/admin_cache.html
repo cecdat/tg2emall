@@ -29,12 +29,22 @@
 <div class="container-fluid">
     <div class="row">
         <!-- 侧边栏 -->
-        <div class="col-md-2 admin-sidebar p-0">
-            <div class="p-3">
-                <h5 class="text-white mb-4">
-                    <i class="fas fa-cog"></i> 系统管理
-                </h5>
+        <div class="col-md-3 col-lg-2 d-md-block admin-sidebar">
+            <div class="position-sticky pt-3">
                 <nav class="nav flex-column">
+                    <h6 class="text-light mb-3">管理中心</h6>
+                    <a class="nav-link" href="{{ url_for('admin_index') }}">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        控制台
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                        <i class="fas fa-list me-2"></i>
+                        文章管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_config') }}">
+                        <i class="fas fa-cogs me-2"></i>
+                        配置管理
+                    </a>
                     <a class="nav-link" href="{{ url_for('admin_services') }}">
                         <i class="fas fa-server me-2"></i>
                         服务管理
@@ -50,6 +60,16 @@
                     <a class="nav-link" href="{{ url_for('telegram_verification') }}">
                         <i class="fab fa-telegram me-2"></i>
                         Telegram验证
+                    </a>
+                    
+                    <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                    <a class="nav-link" href="{{ url_for('index') }}">
+                        <i class="fas fa-home me-2"></i>
+                        返回前台
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                        <i class="fas fa-sign-out-alt me-2"></i>
+                        退出登录
                     </a>
                 </nav>
             </div>

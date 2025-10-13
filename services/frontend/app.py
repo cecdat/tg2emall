@@ -318,19 +318,25 @@ def render_content_preview(content, max_length=200):
     if not content:
         return ""
     
-    # 截断内容
-    truncated = content[:max_length]
-    if len(content) > max_length:
-        truncated += "..."
-    
     # 使用正则表达式匹配并替换图片语法
     import re
     def replace_image(match):
         url = match.group(1)
-        return f'<img src="{url}" class="img-fluid rounded" style="max-width: 100%; height: auto; margin: 5px 0;">'
+        return f'<img src="{url}" class="img-fluid rounded" style="max-width: 100%; height: auto; max-height: 120px; object-fit: cover; margin: 5px 0;">'
     
-    # 替换 ![](url) 格式的图片
-    processed = re.sub(r'!\[.*?\]\((.*?)\)', replace_image, truncated)
+    # 先处理图片，再截断内容
+    processed = re.sub(r'!\[.*?\]\((.*?)\)', replace_image, content)
+    
+    # 如果内容太长，截断并添加省略号
+    if len(processed) > max_length:
+        # 找到最后一个完整的标签
+        truncated = processed[:max_length]
+        # 确保不截断HTML标签
+        last_tag = truncated.rfind('>')
+        if last_tag > max_length - 50:  # 如果最后一个标签位置合理
+            truncated = truncated[:last_tag + 1]
+        truncated += "..."
+        return truncated
     
     return processed
 
