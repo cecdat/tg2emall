@@ -268,6 +268,16 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)   # 减少HTTP请求日�
 
 app = Flask(__name__)
 
+# 上下文处理器，确保所有模板都能访问SEO配置
+@app.context_processor
+def inject_seo_config():
+    """注入SEO配置到所有模板"""
+    try:
+        seo_config = get_seo_config()
+        return dict(seo_config=seo_config)
+    except:
+        return dict(seo_config={})
+
 # 配置Markdown渲染
 def render_markdown(text):
     """渲染Markdown文本为HTML"""
@@ -906,6 +916,9 @@ def index():
         
         # 首页数据统计（减少日志输出）
         
+        # 获取SEO配置
+        seo_config = get_seo_config()
+        
         return render_template('index.html', 
                              articles=articles, 
                              recent_articles=recent_articles,
@@ -914,10 +927,14 @@ def index():
                              categories=categories,
                              homepage_middle_ads=homepage_middle_ads,
                              mixed_content=mixed_content,
-                             stats=stats)
+                             stats=stats,
+                             seo_config=seo_config)
     except Exception as e:
         logger.error(f"首页路由处理失败: {e}")
         # 即使出现异常，也返回空数据的页面，确保网站可以访问
+        # 获取SEO配置
+        seo_config = get_seo_config()
+        
         return render_template('index.html', 
                              articles=[], 
                              recent_articles=[],
@@ -926,7 +943,8 @@ def index():
                              categories=[],
                              homepage_middle_ads=[],
                              mixed_content=[],
-                             stats={'total_articles': 0, 'data_available': False})
+                             stats={'total_articles': 0, 'data_available': False},
+                             seo_config=seo_config)
 
 @app.route('/search')
 def search():
@@ -2267,6 +2285,57 @@ def admin_cache_stats():
 def internal_error(error):
     """500 错误处理"""
     return render_template('500.html'), 500
+
+def get_seo_config():
+    """获取SEO配置"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT config_key, config_value 
+                FROM system_config 
+                WHERE category = 'seo'
+            """)
+            configs = cursor.fetchall()
+            
+            # 转换为字典格式
+            seo_config = {}
+            for config in configs:
+                seo_config[config['config_key']] = config['config_value']
+            
+            return seo_config
+    except Exception as e:
+        logger.error(f"获取SEO配置失败: {e}")
+        return {}
+
+def generate_page_title(page_title, seo_config=None):
+    """生成页面标题"""
+    if not seo_config:
+        seo_config = get_seo_config()
+    
+    site_name = seo_config.get('site_name', 'tg2emall')
+    title_template = seo_config.get('seo_title_template', '{title} - {site_name}')
+    
+    return title_template.format(title=page_title, site_name=site_name)
+
+def generate_meta_description(content, seo_config=None):
+    """生成meta描述"""
+    if not seo_config:
+        seo_config = get_seo_config()
+    
+    max_length = int(seo_config.get('seo_description_length', 160))
+    
+    # 简单的描述生成逻辑
+    if len(content) <= max_length:
+        return content
+    
+    # 截断到合适长度
+    truncated = content[:max_length-3]
+    last_space = truncated.rfind(' ')
+    if last_space > max_length * 0.8:  # 如果最后一个空格位置合理
+        return truncated[:last_space] + '...'
+    else:
+        return truncated + '...'
 
 if __name__ == '__main__':
     # 从环境变量获取端口，默认 8000（避免 ERR_UNSAFE_PORT）
