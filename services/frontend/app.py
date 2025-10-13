@@ -1514,18 +1514,19 @@ def admin_telegram_init(service_name):
         if service_name not in ['scraper', 'scraper-management', 'scraper-service']:
             return jsonify({'success': False, 'message': '此操作仅适用于采集服务'}), 400
         
-        # 调用采集管理服务的Telegram初始化API
+        # 调用采集管理服务的API
         import requests
-        init_url = 'http://tg2em-scrape:2003/api/telegram/init'
+        # 先尝试启动采集服务，这会自动初始化Telegram客户端
+        start_url = 'http://tg2em-scrape:2003/api/management/start'
         
         try:
-            response = requests.post(init_url, timeout=60)
+            response = requests.post(start_url, timeout=60)
             result = response.json()
             
             if result.get('success'):
                 return jsonify({
                     'success': True,
-                    'message': result.get('message', 'Telegram客户端初始化成功')
+                    'message': '采集服务已启动，Telegram客户端正在初始化中...'
                 })
             else:
                 return jsonify({
@@ -1542,6 +1543,12 @@ def admin_telegram_init(service_name):
             return jsonify({
                 'success': False,
                 'message': 'Telegram客户端初始化超时，请检查网络连接'
+            }), 500
+        except Exception as e:
+            # 处理JSON解析错误
+            return jsonify({
+                'success': False,
+                'message': f'初始化失败: {str(e)}'
             }), 500
             
     except Exception as e:

@@ -120,7 +120,11 @@
                 </ul>
                 
                 <ul class="navbar-nav">
-                    <!-- 统计菜单已删除 -->
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm" id="themeToggle" onclick="toggleTheme()">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -144,6 +148,44 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- 自定义 JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- 主题切换功能 -->
+    <script>
+        // 主题切换功能
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (body.classList.contains('dark-theme')) {
+                // 切换到浅色模式
+                body.classList.remove('dark-theme');
+                themeIcon.className = 'fas fa-moon';
+                themeToggle.className = 'btn btn-outline-light btn-sm';
+                localStorage.setItem('theme', 'light');
+            } else {
+                // 切换到深色模式
+                body.classList.add('dark-theme');
+                themeIcon.className = 'fas fa-sun';
+                themeToggle.className = 'btn btn-outline-warning btn-sm';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // 页面加载时应用保存的主题
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (savedTheme === 'dark') {
+                body.classList.add('dark-theme');
+                themeIcon.className = 'fas fa-sun';
+                themeToggle.className = 'btn btn-outline-warning btn-sm';
+            }
+        });
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>
