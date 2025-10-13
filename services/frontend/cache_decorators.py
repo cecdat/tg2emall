@@ -56,17 +56,17 @@ def cached(key_template: str, ttl: Union[int, None] = None, key_func: Optional[C
             # 尝试从缓存获取
             cached_result = cache.get(cache_key)
             if cached_result is not None:
-                logger.debug(f"缓存命中: {cache_key}")
+                # 缓存命中（减少调试日志）
                 return cached_result
             
             # 缓存未命中，执行原函数
-            logger.debug(f"缓存未命中: {cache_key}")
+            # 缓存未命中（减少调试日志）
             result = func(*args, **kwargs)
             
             # 将结果存入缓存
             if result is not None:
                 cache.set(cache_key, result, ttl)
-                logger.debug(f"结果已缓存: {cache_key}")
+                # 结果已缓存（减少调试日志）
             
             return result
         
@@ -96,7 +96,7 @@ def cache_invalidate(pattern: str):
             cache = get_cache_manager()
             if cache.is_available():
                 deleted_count = cache.delete_pattern(pattern)
-                logger.info(f"缓存失效: 删除了 {deleted_count} 个匹配 '{pattern}' 的缓存")
+                # 缓存失效（减少日志输出）
             
             return result
         

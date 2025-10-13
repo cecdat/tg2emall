@@ -38,7 +38,7 @@ class CacheManager:
             )
             # 测试连接
             self.redis_client.ping()
-            logger.info("Redis连接成功")
+            # Redis连接成功（减少日志输出）
         except Exception as e:
             logger.error(f"Redis连接失败: {e}")
             self.redis_client = None

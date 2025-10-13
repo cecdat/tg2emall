@@ -255,11 +255,16 @@ if ServiceController is None:
             return {'success': False, 'message': f'状态检查失败: {str(e)}'}
 
 # 配置日志
+# 配置日志级别，减少调试信息输出
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.WARNING,  # 只显示警告和错误
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# 设置特定模块的日志级别
+logging.getLogger('werkzeug').setLevel(logging.WARNING)  # 减少Flask请求日志
+logging.getLogger('urllib3').setLevel(logging.WARNING)   # 减少HTTP请求日志
 
 app = Flask(__name__)
 
@@ -404,7 +409,7 @@ def track_article_click(article_id, request):
             """, (article_id,))
             
             conn.commit()
-            logger.info(f"文章点击记录成功: article_id={article_id}, ip={visitor_ip}")
+            # 文章点击记录成功（减少日志输出）
             
             # 手动清除相关缓存
             cache = get_cache_manager()
@@ -647,11 +652,11 @@ def get_articles(limit=20, offset=0, category=None):
                 cursor.execute(sql, (limit, offset))
             
             articles = cursor.fetchall()
-            logger.info(f"成功获取 {len(articles)} 篇文章")
+            # 成功获取文章（减少日志输出）
             return articles if articles else []
     except Exception as e:
         logger.error(f"获取文章失败: {e}")
-        logger.info("数据库连接失败或无数据，返回空列表")
+        # 数据库连接失败或无数据，返回空列表
         return []
 
 @cache_article_detail(ttl=CacheTTL.LONG)
@@ -692,11 +697,11 @@ def get_categories():
             """
             cursor.execute(sql)
             categories = cursor.fetchall()
-            logger.info(f"成功获取 {len(categories)} 个网盘分类")
+            # 成功获取网盘分类（减少日志输出）
             return categories if categories else []
     except Exception as e:
         logger.error(f"获取网盘分类失败: {e}")
-        logger.info("数据库连接失败或无分类数据，返回空列表")
+        # 数据库连接失败或无分类数据，返回空列表
         return []
 
 def get_visit_sources():
@@ -731,7 +736,7 @@ def get_visit_sources():
             """
             cursor.execute(sql)
             sources = cursor.fetchall()
-            logger.info(f"成功获取 {len(sources)} 个访问来源")
+            # 成功获取访问来源（减少日志输出）
             return sources if sources else []
     except Exception as e:
         logger.error(f"获取访问来源统计失败: {e}")
@@ -751,7 +756,7 @@ def get_popular_searches():
             """
             cursor.execute(sql)
             searches = cursor.fetchall()
-            logger.info(f"成功获取 {len(searches)} 个热门搜索")
+            # 成功获取热门搜索（减少日志输出）
             return searches if searches else []
     except Exception as e:
         logger.error(f"获取热门搜索失败: {e}")
@@ -771,11 +776,11 @@ def get_recent_articles(limit=5):
             """
             cursor.execute(sql, (limit,))
             articles = cursor.fetchall()
-            logger.info(f"成功获取 {len(articles)} 篇最新文章")
+            # 成功获取最新文章（减少日志输出）
             return articles if articles else []
     except Exception as e:
         logger.error(f"获取最新文章失败: {e}")
-        logger.info("数据库连接失败或无最新文章数据，返回空列表")
+        # 数据库连接失败或无最新文章数据，返回空列表
         return []
 
 def get_published_articles(limit=10, offset=0):
@@ -899,7 +904,7 @@ def index():
             'data_available': len(articles) > 0
         }
         
-        logger.info(f"首页数据统计: 文章={stats['total_articles']}, 有数据={stats['data_available']}")
+        # 首页数据统计（减少日志输出）
         
         return render_template('index.html', 
                              articles=articles, 
@@ -995,7 +1000,7 @@ def api_articles():
     current_time = datetime.now()
     
     # 记录API访问（用于监控）
-    logger.debug(f"API访问: {client_ip} -> /api/articles")
+    # API访问（减少调试日志）
     
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 10, type=int)
@@ -1021,7 +1026,7 @@ def api_articles():
 def api_article_detail(article_id):
     """API: 获取文章详情"""
     # 记录API访问
-    logger.debug(f"API访问: {request.remote_addr} -> /api/article/{article_id}")
+    # API访问（减少调试日志）
     
     # 验证文章ID
     if article_id < 1:
@@ -1056,7 +1061,7 @@ def admin_login():
             session['username'] = username
             session['login_time'] = datetime.now()
             session['login_ip'] = request.remote_addr
-            logger.info(f"管理员登录成功: {username} from {request.remote_addr}")
+            # 管理员登录成功（减少日志输出）
             return redirect(url_for('admin_index'))
         else:
             logger.warning(f"管理员登录失败: 用户名或密码错误 - {username}")
@@ -1070,7 +1075,7 @@ def admin_logout():
     username = session.get('username', 'unknown')
     login_ip = session.get('login_ip', 'unknown')
     session.clear()  # 完全清除会话
-    logger.info(f"管理员已登出: {username} from {login_ip}")
+    # 管理员已登出（减少日志输出）
     return redirect(url_for('admin_login'))
 
 @app.route('/admin')
@@ -1230,7 +1235,7 @@ def admin_article_update(article_id):
             """, (title, content, article_id))
             conn.commit()
             
-            logger.info(f"文章更新成功: ID={article_id}")
+            # 文章更新成功（减少日志输出）
             return jsonify({'success': True, 'message': '更新成功'})
     except Exception as e:
         logger.error(f"更新文章失败: {e}")
@@ -1249,7 +1254,7 @@ def admin_article_delete(article_id):
                 return jsonify({'success': False, 'message': '文章不存在'}), 404
             
             conn.commit()
-            logger.info(f"文章删除成功: ID={article_id}")
+            # 文章删除成功（减少日志输出）
             return jsonify({'success': True, 'message': '删除成功'})
     except Exception as e:
         logger.error(f"删除文章失败: {e}")
@@ -1307,7 +1312,7 @@ def admin_config_update():
                 """, (str(value), key))
             
             conn.commit()
-            logger.info(f"配置更新成功: {list(config_data.keys())}")
+            # 配置更新成功（减少日志输出）
             
             # 通知采集服务清除配置缓存
             try:
@@ -1315,7 +1320,7 @@ def admin_config_update():
                 # 尝试调用采集服务的配置刷新接口
                 response = requests.post('http://tg2em-scrape:2003/api/config/refresh', timeout=5)
                 if response.status_code == 200:
-                    logger.info("已通知采集服务刷新配置缓存")
+                    # 已通知采集服务刷新配置缓存（减少日志输出）
                 else:
                     logger.warning(f"采集服务配置刷新失败: {response.status_code}")
             except Exception as e:
@@ -1377,7 +1382,7 @@ def admin_service_start(service_name):
                 """, (result['message'], result.get('pid'), db_service_name))
                 conn.commit()
             
-            logger.info(f"服务启动成功: {service_name}")
+            # 服务启动成功（减少日志输出）
             return jsonify({'success': True, 'message': result['message']})
         else:
             return jsonify({'success': False, 'message': result['message']}), 500
@@ -1407,7 +1412,7 @@ def admin_service_stop(service_name):
                 """, (result['message'], db_service_name))
                 conn.commit()
             
-            logger.info(f"服务停止成功: {service_name}")
+            # 服务停止成功（减少日志输出）
             return jsonify({'success': True, 'message': result['message']})
         else:
             return jsonify({'success': False, 'message': result['message']}), 500
@@ -1425,7 +1430,7 @@ def admin_service_restart(service_name):
         result = controller.restart_service(service_name)
         
         if result['success']:
-            logger.info(f"服务重启成功: {service_name}")
+            # 服务重启成功（减少日志输出）
             return jsonify({'success': True, 'message': result['message']})
         else:
             return jsonify({'success': False, 'message': result['message']}), 500
@@ -1452,7 +1457,7 @@ def admin_scrape_task_start(service_name):
             result = response.json()
             
             if result.get('success'):
-                logger.info(f"采集任务启动成功")
+                # 采集任务启动成功（减少日志输出）
                 return jsonify({
                     'success': True,
                     'message': result.get('message', '采集任务已启动，请查看日志了解进度')
@@ -1673,7 +1678,7 @@ def telegram_verification_submit():
             
             conn.commit()
             
-            logger.info(f"Telegram验证码已提交: {verification_code}")
+            # Telegram验证码已提交（减少日志输出）
             return jsonify({
                 'success': True, 
                 'message': '验证码已提交，系统将自动验证',
@@ -1731,7 +1736,7 @@ def telegram_verification_reset():
             
             conn.commit()
             
-            logger.info("Telegram验证状态已重置")
+            # Telegram验证状态已重置（减少日志输出）
             return jsonify({'success': True, 'message': '验证状态已重置'})
             
     except Exception as e:
@@ -1859,7 +1864,7 @@ def api_waterfall_load():
 def api_stats():
     """API: 获取统计信息"""
     # 记录API访问
-    logger.debug(f"API访问: {request.remote_addr} -> /api/stats")
+    # API访问（减少调试日志）
     
     try:
         with get_db_connection() as conn:
@@ -1955,7 +1960,7 @@ def admin_password_change():
             
             conn.commit()
         
-        logger.info(f"管理员密码修改成功: {session.get('username', 'unknown')}")
+        # 管理员密码修改成功（减少日志输出）
         return jsonify({'success': True, 'message': '密码修改成功'})
         
     except Exception as e:
@@ -2000,7 +2005,7 @@ def admin_captcha_change():
             
             conn.commit()
         
-        logger.info(f"管理员验证码修改成功: {session.get('username', 'unknown')} -> {new_captcha}")
+        # 管理员验证码修改成功（减少日志输出）
         return jsonify({'success': True, 'message': '验证码修改成功！请重启frontend服务使新验证码生效'})
         
     except Exception as e:
@@ -2061,7 +2066,7 @@ def admin_ads_create():
             """, (name, position, ad_code, is_active, sort_order))
             conn.commit()
             
-        logger.info(f"广告位创建成功: {name} by {session.get('username', 'unknown')}")
+        # 广告位创建成功（减少日志输出）
         return jsonify({'success': True, 'message': '广告位创建成功'})
         
     except Exception as e:
