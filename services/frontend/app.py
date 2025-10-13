@@ -1324,11 +1324,22 @@ def admin_config():
                     'telegram_verification_required',
                     'telegram_verification_submitted',
                     'seo_description_length',
+                    'seo_keywords_length',
                     'seo_enable_og_tags',
                     'seo_enable_twitter_cards',
                     'google_analytics',
+                    'google_search_console',
                     'baidu_tongji',
-                    'enable_structured_data'
+                    'cnzz_tongji',
+                    'enable_structured_data',
+                    'structured_data_organization',
+                    'structured_data_website',
+                    'social_facebook',
+                    'social_twitter',
+                    'social_telegram',
+                    'social_github',
+                    'site_favicon',
+                    'site_logo_alt'
                 )
                 ORDER BY category, config_key
             """)

@@ -125,7 +125,7 @@
                                                 启用
                                         </label>
                                     </div>
-                                        {% elif config.config_type == 'text' %}
+                                        {% elif config.config_type == 'text' or config.config_type == 'string' %}
                                         {% if config.config_key == 'scraper_channels' %}
                                         <textarea class="form-control" 
                                                   id="{{ config.config_key }}" 
