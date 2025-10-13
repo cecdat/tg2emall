@@ -451,6 +451,43 @@ def create_mixed_content(articles, ads):
     
     return mixed_content
 
+def create_waterfall_content(articles, ads):
+    """创建瀑布流内容，随机插入广告"""
+    import random
+    
+    # 如果没有广告，直接返回所有资源
+    if not ads:
+        return [{'type': 'article', 'content': article} for article in articles]
+    
+    # 创建混合内容列表
+    mixed_content = []
+    
+    # 将资源转换为字典格式
+    for article in articles:
+        mixed_content.append({'type': 'article', 'content': article})
+    
+    # 瀑布流模式：每3-5个文章插入一个广告
+    if len(mixed_content) >= 3:
+        # 计算广告插入位置（每3-5个文章一个广告）
+        ad_positions = []
+        current_pos = 3
+        while current_pos < len(mixed_content):
+            # 随机间隔3-5个位置
+            interval = random.randint(3, 5)
+            ad_positions.append(current_pos)
+            current_pos += interval
+        
+        # 随机选择广告
+        selected_ads = random.sample(ads, min(len(ad_positions), len(ads)))
+        
+        # 从后往前插入广告，避免位置偏移
+        for i, pos in enumerate(reversed(ad_positions)):
+            if i < len(selected_ads):
+                ad = selected_ads[i]
+                mixed_content.insert(pos, {'type': 'ad', 'content': ad})
+    
+    return mixed_content
+
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
 app.jinja_env.filters['extract_image_url'] = extract_image_url
@@ -827,8 +864,8 @@ def get_advertisements(position):
 def index():
     """首页"""
     try:
-        # 获取数据
-        articles = get_articles(20, 0)  # 获取20个资源
+        # 获取数据（瀑布流初始加载）
+        articles = get_articles(12, 0)  # 减少初始加载数量
         recent_articles = get_recent_articles(5)
         popular_articles = get_popular_articles(5)  # 获取热门文章
         popular_searches = get_popular_searches()
@@ -838,8 +875,8 @@ def index():
         homepage_middle_ads = get_advertisements('homepage-middle')
         homepage_resources_ads = get_advertisements('homepage-resources')
         
-        # 处理资源列表和广告位混合显示
-        mixed_content = create_mixed_content(articles, homepage_resources_ads)
+        # 处理资源列表和广告位混合显示（瀑布流模式）
+        mixed_content = create_waterfall_content(articles, homepage_resources_ads)
         
         # 统计信息
         stats = {
@@ -1737,6 +1774,56 @@ def author_articles(author_id, page=1):
     except Exception as e:
         logger.error(f"作者页面错误: {e}")
         return "页面加载失败", 500
+
+@app.route('/api/waterfall/load')
+def api_waterfall_load():
+    """瀑布流加载更多内容API"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = 12  # 每次加载12个
+        offset = (page - 1) * limit
+        
+        # 获取文章
+        articles = get_articles(limit=limit, offset=offset)
+        
+        # 获取广告位
+        homepage_resources_ads = get_advertisements('homepage-resources')
+        
+        # 创建瀑布流内容
+        mixed_content = create_waterfall_content(articles, homepage_resources_ads)
+        
+        # 处理数据格式，确保前端能正确渲染
+        processed_data = []
+        for item in mixed_content:
+            if item['type'] == 'article':
+                # 处理文章数据
+                article = item['content']
+                processed_item = {
+                    'type': 'article',
+                    'content': {
+                        'id': article.id,
+                        'title': article.title,
+                        'content': article.content,
+                        'content_preview': render_content_preview(article.content),
+                        'created_at': article.created_at.isoformat() if article.created_at else '',
+                        'tags': article.tags
+                    }
+                }
+            else:
+                # 广告数据
+                processed_item = item
+            processed_data.append(processed_item)
+        
+        return jsonify({
+            'success': True,
+            'data': processed_data,
+            'has_more': len(articles) == limit,  # 如果返回的文章数等于limit，说明可能还有更多
+            'page': page
+        })
+        
+    except Exception as e:
+        logger.error(f"瀑布流加载失败: {e}")
+        return jsonify({'success': False, 'message': '加载失败'}), 500
 
 @app.route('/api/stats')
 def api_stats():

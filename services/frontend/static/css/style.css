@@ -551,3 +551,98 @@ a:hover {
     line-height: 1.4;
     max-height: 4.2em;
 }
+
+/* 瀑布流布局 */
+.waterfall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.waterfall-item {
+    break-inside: avoid;
+    margin-bottom: 20px;
+}
+
+/* 瀑布流卡片样式 */
+.waterfall-item .resource-card {
+    height: auto;
+    min-height: 280px;
+    max-height: 400px;
+}
+
+.waterfall-item .ad-card {
+    height: 200px;
+    min-height: 200px;
+}
+
+/* 悬浮搜索框 */
+.floating-search {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-100%);
+    transition: transform 0.3s ease-in-out;
+}
+
+.floating-search.show {
+    transform: translateY(0);
+}
+
+.floating-search .search-container {
+    padding: 15px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.floating-search .search-form {
+    margin: 0;
+}
+
+.floating-search .search-form .input-group {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 搜索框原始位置检测 */
+.search-original-position {
+    position: relative;
+}
+
+/* 响应式瀑布流 */
+@media (max-width: 768px) {
+    .waterfall-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .waterfall-item .resource-card {
+        min-height: 250px;
+        max-height: 350px;
+    }
+    
+    .floating-search .search-container {
+        padding: 10px 15px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .waterfall-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+@media (min-width: 1025px) {
+    .waterfall-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}

@@ -3,11 +3,30 @@
 {% block title %}tg2emall - Telegram 资源分享平台{% endblock %}
 
 {% block content %}
+<!-- 悬浮搜索框 -->
+<div class="floating-search" id="floating-search">
+    <div class="search-container">
+        <form class="search-form" action="{{ url_for('search') }}" method="GET">
+            <div class="input-group input-group-lg">
+                <input type="text" 
+                       class="form-control search-input" 
+                       name="q" 
+                       placeholder="搜索资源..." 
+                       value="{{ request.args.get('q', '') }}"
+                       autocomplete="off">
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="row">
     <!-- 左侧内容区域 -->
     <div class="col-lg-8">
         <!-- Google 风格搜索框 -->
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 search-original-position" id="search-original">
             <div class="search-container">
                 <h1 class="display-4 mb-4">
                     <i class="fas fa-share-alt text-primary"></i> tg2emall
@@ -45,19 +64,19 @@
             </div>
         </div>
 
-        <!-- 最近资源 -->
-        <div class="recent-resources">
+        <!-- 瀑布流资源区域 -->
+        <div class="waterfall-container">
             <h3 class="mb-4">
-                <i class="fas fa-clock text-primary"></i> 最新采集资源
-                <small class="text-muted">(最新20条)</small>
+                <i class="fas fa-th-large text-primary"></i> 最新采集资源
+                <small class="text-muted">(瀑布流加载)</small>
             </h3>
             
             {% if mixed_content %}
-            <div class="row">
+            <div class="waterfall-grid" id="waterfall-grid">
                 {% for item in mixed_content %}
                     {% if item.type == 'article' %}
                     <!-- 资源卡片 -->
-                    <div class="col-md-6 mb-4">
+                    <div class="waterfall-item">
                         <div class="card resource-card shadow-sm">
                             <div class="card-body">
                                 <h5 class="card-title">
@@ -87,10 +106,10 @@
                     </div>
                     {% elif item.type == 'ad' %}
                     <!-- 广告位 -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100 shadow-sm">
+                    <div class="waterfall-item">
+                        <div class="card ad-card shadow-sm">
                             <div class="card-body text-center d-flex align-items-center justify-content-center">
-                                <div class="ad-slot" data-position="homepage-resources-random">
+                                <div class="ad-slot" data-position="homepage-resources-waterfall">
                                     {{ item.content.ad_code|safe }}
                                 </div>
                             </div>
@@ -98,6 +117,18 @@
                     </div>
                     {% endif %}
                 {% endfor %}
+            </div>
+            
+            <!-- 加载更多按钮 -->
+            <div class="text-center mt-4" id="load-more-container">
+                <button class="btn btn-outline-primary" id="load-more-btn">
+                    <i class="fas fa-plus me-2"></i>加载更多
+                </button>
+                <div class="loading-spinner d-none mt-3" id="loading-spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                </div>
             </div>
             {% else %}
             <div class="text-center py-5">
@@ -251,8 +282,9 @@
 
 {% block extra_js %}
 <script>
-// 加载统计信息
+// 瀑布流和悬浮搜索框功能
 document.addEventListener('DOMContentLoaded', function() {
+    // 加载统计信息
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
@@ -263,6 +295,133 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => console.error('Error loading stats:', error));
+
+    // 瀑布流功能
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+    const waterfallGrid = document.getElementById('waterfall-grid');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    const loadingSpinner = document.getElementById('loading-spinner');
+
+    // 加载更多内容
+    function loadMoreContent() {
+        if (isLoading || !hasMore) return;
+        
+        isLoading = true;
+        loadMoreBtn.style.display = 'none';
+        loadingSpinner.classList.remove('d-none');
+        
+        fetch(`/api/waterfall/load?page=${currentPage + 1}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentPage = data.page;
+                    hasMore = data.has_more;
+                    
+                    // 添加新内容到瀑布流
+                    data.data.forEach(item => {
+                        const itemElement = createWaterfallItem(item);
+                        waterfallGrid.appendChild(itemElement);
+                    });
+                    
+                    if (hasMore) {
+                        loadMoreBtn.style.display = 'inline-block';
+                    } else {
+                        document.getElementById('load-more-container').innerHTML = 
+                            '<p class="text-muted">已加载全部内容</p>';
+                    }
+                } else {
+                    console.error('加载失败:', data.message);
+                    loadMoreBtn.style.display = 'inline-block';
+                }
+            })
+            .catch(error => {
+                console.error('加载错误:', error);
+                loadMoreBtn.style.display = 'inline-block';
+            })
+            .finally(() => {
+                isLoading = false;
+                loadingSpinner.classList.add('d-none');
+            });
+    }
+
+    // 创建瀑布流项目
+    function createWaterfallItem(item) {
+        const div = document.createElement('div');
+        div.className = 'waterfall-item';
+        
+        if (item.type === 'article') {
+            div.innerHTML = `
+                <div class="card resource-card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="/article/${item.content.id}" class="text-decoration-none">
+                                ${item.content.title.length > 50 ? item.content.title.substring(0, 50) + '...' : item.content.title}
+                            </a>
+                        </h5>
+                        <div class="card-text text-muted content-preview">
+                            ${item.content.content_preview || ''}
+                        </div>
+                        <div class="card-footer bg-transparent border-0 p-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i> ${new Date(item.content.created_at).toLocaleString()}
+                                </small>
+                                ${item.content.tags ? `
+                                    <div class="tags">
+                                        ${item.content.tags.split(',').slice(0, 3).map(tag => 
+                                            `<span class="badge bg-secondary me-1">${tag.trim()}</span>`
+                                        ).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (item.type === 'ad') {
+            div.innerHTML = `
+                <div class="card ad-card shadow-sm">
+                    <div class="card-body text-center d-flex align-items-center justify-content-center">
+                        <div class="ad-slot" data-position="homepage-resources-waterfall">
+                            ${item.content.ad_code}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return div;
+    }
+
+    // 绑定加载更多按钮事件
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMoreContent);
+    }
+
+    // 悬浮搜索框功能
+    const floatingSearch = document.getElementById('floating-search');
+    const searchOriginal = document.getElementById('search-original');
+    
+    function handleScroll() {
+        if (!searchOriginal || !floatingSearch) return;
+        
+        const searchOriginalRect = searchOriginal.getBoundingClientRect();
+        const isSearchVisible = searchOriginalRect.top >= 0 && searchOriginalRect.bottom <= window.innerHeight;
+        
+        if (!isSearchVisible) {
+            floatingSearch.classList.add('show');
+        } else {
+            floatingSearch.classList.remove('show');
+        }
+    }
+
+    // 监听滚动事件
+    window.addEventListener('scroll', handleScroll);
+    
+    // 初始化检查
+    handleScroll();
 });
 </script>
 {% endblock %}
