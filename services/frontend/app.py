@@ -1005,13 +1005,15 @@ def article_detail(article_id):
     categories = get_categories()
     article_middle_ads = get_advertisements('article-middle')
     article_sidebar_ads = get_advertisements('article-sidebar')
+    related_articles = get_related_articles(article_id, 6)
     
     return render_template('article.html', 
                          article=article,
                          popular_articles=popular_articles,
                          categories=categories,
                          article_middle_ads=article_middle_ads,
-                         article_sidebar_ads=article_sidebar_ads)
+                         article_sidebar_ads=article_sidebar_ads,
+                         related_articles=related_articles)
 
 @app.route('/api/articles')
 def api_articles():
@@ -1577,7 +1579,16 @@ def admin_service_manage(service_name):
 @login_required
 def telegram_verification():
     """Telegram验证页面"""
-    return render_template('admin_telegram_verification.html')
+    try:
+        # 获取验证状态
+        verification_status = get_telegram_verification_status()
+        
+        return render_template('admin_telegram_verification.html', 
+                             verification_status=verification_status)
+    except Exception as e:
+        logger.error(f"Telegram验证页面加载失败: {e}")
+        return render_template('admin_telegram_verification.html', 
+                             verification_status={'required': True, 'message': '状态获取失败'})
 
 @app.route('/admin/telegram/verification/status')
 @login_required
@@ -2340,6 +2351,142 @@ def generate_meta_description(content, seo_config=None):
         return truncated[:last_space] + '...'
     else:
         return truncated + '...'
+
+def get_related_articles(article_id, limit=6):
+    """获取相关文章（基于标签相似度）"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 先获取当前文章的标签
+            cursor.execute("SELECT tags FROM messages WHERE id = %s", (article_id,))
+            current_article = cursor.fetchone()
+            
+            if not current_article or not current_article['tags']:
+                return []
+            
+            current_tags = set(tag.strip().lower() for tag in current_article['tags'].split(',') if tag.strip())
+            
+            # 获取所有其他文章
+            cursor.execute("""
+                SELECT id, title, tags, created_at
+                FROM messages 
+                WHERE id != %s AND tags IS NOT NULL AND tags != '' AND is_deleted = 0
+                ORDER BY created_at DESC
+                LIMIT 100
+            """, (article_id,))
+            all_articles = cursor.fetchall()
+            
+            # 计算标签相似度
+            related_articles = []
+            for article in all_articles:
+                if not article['tags']:
+                    continue
+                    
+                article_tags = set(tag.strip().lower() for tag in article['tags'].split(',') if tag.strip())
+                
+                # 计算交集
+                common_tags = current_tags.intersection(article_tags)
+                if common_tags:
+                    similarity = len(common_tags) / len(current_tags.union(article_tags))
+                    related_articles.append({
+                        'id': article['id'],
+                        'title': article['title'],
+                        'tags': article['tags'],
+                        'created_at': article['created_at'],
+                        'similarity': similarity
+                    })
+            
+            # 按相似度排序，返回前6个
+            related_articles.sort(key=lambda x: x['similarity'], reverse=True)
+            return related_articles[:limit]
+            
+    except Exception as e:
+        logger.error(f"获取相关文章失败: {e}")
+        return []
+
+def get_telegram_verification_status():
+    """获取Telegram验证状态"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 检查是否需要验证码
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'telegram_verification_required'
+            """)
+            result = cursor.fetchone()
+            
+            required = result and result['config_value'] == 'true'
+            
+            # 获取验证消息
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'telegram_verification_message'
+            """)
+            result = cursor.fetchone()
+            message = result['config_value'] if result else ''
+            
+            return {
+                'required': required,
+                'message': message
+            }
+    except Exception as e:
+        logger.error(f"获取Telegram验证状态失败: {e}")
+        return {
+            'required': True,
+            'message': '状态获取失败'
+        }
+
+@app.route('/admin/article/<int:article_id>/update', methods=['POST'])
+def admin_article_update(article_id):
+    """更新文章"""
+    try:
+        data = request.get_json()
+        
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        tags = data.get('tags', '').strip()
+        source_channel = data.get('source_channel', '').strip()
+        sort_id = data.get('sort_id', 0)
+        
+        if not title or not content:
+            return jsonify({'success': False, 'message': '标题和内容不能为空'}), 400
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE messages 
+                SET title = %s, content = %s, tags = %s, source_channel = %s, sort_id = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (title, content, tags, source_channel, sort_id, article_id))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'message': '文章不存在'}), 404
+            
+            conn.commit()
+            return jsonify({'success': True, 'message': '文章更新成功'})
+    except Exception as e:
+        logger.error(f"更新文章失败: {e}")
+        return jsonify({'success': False, 'message': '更新失败'}), 500
+
+@app.route('/admin/article/<int:article_id>/delete', methods=['POST'])
+def admin_article_delete(article_id):
+    """删除文章"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM messages WHERE id = %s", (article_id,))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'message': '文章不存在'}), 404
+            
+            conn.commit()
+            return jsonify({'success': True, 'message': '文章删除成功'})
+    except Exception as e:
+        logger.error(f"删除文章失败: {e}")
+        return jsonify({'success': False, 'message': '删除失败'}), 500
 
 if __name__ == '__main__':
     # 从环境变量获取端口，默认 8000（避免 ERR_UNSAFE_PORT）

@@ -87,7 +87,7 @@
 {% block extra_js %}
 <script>
 function startService(serviceName) {
-    fetch(`/admin/service/${serviceName}/start`, {
+    fetch(`/admin/services/${serviceName}/start`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ function startService(serviceName) {
 
 function stopService(serviceName) {
     if (confirm('确定要停止这个服务吗？')) {
-        fetch(`/admin/service/${serviceName}/stop`, {
+        fetch(`/admin/services/${serviceName}/stop`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ function stopService(serviceName) {
 
 function restartService(serviceName) {
     if (confirm('确定要重启这个服务吗？')) {
-        fetch(`/admin/service/${serviceName}/restart`, {
+        fetch(`/admin/services/${serviceName}/restart`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -46,7 +46,7 @@
                                 {% for config in configs %}
                                 <div class="config-item">
                                     <label for="{{ config.config_key }}" class="form-label">
-                                        {{ config.config_name }}
+                                        {{ config.description or config.config_key }}
                                     </label>
                                     
                                     {% if config.config_type == 'boolean' %}
