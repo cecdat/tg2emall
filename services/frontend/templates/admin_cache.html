@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}缓存管理 - tg2emall{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 侧边栏 -->
+        <div class="col-md-2 admin-sidebar p-0">
+            <div class="p-3">
+                <h5 class="text-white mb-4">
+                    <i class="fas fa-cog"></i> 系统管理
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{{ url_for('admin_services') }}">
+                        <i class="fas fa-server me-2"></i>
+                        服务管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin_ads') }}">
+                        <i class="fas fa-ad me-2"></i>
+                        广告位管理
+                    </a>
+                    <a class="nav-link active" href="{{ url_for('admin_cache') }}">
+                        <i class="fas fa-database me-2"></i>
+                        缓存管理
+                    </a>
+                    <a class="nav-link" href="{{ url_for('telegram_verification') }}">
+                        <i class="fab fa-telegram me-2"></i>
+                        Telegram验证
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="col-md-10">
+            <div class="p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>
+                        <i class="fas fa-database text-primary"></i> 缓存管理
+                    </h2>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="refreshStats()">
+                            <i class="fas fa-sync-alt"></i> 刷新统计
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="clearAllCache()">
+                            <i class="fas fa-trash"></i> 清空所有缓存
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 缓存状态卡片 -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-circle text-{{ 'success' if cache_status.available else 'danger' }}"></i>
+                                    连接状态
+                                </h5>
+                                <p class="card-text">
+                                    {{ '已连接' if cache_status.available else '未连接' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-key text-info"></i>
+                                    缓存键数量
+                                </h5>
+                                <p class="card-text" id="keys-count">
+                                    {{ cache_status.keys_count }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-memory text-warning"></i>
+                                    内存使用
+                                </h5>
+                                <p class="card-text" id="memory-usage">
+                                    {{ cache_status.memory_usage }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-percentage text-success"></i>
+                                    命中率
+                                </h5>
+                                <p class="card-text" id="hit-rate">
+                                    -%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 缓存操作 -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-tools"></i> 缓存操作
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="pattern-input" class="form-label">按模式清空缓存</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="pattern-input" 
+                                               placeholder="例如: articles:* 或 search:*">
+                                        <button class="btn btn-outline-danger" onclick="clearPatternCache()">
+                                            <i class="fas fa-trash"></i> 清空
+                                        </button>
+                                    </div>
+                                    <div class="form-text">
+                                        支持通配符，如 <code>articles:*</code> 清空所有文章缓存
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <h6>常用模式：</h6>
+                                    <div class="btn-group-vertical w-100">
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="setPattern('articles:*')">
+                                            清空文章缓存
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="setPattern('search:*')">
+                                            清空搜索缓存
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="setPattern('ads:*')">
+                                            清空广告缓存
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="setPattern('categories:*')">
+                                            清空分类缓存
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-line"></i> 性能统计
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="stats-content">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                        <p class="mt-2">加载统计信息中...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 缓存配置信息 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-info-circle"></i> 缓存配置信息
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>缓存策略：</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>文章列表：</strong> 30分钟 (MEDIUM)</li>
+                                            <li><strong>文章详情：</strong> 6小时 (LONG)</li>
+                                            <li><strong>热门文章：</strong> 5分钟 (SHORT)</li>
+                                            <li><strong>最新文章：</strong> 5分钟 (SHORT)</li>
+                                            <li><strong>搜索结果：</strong> 30分钟 (MEDIUM)</li>
+                                            <li><strong>分类列表：</strong> 6小时 (LONG)</li>
+                                            <li><strong>广告位：</strong> 6小时 (LONG)</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>缓存键格式：</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>articles:list:{limit}:{offset}</code></li>
+                                            <li><code>article:{id}</code></li>
+                                            <li><code>articles:popular:{limit}</code></li>
+                                            <li><code>search:{query}:{page}:{per_page}</code></li>
+                                            <li><code>categories:list</code></li>
+                                            <li><code>ads:{position}</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 页面加载时获取统计信息
+document.addEventListener('DOMContentLoaded', function() {
+    refreshStats();
+});
+
+// 刷新统计信息
+function refreshStats() {
+    fetch('/admin/cache/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStatsDisplay(data.data);
+            } else {
+                showAlert('获取统计信息失败: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('获取统计信息失败', 'danger');
+        });
+}
+
+// 更新统计显示
+function updateStatsDisplay(stats) {
+    document.getElementById('keys-count').textContent = stats.total_keys;
+    document.getElementById('memory-usage').textContent = formatBytes(stats.memory_usage);
+    document.getElementById('hit-rate').textContent = stats.hit_rate.toFixed(2) + '%';
+    
+    // 更新详细统计
+    const statsContent = document.getElementById('stats-content');
+    statsContent.innerHTML = `
+        <div class="row">
+            <div class="col-6">
+                <small class="text-muted">总键数</small><br>
+                <strong>${stats.total_keys}</strong>
+            </div>
+            <div class="col-6">
+                <small class="text-muted">内存使用</small><br>
+                <strong>${formatBytes(stats.memory_usage)}</strong>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-6">
+                <small class="text-muted">内存峰值</small><br>
+                <strong>${formatBytes(stats.memory_peak)}</strong>
+            </div>
+            <div class="col-6">
+                <small class="text-muted">连接客户端</small><br>
+                <strong>${stats.connected_clients}</strong>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-6">
+                <small class="text-muted">缓存命中</small><br>
+                <strong>${stats.hits}</strong>
+            </div>
+            <div class="col-6">
+                <small class="text-muted">缓存未命中</small><br>
+                <strong>${stats.misses}</strong>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <small class="text-muted">运行时间</small><br>
+                <strong>${formatUptime(stats.uptime)}</strong>
+            </div>
+        </div>
+    `;
+}
+
+// 清空所有缓存
+function clearAllCache() {
+    if (!confirm('确定要清空所有缓存吗？此操作不可恢复！')) {
+        return;
+    }
+    
+    fetch('/admin/cache/clear', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('缓存清空成功', 'success');
+            refreshStats();
+        } else {
+            showAlert('清空缓存失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('清空缓存失败', 'danger');
+    });
+}
+
+// 按模式清空缓存
+function clearPatternCache() {
+    const pattern = document.getElementById('pattern-input').value.trim();
+    if (!pattern) {
+        showAlert('请输入清空模式', 'warning');
+        return;
+    }
+    
+    if (!confirm(`确定要清空匹配 "${pattern}" 的缓存吗？`)) {
+        return;
+    }
+    
+    fetch('/admin/cache/clear-pattern', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pattern: pattern })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            refreshStats();
+        } else {
+            showAlert('清空缓存失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('清空缓存失败', 'danger');
+    });
+}
+
+// 设置模式
+function setPattern(pattern) {
+    document.getElementById('pattern-input').value = pattern;
+}
+
+// 格式化字节数
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 格式化运行时间
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+        return `${days}天 ${hours}小时 ${minutes}分钟`;
+    } else if (hours > 0) {
+        return `${hours}小时 ${minutes}分钟`;
+    } else {
+        return `${minutes}分钟`;
+    }
+}
+
+// 显示提示信息
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // 插入到页面顶部
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

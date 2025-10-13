@@ -59,6 +59,26 @@ services:
     networks:
       - tg2em-network
 
+  # Redis 缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: tg2em-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      TZ: "Asia/Shanghai"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tg2em-network
+
   # 前端展示系统
   frontend:
     build:
@@ -76,8 +96,15 @@ services:
       MYSQL_PASSWORD: "tg2emall"
       SECRET_KEY: "tg2emall-secret-key-2024"
       FRONTEND_PORT: "8000"
+      # Redis 缓存配置
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      REDIS_PASSWORD: ""
     depends_on:
       mysql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - tg2em-network

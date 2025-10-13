@@ -15,6 +15,12 @@ import socket
 import markdown
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from cache_manager import get_cache_manager, CacheKeys, CacheTTL
+from cache_decorators import (
+    cache_articles, cache_article_detail, cache_popular_articles, 
+    cache_recent_articles, cache_search_results, cache_categories, 
+    cache_advertisements, invalidate_article_cache, invalidate_articles_list_cache
+)
 from contextlib import contextmanager
 from functools import wraps
 import re
@@ -308,6 +314,7 @@ def extract_image_url(markdown_image):
     return markdown_image
 
 # 获取广告位
+@cache_advertisements(ttl=CacheTTL.LONG)
 def get_advertisements(position):
     """获取指定位置的广告位"""
     try:
@@ -324,6 +331,7 @@ def get_advertisements(position):
         logger.error(f"获取广告位失败: {e}")
         return []
 
+@cache_popular_articles(ttl=CacheTTL.SHORT)
 def get_popular_articles(limit=5):
     """获取热门文章（按点击量排序）"""
     try:
@@ -342,6 +350,7 @@ def get_popular_articles(limit=5):
         logger.error(f"获取热门文章失败: {e}")
         return []
 
+@invalidate_article_cache()
 def track_article_click(article_id, request):
     """记录文章点击"""
     try:
@@ -369,6 +378,16 @@ def track_article_click(article_id, request):
             
             conn.commit()
             logger.info(f"文章点击记录成功: article_id={article_id}, ip={visitor_ip}")
+            
+            # 手动清除相关缓存
+            cache = get_cache_manager()
+            if cache.is_available():
+                # 清除文章详情缓存
+                cache.delete(f"article:{article_id}")
+                # 清除热门文章缓存
+                cache.delete_pattern("articles:popular:*")
+                # 清除文章列表缓存
+                cache.delete_pattern("articles:list:*")
             
     except Exception as e:
         logger.error(f"记录文章点击失败: {e}")
@@ -525,6 +544,7 @@ def get_db_connection():
         if conn:
             conn.close()
 
+@cache_articles(ttl=CacheTTL.MEDIUM)
 def get_articles(limit=20, offset=0, category=None):
     """获取文章"""
     try:
@@ -554,6 +574,7 @@ def get_articles(limit=20, offset=0, category=None):
         logger.info("数据库连接失败或无数据，返回空列表")
         return []
 
+@cache_article_detail(ttl=CacheTTL.LONG)
 def get_article_by_id(article_id):
     """根据ID获取文章"""
     try:
@@ -567,6 +588,7 @@ def get_article_by_id(article_id):
         logger.error(f"获取文章失败: {e}")
         return None
 
+@cache_categories(ttl=CacheTTL.LONG)
 def get_categories():
     """获取网盘类型分类统计"""
     try:
@@ -655,6 +677,7 @@ def get_popular_searches():
         logger.error(f"获取热门搜索失败: {e}")
         return []
 
+@cache_recent_articles(ttl=CacheTTL.SHORT)
 def get_recent_articles(limit=5):
     """获取最新文章（仅标题、标签、发布时间、来源）"""
     try:
@@ -705,6 +728,7 @@ def log_search(query, results_count):
     except Exception as e:
         logger.error(f"记录搜索日志失败: {e}")
 
+@cache_search_results(ttl=CacheTTL.MEDIUM)
 def search_articles(query, limit=10, offset=0):
     """搜索文章"""
     try:
@@ -1930,6 +1954,104 @@ def admin_ads_toggle(ad_id):
     except Exception as e:
         logger.error(f"切换广告位状态失败: {e}")
         return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
+
+# ==================== 缓存管理 ====================
+
+@app.route('/admin/cache')
+@login_required
+def admin_cache():
+    """缓存管理页面"""
+    cache = get_cache_manager()
+    cache_status = {
+        'available': cache.is_available(),
+        'keys_count': 0,
+        'memory_usage': '0MB'
+    }
+    
+    if cache.is_available():
+        try:
+            # 获取Redis信息
+            info = cache.redis_client.info()
+            cache_status['keys_count'] = info.get('db0', {}).get('keys', 0)
+            memory_usage = info.get('used_memory', 0)
+            cache_status['memory_usage'] = f"{memory_usage // 1024 // 1024}MB"
+        except Exception as e:
+            logger.error(f"获取缓存信息失败: {e}")
+    
+    return render_template('admin_cache.html', cache_status=cache_status)
+
+@app.route('/admin/cache/clear', methods=['POST'])
+@login_required
+def admin_cache_clear():
+    """清空所有缓存"""
+    try:
+        cache = get_cache_manager()
+        if not cache.is_available():
+            return jsonify({'success': False, 'message': 'Redis不可用'})
+        
+        # 清空当前数据库的所有键
+        cache.redis_client.flushdb()
+        
+        logger.info(f"缓存清空成功 by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': '缓存清空成功'})
+        
+    except Exception as e:
+        logger.error(f"清空缓存失败: {e}")
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
+
+@app.route('/admin/cache/clear-pattern', methods=['POST'])
+@login_required
+def admin_cache_clear_pattern():
+    """按模式清空缓存"""
+    try:
+        data = request.get_json()
+        pattern = data.get('pattern', '')
+        
+        if not pattern:
+            return jsonify({'success': False, 'message': '请提供模式'})
+        
+        cache = get_cache_manager()
+        if not cache.is_available():
+            return jsonify({'success': False, 'message': 'Redis不可用'})
+        
+        deleted_count = cache.delete_pattern(pattern)
+        
+        logger.info(f"按模式清空缓存成功: {pattern}, 删除 {deleted_count} 个键 by {session.get('username', 'unknown')}")
+        return jsonify({'success': True, 'message': f'成功删除 {deleted_count} 个缓存键'})
+        
+    except Exception as e:
+        logger.error(f"按模式清空缓存失败: {e}")
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
+
+@app.route('/admin/cache/stats')
+@login_required
+def admin_cache_stats():
+    """获取缓存统计信息"""
+    try:
+        cache = get_cache_manager()
+        if not cache.is_available():
+            return jsonify({'success': False, 'message': 'Redis不可用'})
+        
+        info = cache.redis_client.info()
+        stats = {
+            'total_keys': info.get('db0', {}).get('keys', 0),
+            'memory_usage': info.get('used_memory', 0),
+            'memory_peak': info.get('used_memory_peak', 0),
+            'connected_clients': info.get('connected_clients', 0),
+            'uptime': info.get('uptime_in_seconds', 0),
+            'hits': info.get('keyspace_hits', 0),
+            'misses': info.get('keyspace_misses', 0)
+        }
+        
+        # 计算命中率
+        total_requests = stats['hits'] + stats['misses']
+        stats['hit_rate'] = (stats['hits'] / total_requests * 100) if total_requests > 0 else 0
+        
+        return jsonify({'success': True, 'data': stats})
+        
+    except Exception as e:
+        logger.error(f"获取缓存统计失败: {e}")
+        return jsonify({'success': False, 'message': f'获取统计失败: {str(e)}'})
 
 @app.errorhandler(500)
 def internal_error(error):
