@@ -4,6 +4,7 @@ from logging.handlers import RotatingFileHandler
 import asyncio
 import yaml
 from telethon import TelegramClient
+from telethon.tl.types import PeerChannel
 from datetime import datetime, timedelta
 import aiomysql
 from urllib.parse import quote
@@ -11,14 +12,9 @@ import aiohttp
 from PIL import Image
 import signal
 import sys
-import builtins
 
 # 限制并发数为 5
 semaphore = asyncio.Semaphore(5)
-
-# 确保open函数可用
-if not hasattr(builtins, 'open'):
-    builtins.open = open
 
 # 日志函数
 def setup_logging(config):
@@ -164,14 +160,9 @@ async def clean_processed_messages(retention_days=7):
     except Exception as e:
         logging.error(f"清理 processed_messages 表时发生错误: {e}")
 
-def get_image_directory(date_str, image_config=None):
-    """生成图片保存目录，从数据库配置或配置文件读取根路径"""
-    if image_config:
-        upload_dir = image_config.upload_dir
-    else:
-        upload_dir = config["image"]["upload_dir"]
-    
-    directory = os.path.join(upload_dir, date_str)
+def get_image_directory(date_str):
+    """生成图片保存目录，从配置文件读取根路径"""
+    directory = os.path.join(config["image"]["upload_dir"], date_str)
     os.makedirs(directory, exist_ok=True)
     return directory
 
@@ -186,71 +177,65 @@ def format_size(size_bytes):
     else:
         return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
 
-async def compress_image(input_path, output_path, image_config=None):
-    """压缩图片，确保文件大小变小"""
+async def compress_image(input_path, output_path):
+    """压缩图片，确保文件大小变小并兼容旧版 Pillow"""
     try:
-        # 使用数据库配置或默认配置
-        if image_config:
-            compression_quality = image_config.compression_quality
-            compression_format = image_config.compression_format
-        else:
-            compression_quality = await get_tgstate_config('image_compression_quality') or 50
-            compression_format = await get_tgstate_config('image_compression_format') or 'webp'
-        
-        original_size_bytes = os.path.getsize(input_path)
-        img = Image.open(input_path)
+        if not os.path.exists(input_path):
+            logging.error(f"❌ 压缩失败，源文件不存在: {input_path}")
+            return None
 
-        max_size = (1024, 1024)
-        # 使用兼容的重采样方法
+        # 动态获取配置
+        compression_quality = await get_tgstate_config('image_compression_quality') or '50'
+        compression_format = (await get_tgstate_config('image_compression_format') or 'webp').lower()
+
+        # 兼容旧 Pillow 版本
         try:
-            img.thumbnail(max_size, Image.Resampling.LANCAZOS)
+            resample_filter = Image.Resampling.LANCZOS
         except AttributeError:
-            # 对于较老版本的Pillow，使用旧的方法
-            img.thumbnail(max_size, Image.LANCZOS)
+            resample_filter = Image.LANCZOS
 
+        img = Image.open(input_path)
+        original_size_bytes = os.path.getsize(input_path)
+        max_size = (1024, 1024)
+        img.thumbnail(max_size, resample_filter)
+
+        # 保存压缩图像
         quality = int(compression_quality)
-        format_type = compression_format.lower()
-        
-        # 检查是否使用tgState服务，如果是则强制使用JPEG格式
-        if image_config and image_config.tgstate_url and image_config.tgstate_url != 'http://localhost:8088':
-            # 使用tgState服务时，强制使用JPEG格式
-            format_type = "jpeg"
-            # 修改输出路径为.jpg
-            if output_path.endswith('.webp'):
-                output_path = output_path.replace('.webp', '.jpg')
-        
-        if format_type == "webp":
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        if compression_format == "webp":
             img.save(output_path, "WEBP", quality=quality, lossless=False)
         else:
             img.save(output_path, "JPEG", quality=quality)
 
         compressed_size_bytes = os.path.getsize(output_path)
-        
-        # 返回实际的文件路径
-        return output_path
         compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
 
-        if compressed_size_bytes > original_size_bytes:
-            logging.warning(f"初次压缩后文件变大: {format_size(original_size_bytes)} -> {format_size(compressed_size_bytes)}")
-            quality = max(10, quality - 20)
-            if format_type == "webp":
-                img.save(output_path, "WEBP", quality=quality, lossless=False)
-            else:
-                img.save(output_path, "JPEG", quality=quality)
-            compressed_size_bytes = os.path.getsize(output_path)
-            compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
-
         logging.info(
-            f"图片压缩完成: {input_path} -> {output_path}\n"
-            f"原始大小: {format_size(original_size_bytes)}\n"
-            f"压缩后大小: {format_size(compressed_size_bytes)}\n"
+            f"📦 图片压缩完成: {input_path} -> {output_path} | "
+            f"原始: {original_size_bytes/1024:.1f}KB | 压缩后: {compressed_size_bytes/1024:.1f}KB | "
             f"压缩率: {compression_ratio:.2f}%"
         )
 
+        # 如果压缩后比原图还大，再次降质重试
         if compressed_size_bytes > original_size_bytes:
-            logging.warning(f"压缩后文件仍大于原始大小，请调整 quality 或 format 参数")
+            quality = max(10, quality - 20)
+            logging.warning(f"⚠️ 压缩后文件仍偏大，尝试降低质量至 {quality}")
+            if compression_format == "webp":
+                img.save(output_path, "WEBP", quality=quality, lossless=False)
+            else:
+                img.save(output_path, "JPEG", quality=quality)
+            
+            # 重新计算压缩率
+            compressed_size_bytes = os.path.getsize(output_path)
+            compression_ratio = (1 - compressed_size_bytes / original_size_bytes) * 100
+            logging.info(f"📦 二次压缩完成，最终压缩率: {compression_ratio:.2f}%")
+
+        return output_path
+
     except Exception as e:
-        logging.error(f"压缩图片时出错: {e}")
+        logging.error(f"❌ 压缩图片时出错: {e}")
+        return None
 
 async def get_config_from_db(config_key):
     """从数据库获取配置（通用函数）"""
@@ -304,88 +289,49 @@ async def mark_verification_completed():
     except Exception as e:
         logging.error(f"❌ 标记验证完成失败: {e}")
 
-async def clear_verification_status():
-    """清除验证状态"""
-    try:
-        async with MySQLConnectionManager() as conn:
-            cursor = await conn.cursor()
-            
-            # 清除验证状态
-            await cursor.execute("""
-                INSERT INTO system_config (config_key, config_value, config_type, description, category)
-                VALUES ('telegram_verification_required', 'false', 'boolean', '需要验证码', 'telegram')
-                ON DUPLICATE KEY UPDATE 
-                config_value = 'false', updated_at = NOW()
-            """)
-            
-            # 清除会话有效状态
-            await cursor.execute("""
-                INSERT INTO system_config (config_key, config_value, config_type, description, category)
-                VALUES ('telegram_session_valid', 'false', 'boolean', 'Telegram会话有效', 'telegram')
-                ON DUPLICATE KEY UPDATE 
-                config_value = 'false', updated_at = NOW()
-            """)
-            
-            # 清除验证码
-            await cursor.execute("""
-                INSERT INTO system_config (config_key, config_value, config_type, description, category)
-                VALUES ('telegram_verification_code', '', 'string', 'Telegram验证码', 'telegram')
-                ON DUPLICATE KEY UPDATE 
-                config_value = '', updated_at = NOW()
-            """)
-            
-            # 清除提交状态
-            await cursor.execute("""
-                INSERT INTO system_config (config_key, config_value, config_type, description, category)
-                VALUES ('telegram_verification_submitted', 'false', 'boolean', '验证码已提交', 'telegram')
-                ON DUPLICATE KEY UPDATE 
-                config_value = 'false', updated_at = NOW()
-            """)
-            
-            await conn.commit()
-            logging.info("✅ 已清除验证状态")
-            
-    except Exception as e:
-        logging.error(f"❌ 清除验证状态失败: {e}")
-
-async def upload_image(image_path, image_config=None):
+async def upload_image(image_path):
     """上传图片到图床"""
     async with semaphore:
         try:
-            # 使用数据库配置或默认配置
-            if image_config:
-                tgstate_port = image_config.tgstate_port
-                tgstate_url = image_config.tgstate_url
-                tgstate_pass = image_config.tgstate_pass
-            else:
-                tgstate_port = await get_tgstate_config('tgstate_port') or '8002'
-                tgstate_url = await get_tgstate_config('tgstate_url') or 'http://localhost:8088'
-                tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
+            # 从数据库动态获取tgState配置
+            tgstate_port = await get_tgstate_config('tgstate_port') or '8088'
+            tgstate_url = await get_tgstate_config('tgstate_url') or 'http://localhost:8088'
             
             # 容器内网络调用地址（用于API调用）
             container_api_url = f"http://tgstate:{tgstate_port}/api"
             
-            # 配置的基础URL（用于返回给用户）
-            base_url = tgstate_url.rstrip('/')
+            # 优先使用public_url作为返回URL，如果没有则使用tgstate_url
+            public_url = await get_tgstate_config('public_url') or tgstate_url
+            base_url = public_url.rstrip('/')
             
+            # 从数据库动态获取tgstate_pass配置
+            tgstate_pass = await get_tgstate_config('tgstate_pass') or 'none'
             cookies = {"p": tgstate_pass} if tgstate_pass != "none" else {}
+            
+            # 调试信息
+            logging.info(f"🔍 图片上传调试信息:")
+            logging.info(f"  - tgstate_port: {tgstate_port}")
+            logging.info(f"  - tgstate_url: {tgstate_url}")
+            logging.info(f"  - public_url: {public_url}")
+            logging.info(f"  - container_api_url: {container_api_url}")
+            logging.info(f"  - base_url: {base_url}")
+            logging.info(f"  - tgstate_pass: {'已配置' if tgstate_pass != 'none' else '未配置'}")
+            logging.info(f"  - cookies: {cookies}")
             
             async with aiohttp.ClientSession(cookies=cookies) as session:
                 with open(image_path, "rb") as file:
                     form_data = aiohttp.FormData()
                     form_data.add_field("image", file, filename=os.path.basename(image_path))
                     async with session.post(container_api_url, data=form_data) as response:
+                        logging.info(f"📡 图片上传响应状态: {response.status}")
                         result = await response.json()
+                        logging.info(f"📡 图片上传响应内容: {result}")
                         if result.get("code") == 1:
-                            # 使用API返回的完整URL
-                            image_url = result.get('url', '')
-                            if not image_url:
-                                # 如果没有url字段，使用message字段手动构建
-                                img_path = result.get('message', '')
-                                if img_path.startswith('/'):
-                                    img_path = img_path[1:]  # 移除开头的斜杠
-                                image_url = f"{base_url}/{img_path}"
-                            
+                            # 使用public_url构建返回地址
+                            img_path = result.get('message', '')
+                            if img_path.startswith('/'):
+                                img_path = img_path[1:]  # 移除开头的斜杠
+                            image_url = f"{base_url}/{img_path}"
                             os.remove(image_path)
                             logging.info(f"图片上传成功并删除本地文件: {image_url}")
                             return image_url
@@ -396,43 +342,38 @@ async def upload_image(image_path, image_config=None):
             logging.error(f"上传图片时发生错误: {e}")
             return None
 
-async def download_image_from_message(message, date_str, image_config=None):
+async def download_image_from_message(message, date_str):
     """下载消息中的图片并上传到图床"""
     try:
         if message.media and hasattr(message.media, 'photo'):
-            directory = get_image_directory(date_str, image_config)
+            directory = get_image_directory(date_str)
             local_path = await client.download_media(message, directory)
             if not os.path.exists(local_path):
                 logging.error(f"文件不存在: {local_path}")
                 return None
             
-            # 使用数据库配置或默认配置
-            if image_config:
-                compression_format = image_config.compression_format
-            else:
-                compression_format = await get_tgstate_config('image_compression_format') or 'webp'
+            # 动态获取压缩格式
+            compression_format = await get_tgstate_config('image_compression_format') or 'webp'
+            compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
             
-            # 根据是否使用tgState服务确定压缩格式
-            if image_config and image_config.tgstate_url and image_config.tgstate_url != 'http://localhost:8088':
-                # 使用tgState服务时，强制使用JPEG格式
-                compressed_path = local_path.replace(".jpg", "_compressed.jpg")
-            else:
-                # 使用配置的格式
-                compressed_path = local_path.replace(".jpg", f"_compressed.{compression_format}")
-            
-            # 压缩图片并获取实际输出路径
-            actual_compressed_path = await compress_image(local_path, compressed_path, image_config)
+            # 压缩图片，检查是否成功
+            compressed_result = await compress_image(local_path, compressed_path)
+            if not compressed_result or not os.path.exists(compressed_path):
+                logging.error(f"❌ 图片压缩失败，跳过上传: {local_path}")
+                # 压缩失败，使用原始文件
+                local_url = local_path.replace("./", "")
+                return f"![]({local_url})"
             
             # 尝试上传图片
-            image_url = await upload_image(actual_compressed_path, image_config)
+            image_url = await upload_image(compressed_path)
             if image_url:
                 # 上传成功，删除本地文件
                 os.remove(local_path)
                 return f"![]({image_url})"
             else:
                 # 上传失败，保留本地文件，使用相对路径
-                logging.warning(f"图片上传失败，使用本地文件: {actual_compressed_path}")
-                local_url = actual_compressed_path.replace("./", "")
+                logging.warning(f"图片上传失败，使用本地文件: {compressed_path}")
+                local_url = compressed_path.replace("./", "")
                 return f"![]({local_url})"
         return None
     except Exception as e:
@@ -470,224 +411,6 @@ async def parse_log(message):
         logging.error(f"解析日志时发生错误: {e}")
         return "未知标题", "无法解析内容", [], None
 
-class DatabaseConfigManager:
-    """数据库配置管理器 - 统一管理所有配置项"""
-    
-    def __init__(self):
-        self.config_cache = {}
-        self.cache_time = None
-        self.cache_duration = 30  # 缓存30秒，减少缓存时间
-        
-    async def get_config(self, config_key, default_value=None, config_type="string"):
-        """从数据库获取单个配置项"""
-        try:
-            # 检查缓存
-            if self._is_cache_valid():
-                value = self.config_cache.get(config_key, default_value)
-                # 即使从缓存获取，也需要进行类型转换
-                if value is not None and config_type != "string":
-                    if config_type == "int":
-                        value = int(value)
-                    elif config_type == "bool":
-                        value = value.lower() in ('true', '1', 'yes', 'on')
-                    elif config_type == "list":
-                        value = value.split(',') if isinstance(value, str) else value
-                return value
-            
-            # 从数据库获取
-            value = await get_config_from_db(config_key)
-            if value is not None:
-                # 类型转换
-                if config_type == "int":
-                    value = int(value)
-                elif config_type == "bool":
-                    value = value.lower() in ('true', '1', 'yes', 'on')
-                elif config_type == "list":
-                    value = [item.strip() for item in value.split(',') if item.strip()]
-                
-                # 更新缓存
-                self.config_cache[config_key] = value
-                return value
-            
-            return default_value
-            
-        except Exception as e:
-            logging.error(f"❌ 获取配置失败 {config_key}: {e}")
-            return default_value
-    
-    async def get_all_configs(self):
-        """获取所有配置项"""
-        try:
-            if self._is_cache_valid():
-                return self.config_cache
-            
-            # 从数据库批量获取配置
-            async with MySQLConnectionManager() as conn:
-                cursor = await conn.cursor(aiomysql.DictCursor)
-                await cursor.execute("SELECT config_key, config_value FROM system_config")
-                results = await cursor.fetchall()
-                
-                # 构建配置字典
-                configs = {}
-                for result in results:
-                    configs[result['config_key']] = result['config_value']
-                
-                # 更新缓存
-                self.config_cache = configs
-                self.cache_time = datetime.now()
-                
-                return configs
-                
-        except Exception as e:
-            logging.error(f"❌ 获取所有配置失败: {e}")
-            return {}
-    
-    def _is_cache_valid(self):
-        """检查缓存是否有效"""
-        if not self.cache_time:
-            return False
-        return (datetime.now() - self.cache_time).seconds < self.cache_duration
-    
-    def clear_cache(self):
-        """清除配置缓存"""
-        self.config_cache = {}
-        self.cache_time = None
-        logging.info("🔄 已清除配置缓存")
-    
-    async def force_refresh(self):
-        """强制刷新配置缓存"""
-        self.clear_cache()
-        await self.get_all_configs()
-        logging.info("🔄 已强制刷新配置缓存")
-
-class TelegramConfig:
-    """Telegram配置管理类"""
-    
-    def __init__(self, db_config_manager=None):
-        self.api_id = None
-        self.api_hash = None
-        self.phone_number = None
-        self.session_name = None
-        self.two_factor_password = None
-        self.db_config = db_config_manager or DatabaseConfigManager()
-        
-    async def load_from_db(self):
-        """从数据库加载配置"""
-        try:
-            self.api_id = await self.db_config.get_config("telegram_api_id", config["telegram"]["api_id"])
-            self.api_hash = await self.db_config.get_config("telegram_api_hash", config["telegram"]["api_hash"])
-            self.phone_number = await self.db_config.get_config("telegram_phone", config["telegram"]["phone_number"])
-            self.session_name = await self.db_config.get_config("telegram_session_name", config["telegram"].get("session_name", "tg2em_scraper"))
-            self.two_factor_password = await self.db_config.get_config("telegram_two_factor_password", config["telegram"].get("two_factor_password"))
-            
-            logging.info("✅ 已从数据库加载Telegram配置")
-            return True
-        except Exception as e:
-            logging.error(f"❌ 从数据库加载配置失败: {e}")
-            return False
-    
-    def validate(self):
-        """验证配置完整性"""
-        missing = []
-        if not self.api_id:
-            missing.append("API ID")
-        if not self.api_hash:
-            missing.append("API Hash")
-        if not self.phone_number:
-            missing.append("手机号")
-        
-        if missing:
-            logging.error(f"❌ Telegram配置不完整，缺少: {', '.join(missing)}")
-            return False
-        
-        logging.info("✅ Telegram配置验证通过")
-        return True
-
-class ScrapeConfig:
-    """采集配置管理类"""
-    
-    def __init__(self, db_config_manager=None):
-        self.blocked_tags = []
-        self.retention_days = 7
-        self.default_limit = 25
-        self.interval_minutes = 5
-        self.scrape_channels = []
-        self.scrape_limit = 25
-        self.db_config = db_config_manager or DatabaseConfigManager()
-        
-    async def load_from_db(self):
-        """从数据库加载配置"""
-        try:
-            # 基础配置
-            self.retention_days = await self.db_config.get_config("retention_days", config["task"]["collect"].get("retention_days", 7), "int")
-            self.default_limit = await self.db_config.get_config("default_limit", config["task"]["collect"].get("default_limit", 25), "int")
-            self.interval_minutes = await self.db_config.get_config("interval_minutes", config["task"]["collect"].get("interval_minutes", 5), "int")
-            self.scrape_limit = await self.db_config.get_config("scrape_limit", config["task"]["collect"].get("default_limit", 25), "int")
-            
-            # 屏蔽标签
-            blocked_tags_str = await self.db_config.get_config("blocked_tags", ",".join(config["task"]["collect"].get("blocked_tags", [])))
-            self.blocked_tags = [tag.strip() for tag in blocked_tags_str.split(',') if tag.strip()]
-            
-            # 采集频道
-            channels_str = await self.db_config.get_config("scrape_channels", "")
-            if channels_str:
-                self.scrape_channels = self._parse_channels_config(channels_str)
-            else:
-                # 从配置文件获取默认频道
-                self.scrape_channels = config["telegram"].get("channel_urls", [])
-            
-            logging.info("✅ 已从数据库加载采集配置")
-            return True
-        except Exception as e:
-            logging.error(f"❌ 从数据库加载采集配置失败: {e}")
-            return False
-    
-    def _parse_channels_config(self, channels_str):
-        """解析频道配置字符串"""
-        channels = []
-        for line in channels_str.strip().split('\n'):
-            line = line.strip()
-            if line:
-                if line.startswith('http'):
-                    channels.append({"url": line, "limit": self.scrape_limit})
-                elif line.startswith('@') or line.startswith('-'):
-                    channels.append({"id": line, "limit": self.scrape_limit})
-                else:
-                    try:
-                        channel_id = int(line)
-                        channels.append({"id": channel_id, "limit": self.scrape_limit})
-                    except ValueError:
-                        channels.append({"id": f"@{line}", "limit": self.scrape_limit})
-        return channels
-
-class ImageConfig:
-    """图片配置管理类"""
-    
-    def __init__(self, db_config_manager=None):
-        self.upload_dir = "./upload"
-        self.compression_quality = 50
-        self.compression_format = "webp"
-        self.tgstate_url = "http://tgstate:8001"
-        self.tgstate_port = "8002"
-        self.tgstate_pass = "none"
-        self.db_config = db_config_manager or DatabaseConfigManager()
-        
-    async def load_from_db(self):
-        """从数据库加载配置"""
-        try:
-            self.upload_dir = await self.db_config.get_config("image_upload_dir", config["image"].get("upload_dir", "./upload"))
-            self.compression_quality = await self.db_config.get_config("image_compression_quality", config["image_compression"].get("quality", 50), "int")
-            self.compression_format = await self.db_config.get_config("image_compression_format", config["image_compression"].get("format", "webp"))
-            self.tgstate_url = await self.db_config.get_config("tgstate_url", "http://tgstate:8001")
-            self.tgstate_port = await self.db_config.get_config("tgstate_port", "8002")
-            self.tgstate_pass = await self.db_config.get_config("tgstate_pass", "none")
-            
-            logging.info("✅ 已从数据库加载图片配置")
-            return True
-        except Exception as e:
-            logging.error(f"❌ 从数据库加载图片配置失败: {e}")
-            return False
-
 async def check_session_validity(session_file, api_id, api_hash):
     """检查会话文件是否存在且有效"""
     if not os.path.exists(session_file):
@@ -724,15 +447,15 @@ async def check_session_validity(session_file, api_id, api_hash):
         return False
 
 async def init_telegram_client():
-    """初始化并登录 Telegram 客户端（简化版本 - 参考原脚本）"""
+    """初始化并登录 Telegram 客户端"""
     global client
     
     try:
-        # 第一步：检查现有连接
+        # 第一步：检查内存中的client是否存在且连接正常
         if client is not None and client.is_connected():
             try:
                 me = await client.get_me()
-                logging.info(f"✅ Telegram客户端已连接 (用户: {me.username or me.first_name})")
+                logging.info(f"✅ Telegram客户端已连接，无需重新登录 (用户: {me.username or me.first_name})")
                 return True
             except Exception as e:
                 logging.info(f"⚠️ 现有连接已失效: {e}")
@@ -742,67 +465,108 @@ async def init_telegram_client():
                     pass
                 client = None
         
-        # 第二步：加载配置
-        tg_config = TelegramConfig()
-        if not await tg_config.load_from_db():
-            raise Exception("配置加载失败")
+        # 第二步：从数据库获取配置
+        api_id = await get_config_from_db("telegram_api_id") or config["telegram"]["api_id"]
+        api_hash = await get_config_from_db("telegram_api_hash") or config["telegram"]["api_hash"]
+        phone_number = await get_config_from_db("telegram_phone") or config["telegram"]["phone_number"]
         
-        if not tg_config.validate():
-            raise Exception("配置验证失败")
+        if not api_id or not api_hash or not phone_number:
+            logging.error("❌ Telegram配置不完整，请在后台管理页面配置API ID、API Hash和手机号")
+            logging.error("必需的配置:")
+            logging.error(f"  - API ID: {'已配置' if api_id else '未配置'}")
+            logging.error(f"  - API Hash: {'已配置' if api_hash else '未配置'}")  
+            logging.error(f"  - 手机号: {'已配置' if phone_number else '未配置'}")
+            raise Exception("Telegram配置不完整")
         
-        # 第三步：确保sessions目录存在
+        logging.info("✅ 已从数据库获取Telegram配置")
+        
+        # 确保sessions目录存在
         sessions_dir = "/app/sessions"
         os.makedirs(sessions_dir, exist_ok=True)
-        session_file = os.path.join(sessions_dir, f'{tg_config.session_name}.session')
         
-        # 第四步：创建客户端（参考原脚本的简单方式）
-        client = TelegramClient(session_file, tg_config.api_id, tg_config.api_hash)
+        # 使用映射的sessions目录
+        session_file = os.path.join(sessions_dir, 'tg2em_scraper.session')
         
-        # 第五步：直接启动（参考原脚本的方式）
+        # 第三步：检查会话文件是否存在且有效
+        session_valid = await check_session_validity(session_file, api_id, api_hash)
+        
+        # 第四步：创建客户端
+        client = TelegramClient(session_file, api_id, api_hash)
+        
+        # 使用的手机号
+        phone = phone_number
+        two_factor_password = config["telegram"].get("two_factor_password")
+        
+        # 第五步：根据会话有效性决定登录方式
+        if session_valid:
+            # 会话有效，直接连接
+            logging.info("🔄 使用已保存的有效会话，直接连接...")
+            try:
+                await client.connect()
+                if await client.is_user_authorized():
+                    me = await client.get_me()
+                    logging.info(f"✅ Telegram客户端启动成功 (用户: {me.username or me.first_name})")
+                    return True
+                else:
+                    logging.warning("⚠️ 连接成功但未授权，需要重新登录")
+                    # 删除无效会话文件
+                    if os.path.exists(session_file):
+                        os.remove(session_file)
+                        logging.info("🗑️ 已删除无效会话文件")
+            except Exception as e:
+                logging.warning(f"⚠️ 使用已保存会话连接失败: {e}")
+                # 删除无效会话文件
+                if os.path.exists(session_file):
+                    os.remove(session_file)
+                    logging.info("🗑️ 已删除无效会话文件")
+        
+        # 第六步：会话无效或不存在，执行完整登录流程
         logging.info("🔐 开始Telegram登录流程...")
         
         try:
-            # 直接使用交互式启动，让Telegram客户端处理验证码
-            await client.start(
-                phone=lambda: tg_config.phone_number,
-                code_callback=get_code_input,
-                password=lambda: tg_config.two_factor_password if tg_config.two_factor_password else get_password_input()
-            )
-            logging.info("✅ Telegram客户端启动成功")
+            # 尝试使用手机号登录（会自动检测是否需要验证码）
+            await client.start(phone=lambda: phone)
             
-        except Exception as auth_error:
-            logging.error(f"❌ Telegram验证失败: {auth_error}")
+            # 验证连接
+            me = await client.get_me()
+            logging.info(f"✅ Telegram登录成功！当前用户: {me.username or me.first_name}")
+            logging.info(f"📁 会话已保存至: {session_file}")
             
-            # 检查是否是验证码重发限制错误
-            if "ResendCodeRequest" in str(auth_error) or "all available options" in str(auth_error):
-                logging.warning("⚠️ 检测到验证码重发限制")
-                logging.info("💡 建议：等待24小时后重新尝试，或使用不同的手机号")
+            # 标记验证完成和会话有效
+            await mark_verification_completed()
+            return True
+            
+        except Exception as start_error:
+            logging.warning(f"自动登录失败: {start_error}")
+            logging.info("📱 需要验证码，等待Web界面输入...")
+            
+            # 需要验证码的情况
+            try:
+                await client.start(
+                    phone=lambda: phone,
+                    code_callback=get_code_input,
+                    password=lambda: two_factor_password if two_factor_password else get_password_input()
+                )
                 
-                # 删除会话文件
-                try:
-                    if os.path.exists(session_file):
-                        os.remove(session_file)
-                        logging.info("🗑️ 已删除会话文件")
-                except Exception as clear_error:
-                    logging.error(f"❌ 清理会话文件失败: {clear_error}")
+                # 验证登录成功
+                me = await client.get_me()
+                logging.info(f"✅ Telegram验证成功！当前用户: {me.username or me.first_name}")
+                logging.info(f"📁 会话已保存至: {session_file}")
                 
-                raise Exception("验证码重发限制：请等待24小时后重新尝试，或使用不同的手机号")
-            
-            raise Exception(f"Telegram登录失败: {auth_error}")
-        
-        # 验证登录成功
-        me = await client.get_me()
-        logging.info(f"✅ Telegram登录成功！当前用户: {me.username or me.first_name}")
-        logging.info(f"📁 会话已保存至: {session_file}")
-        
-        return True
-        
+                # 标记验证完成和会话有效
+                await mark_verification_completed()
+                return True
+                
+            except Exception as auth_error:
+                logging.error(f"❌ Telegram验证失败: {auth_error}")
+                raise Exception(f"Telegram登录失败: {auth_error}")
+    
     except Exception as e:
         logging.error(f"❌ 初始化Telegram客户端失败: {e}")
         raise
 
 async def scrape_channel():
-    """抓取 Telegram 频道消息（使用数据库配置）"""
+    """抓取 Telegram 频道消息"""
     global client
     
     # 确保 Telegram 客户端已初始化和登录
@@ -815,23 +579,23 @@ async def scrape_channel():
         collect_start_time = datetime.now()
         stats = {"total": 0, "duplicate": 0, "new": 0, "blocked_tags_removed": 0}
 
-        # 加载配置
-        db_config_manager = DatabaseConfigManager()
-        scrape_config = ScrapeConfig(db_config_manager)
-        image_config = ImageConfig(db_config_manager)
-        
-        # 强制刷新配置，确保获取最新配置
-        await db_config_manager.force_refresh()
-        await scrape_config.load_from_db()
-        await image_config.load_from_db()
-        
-        # 使用数据库配置
-        blocked_tags = set(scrape_config.blocked_tags)
-        retention_days = scrape_config.retention_days
-        default_limit = scrape_config.default_limit
-        channel_urls = scrape_config.scrape_channels
-        
+        blocked_tags = set(config["task"]["collect"]["blocked_tags"])
+        retention_days = config["task"]["collect"].get("retention_days", 7)
+        default_limit = config["task"]["collect"].get("default_limit", 25)
         await clean_processed_messages(retention_days)
+
+        # 从数据库获取频道配置
+        channels_config = await get_config_from_db("scrape_channels") or ""
+        scrape_limit = int(await get_config_from_db("scrape_limit") or config["task"]["collect"]["default_limit"])
+        
+        # 解析频道配置
+        channel_urls = []
+        if channels_config:
+            for line in channels_config.strip().split('\n'):
+                normalized = normalize_channel(line)
+                if normalized:
+                    normalized["limit"] = scrape_limit
+                    channel_urls.append(normalized)
         
         if not channel_urls:
             logging.error("❌ 未配置采集频道，请在后台管理页面配置scrape_channels参数")
@@ -855,57 +619,26 @@ async def scrape_channel():
             elif "id" in channel_config:
                 channel_id = channel_config["id"]
                 logging.info(f"开始抓取频道ID: {channel_id} (limit={limit})")
-                
-                # 验证频道ID格式
                 try:
+                    # 处理字符串ID转换为整数
                     if isinstance(channel_id, str):
-                        channel_id = int(channel_id)
-                except ValueError:
-                    logging.error(f"❌ 频道ID格式错误: {channel_id}，必须是数字")
-                    continue
-                
-                if channel_id > 0:
-                    logging.warning(f"⚠️ 频道ID是正数: {channel_id}，这通常是群组ID而不是频道ID")
-                    logging.info("💡 频道ID通常是负数，如 -1002726412745")
-                
-                try:
-                    channel = await client.get_entity(channel_id)
-                    logging.info(f"✅ 成功获取频道: {channel.title} (ID: {channel.id})")
-                    
-                    # 检查频道类型
-                    if hasattr(channel, 'broadcast') and channel.broadcast:
-                        logging.info("📺 这是一个广播频道")
-                    elif hasattr(channel, 'megagroup') and channel.megagroup:
-                        logging.info("👥 这是一个超级群组")
+                        if channel_id.startswith('-') and channel_id[1:].isdigit():
+                            # 负数字符串ID，转换为整数
+                            entity_id = PeerChannel(int(channel_id))
+                        elif channel_id.isdigit():
+                            # 正数字符串ID，转换为整数
+                            entity_id = PeerChannel(int(channel_id))
+                        else:
+                            # 其他字符串格式（如@username）
+                            entity_id = channel_id
                     else:
-                        logging.info("💬 这是一个普通群组")
+                        # 已经是整数，使用PeerChannel
+                        entity_id = PeerChannel(channel_id)
                     
+                    channel = await client.get_entity(entity_id)
+                    channel_id = channel.id
                 except Exception as e:
-                    logging.error(f"❌ 获取频道实体失败: {e}")
-                    
-                    # 提供更详细的错误信息和解决方案
-                    if "Cannot find any entity corresponding to" in str(e):
-                        logging.error("💡 可能的原因和解决方案:")
-                        logging.error("   1. 频道ID不正确 - 请检查频道ID是否准确")
-                        logging.error("   2. 机器人未加入频道 - 请将机器人添加到频道中")
-                        logging.error("   3. 频道不存在或已删除 - 请确认频道仍然存在")
-                        logging.error("   4. 频道是私有的 - 建议使用公开频道的用户名")
-                        logging.error("   5. 权限不足 - 确保机器人有读取消息的权限")
-                        logging.error("")
-                        logging.error("🔧 建议使用频道ID验证工具检查:")
-                        logging.error(f"   python verify_channel_id.py <API_ID> <API_HASH> <PHONE_NUMBER> {channel_id}")
-                    elif "Channel is private" in str(e):
-                        logging.error("🔒 频道是私有的，机器人没有加入该频道")
-                        logging.error("💡 解决方案:")
-                        logging.error("   1. 将机器人添加到频道中")
-                        logging.error("   2. 给机器人管理员权限")
-                        logging.error("   3. 或者使用公开频道")
-                    elif "Chat admin required" in str(e):
-                        logging.error("👑 需要管理员权限才能访问该频道")
-                        logging.error("💡 解决方案:")
-                        logging.error("   1. 给机器人管理员权限")
-                        logging.error("   2. 或者使用公开频道")
-                    
+                    logging.error(f"获取频道实体失败: {e}")
                     continue
             else:
                 logging.error("频道配置必须包含 'url' 或 'id' 字段")
@@ -930,7 +663,7 @@ async def scrape_channel():
                     filtered_tags = tags
 
                 date_str = datetime.now().strftime('%Y%m%d')
-                image_url = await download_image_from_message(message, date_str, image_config)
+                image_url = await download_image_from_message(message, date_str)
                 if image_url:
                     content = f"{image_url}\n\n{content}"
 
@@ -940,114 +673,152 @@ async def scrape_channel():
 
         elapsed_time = datetime.now() - collect_start_time
         logging.info(f"本次采集完成，耗时: {elapsed_time}, 总消息数={stats['total']}, 重复={stats['duplicate']}, 新增={stats['new']}, 移除屏蔽标签数={stats['blocked_tags_removed']}")
-        next_run = datetime.now() + timedelta(minutes=scrape_config.interval_minutes)
+        next_run = datetime.now() + timedelta(minutes=config["task"]["collect"]["interval_minutes"])
         logging.info(f"下次采集时间: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
     except Exception as e:
         logging.error(f"抓取频道消息时发生错误: {e}")
 
 async def run_periodic_scraper():
-    """定时抓取任务（使用数据库配置）"""
+    """定时抓取任务"""
     global shutdown_requested
-    
-    # 加载配置
-    db_config_manager = DatabaseConfigManager()
-    scrape_config = ScrapeConfig(db_config_manager)
-    await scrape_config.load_from_db()
-    
-    interval_minutes = scrape_config.interval_minutes
-    logging.info(f"🔄 启动定时采集任务，间隔: {interval_minutes} 分钟")
+    interval_minutes = config["task"]["collect"]["interval_minutes"]
     
     while not shutdown_requested:
         try:
-            logging.info("⏰ 开始定时采集任务...")
-            
-            # 强制刷新配置缓存，确保获取最新的频道配置
-            await db_config_manager.force_refresh()
-            
             await scrape_channel()
-            logging.info("✅ 定时采集任务完成")
             
             # 可中断的等待
             wait_seconds = interval_minutes * 60
-            logging.info(f"⏳ 等待 {interval_minutes} 分钟后进行下次采集...")
-            
-            for i in range(wait_seconds):
+            for _ in range(wait_seconds):
                 if shutdown_requested:
                     logging.info("收到退出请求，停止等待")
                     break
-                # 每30秒显示一次倒计时
-                if i % 30 == 0 and i > 0:
-                    remaining_minutes = (wait_seconds - i) // 60
-                    logging.info(f"⏳ 距离下次采集还有 {remaining_minutes} 分钟...")
                 await asyncio.sleep(1)
                 
         except Exception as e:
-            logging.error(f"定时采集中出现错误: {e}")
+            logging.error(f"采集中出现错误: {e}")
             if not shutdown_requested:
                 logging.info(f"错误后等待 {interval_minutes} 分钟后重试...")
                 await asyncio.sleep(interval_minutes * 60)
-    
-    logging.info("🛑 定时采集任务已停止")
 
 def get_code_input():
-    """获取验证码输入的交互函数（Docker容器兼容版本）"""
-    import sys
+    """获取验证码输入的交互函数"""
+    import time
+    import pymysql
     
     print("\n" + "="*50)
     print("🔔 Telegram 需要验证码验证")
-    print("📱 请检查手机短信，输入5位数字验证码")
+    print("📱 请前往管理后台输入验证码")
+    print("🌐 访问地址: http://localhost:5000/dm")
     print("="*50)
     
-    # 检查stdin是否可用
-    if not sys.stdin.isatty():
-        print("⚠️ 检测到非交互式环境，请使用以下方式输入验证码：")
-        print("1. 使用 docker attach tg2em-scrape 连接到容器")
-        print("2. 或者重启容器时添加 -it 参数")
-        print("3. 或者通过环境变量传递验证码")
-        
-        # 尝试从环境变量获取验证码
-        import os
-        code = os.environ.get('TELEGRAM_CODE')
-        if code and len(code) == 5 and code.isdigit():
-            print(f"✅ 从环境变量获取验证码: {code}")
-            logging.info(f"从环境变量获取验证码: {code}")
-            return code
-        else:
-            raise Exception("无法在非交互式环境中获取验证码，请使用 docker attach 或设置 TELEGRAM_CODE 环境变量")
+    # 数据库配置
+    DB_CONFIG = {
+        'host': os.environ.get('MYSQL_HOST', 'mysql'),
+        'port': int(os.environ.get('MYSQL_PORT', 3306)),
+        'user': os.environ.get('MYSQL_USER', 'tg2em'),
+        'password': os.environ.get('MYSQL_PASSWORD', 'tg2em2025'),
+        'database': os.environ.get('MYSQL_DATABASE', 'tg2em'),
+        'charset': 'utf8mb4'
+    }
     
-    # 交互式输入
-    max_attempts = 3
-    for attempt in range(max_attempts):
+    # 标记需要验证码
+    try:
+        conn = pymysql.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        # 插入验证状态
+        cursor.execute("""
+            INSERT INTO system_config (config_key, config_value, config_type, description, category)
+            VALUES ('telegram_verification_required', 'true', 'boolean', '需要验证码', 'telegram')
+            ON DUPLICATE KEY UPDATE 
+            config_value = 'true', updated_at = NOW()
+        """)
+        
+        # 清除之前的验证码
+        cursor.execute("""
+            INSERT INTO system_config (config_key, config_value, config_type, description, category)
+            VALUES ('telegram_verification_code', '', 'string', 'Telegram验证码', 'telegram')
+            ON DUPLICATE KEY UPDATE 
+            config_value = '', updated_at = NOW()
+        """)
+        
+        # 清除提交状态
+        cursor.execute("""
+            INSERT INTO system_config (config_key, config_value, config_type, description, category)
+            VALUES ('telegram_verification_submitted', 'false', 'boolean', '验证码已提交', 'telegram')
+            ON DUPLICATE KEY UPDATE 
+            config_value = 'false', updated_at = NOW()
+        """)
+        
+        conn.commit()
+        conn.close()
+        
+        logging.info("✅ 已在数据库中标记需要验证码")
+        
+    except Exception as e:
+        logging.error(f"❌ 数据库操作失败: {e}")
+    
+    # 等待Web界面输入验证码
+    max_wait_time = 300  # 最多等待5分钟
+    check_interval = 2    # 每2秒检查一次
+    waited_time = 0
+    
+    while waited_time < max_wait_time:
         try:
-            print(f"请输入验证码 (尝试 {attempt + 1}/{max_attempts}): ", end='', flush=True)
-            code = input().strip()
+            conn = pymysql.connect(**DB_CONFIG)
+            cursor = conn.cursor()
             
-            if len(code) == 5 and code.isdigit():
-                print(f"✅ 收到验证码: {code}")
-                logging.info(f"用户输入验证码: {code}")
-                return code
-            else:
-                print("❌ 验证码格式错误，请输入5位数字")
+            # 检查是否有验证码
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'telegram_verification_code'
+            """)
+            result = cursor.fetchone()
+            
+            # 检查是否已提交
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'telegram_verification_submitted'
+            """)
+            submitted_result = cursor.fetchone()
+            
+            conn.close()
+            
+            if submitted_result and submitted_result[0] == 'true' and result and result[0].strip():
+                verification_code = result[0].strip()
                 
-        except EOFError:
-            print("\n❌ 输入流结束，无法读取验证码")
-            print("💡 请使用以下方式重新启动：")
-            print("   docker-compose down")
-            print("   docker-compose up -d")
-            print("   docker attach tg2em-scrape")
-            raise Exception("无法读取验证码输入")
+                if len(verification_code) == 5 and verification_code.isdigit():
+                    print(f"✅ 收到Web界面验证码: {verification_code}")
+                    logging.info(f"从Web界面获取到验证码: {verification_code}")
+                    
+                    # 清除验证状态
+                    try:
+                        conn = pymysql.connect(**DB_CONFIG)
+                        cursor = conn.cursor()
+                        cursor.execute("DELETE FROM system_config WHERE config_key = 'telegram_verification_required'")
+                        cursor.execute("DELETE FROM system_config WHERE config_key = 'telegram_verification_submitted'")
+                        conn.commit()
+                        conn.close()
+                    except:
+                        pass
+                    
+                    return verification_code
+                else:
+                    print(f"❌ 验证码格式错误: {verification_code}")
             
-        except KeyboardInterrupt:
-            print("\n❌ 用户取消输入")
-            raise Exception("用户取消验证码输入")
+            print(f"⏳ 等待验证码输入... ({waited_time}s/{max_wait_time}s)")
+            time.sleep(check_interval)
+            waited_time += check_interval
             
         except Exception as e:
-            print(f"❌ 输入错误: {e}")
-            if attempt == max_attempts - 1:
-                raise Exception(f"验证码输入失败: {e}")
-            continue
+            logging.error(f"❌ 检查验证码时发生错误: {e}")
+            time.sleep(check_interval)
+            waited_time += check_interval
     
-    raise Exception("验证码输入尝试次数过多")
+    # 超时处理
+    logging.error("❌ 验证码输入超时")
+    raise Exception("验证码输入超时，请重新启动服务")
 
 def get_password_input():
     """获取两步验证密码的交互函数"""
@@ -1060,43 +831,123 @@ def get_password_input():
     print("✅ 密码已输入")
     return password
 
+def normalize_channel(line):
+    """标准化频道配置，支持URL/@/ID三种格式"""
+    line = line.strip()
+    if not line:
+        return None
+    
+    if line.startswith('http'):
+        return {'url': line}
+    
+    if line.startswith('@'):
+        return {'id': line}
+    
+    if line.startswith('-') and line[1:].isdigit():
+        return {'id': int(line)}
+    
+    if line.isdigit():
+        return {'id': int(line)}
+    
+    return {'id': f"@{line}"}
+
 async def main():
-    """主函数（优化版本）"""
+    """主函数"""
     global client
-    logging.info("🚀 采集脚本启动")
+    logging.info("采集脚本启动")
     
     try:
-        # 初始化数据库连接池
         await init_mysql_pool()
-        logging.info("✅ 数据库连接池初始化完成")
         
-        # 初始化并登录 Telegram 客户端
-        await init_telegram_client()
-        logging.info("✅ Telegram客户端初始化完成")
+        # 确保上传目录存在
+        upload_dir = "./upload"
+        os.makedirs(upload_dir, exist_ok=True)
+        logging.info(f"✅ 上传目录已确保存在: {upload_dir}")
         
-        # 开始执行定时采集任务
-        logging.info("🔄 开始执行定时采集任务...")
+        # 从数据库动态获取 Telegram 配置
+        api_id = await get_config_from_db("telegram_api_id") or config["telegram"]["api_id"]
+        api_hash = await get_config_from_db("telegram_api_hash") or config["telegram"]["api_hash"]
+        phone_number = await get_config_from_db("telegram_phone") or config["telegram"]["phone_number"]
+        
+        if not api_id or not api_hash or not phone_number:
+            logging.error("❌ Telegram配置不完整，请在后台管理页面配置API ID、API Hash和手机号")
+            logging.error("必需的配置:")
+            logging.error(f"  - API ID: {'已配置' if api_id else '未配置'}")
+            logging.error(f"  - API Hash: {'已配置' if api_hash else '未配置'}")  
+            logging.error(f"  - 手机号: {'已配置' if phone_number else '未配置'}")
+            return
+        
+        logging.info("✅ 已从数据库获取Telegram配置")
+        
+        # 确保sessions目录存在
+        sessions_dir = "/app/sessions"
+        os.makedirs(sessions_dir, exist_ok=True)
+        
+        # 使用映射的sessions目录
+        session_file = os.path.join(sessions_dir, 'tg2em_scraper.session')
+        client = TelegramClient(session_file, api_id, api_hash)
+        
+        # 改进的 Telegram 客户端启动方式
+        phone = phone_number  # 使用从数据库获取的手机号
+        two_factor_password = config["telegram"].get("two_factor_password")
+        
+        # 检查是否存在会话文件
+        if os.path.exists(session_file):
+            logging.info(f"发现已存在的Telegram会话文件: {session_file}")
+            logging.info("尝试使用已保存的会话，无需重新验证")
+        else:
+            logging.info("首次启动，需要验证码验证")
+        
+        try:
+            # 先尝试不需要验证的方式启动
+            await client.start(phone=lambda: phone)
+            if os.path.exists(session_file):
+                logging.info("✅ Telegram 客户端启动成功，使用已保存的会话")
+                
+                # 测试连接是否仍然有效
+                try:
+                    me = await client.get_me()
+                    logging.info(f"✅ Telegram连接验证成功，当前用户: {me.username or me.first_name}")
+                except Exception as test_error:
+                    logging.warning(f"会话可能已过期，需要重新验证: {test_error}")
+                    # 删除过期会话文件
+                    if os.path.exists(session_file):
+                        os.remove(session_file)
+                        logging.info("已删除过期会话文件")
+                    raise Exception("会话已过期，需要重新验证")
+            else:
+                logging.info("✅ Telegram 客户端启动成功，首次验证完成")
+        except Exception as start_error:
+            logging.warning(f"自动启动失败: {start_error}")
+            logging.info("需要手动验证，请按提示输入验证码...")
+            
+            # 需要验证码的情况
+            try:
+                await client.start(
+                    phone=lambda: phone,
+                    code_callback=get_code_input,
+                    password=lambda: two_factor_password if two_factor_password else get_password_input()
+                )
+                logging.info("✅ Telegram 验证成功！会话已保存")
+                logging.info(f"📁 会话文件位置: {session_file}")
+            except Exception as auth_error:
+                logging.error(f"Telegram 验证失败: {auth_error}")
+                logging.error("请检查手机号和验证码是否正确，然后重启脚本")
+                return
+        
+        logging.info("开始执行定时采集任务...")
         await run_periodic_scraper()
         
     except KeyboardInterrupt:
-        logging.info("⏹️ 采集脚本被用户中断")
+        logging.info("采集脚本被用户中断")
     except Exception as e:
-        logging.error(f"❌ 主函数运行出错: {e}")
+        logging.error(f"主函数运行出错: {e}")
         raise
     finally:
-        # 清理资源
         if client:
-            try:
-                await client.disconnect()
-                logging.info("📱 Telegram 客户端已断开连接")
-            except Exception as e:
-                logging.warning(f"⚠️ 断开Telegram连接时出错: {e}")
-        
-        try:
-            await close_mysql_pool()
-            logging.info("🗄️ 数据库连接池已关闭")
-        except Exception as e:
-            logging.warning(f"⚠️ 关闭数据库连接池时出错: {e}")
+            await client.disconnect()
+            logging.info("Telegram 客户端已断开连接")
+        await close_mysql_pool()
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

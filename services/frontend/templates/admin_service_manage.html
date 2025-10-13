@@ -364,10 +364,10 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-function showSweetAlert(title, text, icon) {
+function showSweetAlert(title, content, icon) {
     Swal.fire({
         title: title,
-        text: text,
+        html: content,  // 使用html参数来渲染HTML内容
         icon: icon,
         confirmButtonText: '确定',
         confirmButtonColor: icon === 'success' ? '#28a745' : 
@@ -486,34 +486,55 @@ function restartService() {
 // 启动采集任务
 function startScrapingTask() {
     Swal.fire({
-        title: '启动采集任务',
-        html: '<div class="text-start">' +
-              '<p class="mb-3">即将启动Telegram采集任务，开始从配置的频道采集资源。</p>' +
-              '<div class="alert alert-warning d-flex align-items-center mb-3">' +
-              '<i class="fas fa-exclamation-triangle me-2"></i>' +
-              '<div><strong>重要提示：</strong>首次运行需要Telegram验证</div>' +
+        title: '<div class="text-center"><i class="fas fa-robot fa-2x text-primary mb-2"></i><br>启动采集任务</div>',
+        html: '<div class="text-center">' +
+              '<div class="mb-4">' +
+              '<p class="mb-3">🚀 即将启动Telegram采集任务</p>' +
+              '<p class="text-muted">系统将开始从您配置的频道自动采集资源</p>' +
               '</div>' +
-              '<div class="alert alert-info d-flex align-items-center mb-0">' +
-              '<i class="fas fa-info-circle me-2"></i>' +
-              '<div><small>如需输入验证码，请使用命令：<code>docker attach tg2em-scrape</code></small></div>' +
+              '<div class="alert alert-warning border-warning">' +
+              '<div class="d-flex align-items-center">' +
+              '<i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>' +
+              '<div class="text-start">' +
+              '<h6 class="mb-1 text-warning">⚠️ 重要提示</h6>' +
+              '<small>首次运行需要Telegram验证码</small>' +
+              '</div>' +
+              '</div>' +
+              '</div>' +
+              '<div class="alert alert-info border-info mt-3">' +
+              '<div class="d-flex align-items-center">' +
+              '<i class="fas fa-terminal fa-2x text-info me-3"></i>' +
+              '<div class="text-start">' +
+              '<h6 class="mb-1 text-info">💻 如需输入验证码</h6>' +
+              '<code class="bg-light p-1 rounded">docker attach tg2em-scrape</code>' +
+              '</div>' +
+              '</div>' +
               '</div>' +
               '</div>',
-        icon: 'question',
+        icon: false,
         showCancelButton: true,
-        confirmButtonText: '启动任务',
-        cancelButtonText: '取消',
+        confirmButtonText: '<i class="fas fa-play me-2"></i>启动任务',
+        cancelButtonText: '<i class="fas fa-times me-2"></i>取消',
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#6c757d',
-        width: '500px'
+        width: '600px',
+        customClass: {
+            popup: 'swal-wide'
+        }
     }).then((result) => {
         if (result.isConfirmed) {
             Swal.fire({
-                title: '正在启动...',
-                html: '请稍候，正在初始化Telegram客户端...',
+                title: '<div class="text-center"><i class="fas fa-cog fa-spin fa-2x text-primary mb-2"></i><br>正在启动...</div>',
+                html: '<div class="text-center">' +
+                      '<p class="mb-3">🚀 正在初始化Telegram客户端</p>' +
+                      '<div class="spinner-border text-primary" role="status">' +
+                      '<span class="visually-hidden">Loading...</span>' +
+                      '</div>' +
+                      '<p class="mt-3 text-muted">请稍候，这可能需要几秒钟...</p>' +
+                      '</div>',
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                showConfirmButton: false,
+                width: '400px'
             });
             
             fetch(`/admin/services/{{ service_name }}/scrape/start`, {
@@ -527,25 +548,71 @@ function startScrapingTask() {
                 Swal.close();
                 if (data.success) {
                     showSweetAlert('启动成功', 
-                        '<div class="text-start">' +
-                        '<p class="mb-2">' + data.message + '</p>' +
-                        '<div class="alert alert-success d-flex align-items-center mb-0">' +
-                        '<i class="fas fa-check-circle me-2"></i>' +
-                        '<div><small>采集任务已启动，系统将自动从配置的频道采集资源</small></div>' +
+                        '<div class="text-center">' +
+                        '<div class="mb-3">' +
+                        '<i class="fas fa-robot fa-3x text-success mb-3"></i>' +
+                        '<h5 class="text-success mb-2">🎉 采集任务启动成功！</h5>' +
+                        '</div>' +
+                        '<div class="alert alert-light border-success">' +
+                        '<div class="row align-items-center">' +
+                        '<div class="col-2 text-center">' +
+                        '<i class="fas fa-check-circle fa-2x text-success"></i>' +
+                        '</div>' +
+                        '<div class="col-10">' +
+                        '<h6 class="mb-1 text-success">任务状态</h6>' +
+                        '<small class="text-muted">系统正在从配置的频道自动采集资源</small>' +
+                        '</div>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="mt-3">' +
+                        '<small class="text-muted">' +
+                        '<i class="fas fa-info-circle me-1"></i>' +
+                        '您可以在服务日志中查看实时采集进度' +
+                        '</small>' +
                         '</div>' +
                         '</div>', 
                         'success');
                 } else {
                     let errorMsg = data.message;
                     if (errorMsg.includes('验证') || errorMsg.includes('登录')) {
-                        errorMsg = '<div class="text-start">' +
-                                  '<p class="mb-3">' + errorMsg + '</p>' +
-                                  '<div class="alert alert-warning d-flex align-items-center mb-3">' +
-                                  '<i class="fas fa-exclamation-triangle me-2"></i>' +
-                                  '<div><strong>解决方案：</strong>请使用命令输入验证码</div>' +
+                        errorMsg = '<div class="text-center">' +
+                                  '<div class="mb-3">' +
+                                  '<i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>' +
+                                  '<h5 class="text-warning mb-2">⚠️ 需要Telegram验证</h5>' +
                                   '</div>' +
-                                  '<div class="text-center">' +
-                                  '<code class="bg-light p-2 rounded d-inline-block">docker attach tg2em-scrape</code>' +
+                                  '<div class="alert alert-warning border-warning mb-3">' +
+                                  '<div class="d-flex align-items-center">' +
+                                  '<i class="fas fa-info-circle fa-2x text-warning me-3"></i>' +
+                                  '<div class="text-start">' +
+                                  '<h6 class="mb-1 text-warning">💡 解决方案</h6>' +
+                                  '<small>' + errorMsg + '</small>' +
+                                  '</div>' +
+                                  '</div>' +
+                                  '</div>' +
+                                  '<div class="alert alert-info border-info">' +
+                                  '<div class="d-flex align-items-center">' +
+                                  '<i class="fas fa-terminal fa-2x text-info me-3"></i>' +
+                                  '<div class="text-start">' +
+                                  '<h6 class="mb-1 text-info">💻 使用以下命令输入验证码</h6>' +
+                                  '<code class="bg-light p-2 rounded d-block mt-2">docker attach tg2em-scrape</code>' +
+                                  '</div>' +
+                                  '</div>' +
+                                  '</div>' +
+                                  '</div>';
+                    } else {
+                        errorMsg = '<div class="text-center">' +
+                                  '<div class="mb-3">' +
+                                  '<i class="fas fa-times-circle fa-3x text-danger mb-3"></i>' +
+                                  '<h5 class="text-danger mb-2">❌ 启动失败</h5>' +
+                                  '</div>' +
+                                  '<div class="alert alert-danger border-danger">' +
+                                  '<div class="d-flex align-items-center">' +
+                                  '<i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>' +
+                                  '<div class="text-start">' +
+                                  '<h6 class="mb-1 text-danger">错误信息</h6>' +
+                                  '<small>' + errorMsg + '</small>' +
+                                  '</div>' +
+                                  '</div>' +
                                   '</div>' +
                                   '</div>';
                     }
@@ -555,7 +622,23 @@ function startScrapingTask() {
             .catch(error => {
                 Swal.close();
                 console.error('Error:', error);
-                showSweetAlert('错误', '启动采集任务失败，请重试', 'error');
+                showSweetAlert('网络错误', 
+                    '<div class="text-center">' +
+                    '<div class="mb-3">' +
+                    '<i class="fas fa-wifi fa-3x text-danger mb-3"></i>' +
+                    '<h5 class="text-danger mb-2">🌐 网络连接失败</h5>' +
+                    '</div>' +
+                    '<div class="alert alert-danger border-danger">' +
+                    '<div class="d-flex align-items-center">' +
+                    '<i class="fas fa-exclamation-triangle fa-2x text-danger me-3"></i>' +
+                    '<div class="text-start">' +
+                    '<h6 class="mb-1 text-danger">连接问题</h6>' +
+                    '<small>无法连接到采集服务，请检查服务状态后重试</small>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>', 
+                    'error');
             });
         }
     });

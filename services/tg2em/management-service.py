@@ -64,7 +64,9 @@ class ScraperManagementService:
             """)
             results = cursor.fetchall()
             
+            print(f"🔍 从数据库查询到的配置记录数: {len(results)}")
             for result in results:
+                print(f"  - {result['config_key']}: {result['config_value'][:10]}***")
                 if result['config_key'] == 'telegram_api_id':
                     config['api_id'] = result['config_value']
                 elif result['config_key'] == 'telegram_api_hash':
@@ -73,7 +75,10 @@ class ScraperManagementService:
                     config['phone_number'] = result['config_value']
             
             conn.close()
-            print(f"✅ 从数据库获取Telegram配置: API_ID={config['api_id'][:4]}***, Phone={config['phone_number']}")
+            print(f"✅ 从数据库获取Telegram配置:")
+            print(f"  - API_ID: {'已配置' if config['api_id'] else '未配置'}")
+            print(f"  - API_Hash: {'已配置' if config['api_hash'] else '未配置'}")
+            print(f"  - Phone: {'已配置' if config['phone_number'] else '未配置'}")
             
         except Exception as e:
             print(f"⚠️ 从数据库获取配置失败，使用环境变量: {e}")
@@ -375,12 +380,11 @@ def handle_scrape_start():
 def handle_config_refresh():
     """处理配置缓存刷新请求"""
     try:
-        # 这里可以添加清除配置缓存的逻辑
-        # 由于配置是从数据库动态读取的，主要需要清除采集服务中的缓存
         print("🔄 收到配置缓存刷新请求")
         
-        # 可以在这里添加清除缓存的逻辑
-        # 比如重启采集服务或者发送信号清除缓存
+        # 重新加载配置
+        management_service.reload_config()
+        print("✅ 配置已重新加载")
         
         return jsonify({
             'success': True,

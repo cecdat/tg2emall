@@ -34,6 +34,7 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('tgstate_pass', 'none', 'string', 'tgState 图床访问密码（设置访问保护）', 'tgstate'),
 ('tgstate_mode', 'p', 'string', 'tgState 运行模式（p=API模式，m=文件服务模式）', 'tgstate'),
 ('tgstate_url', 'https://img.237890.xyz', 'string', 'tgState 基础URL地址', 'tgstate'),
+('public_url', 'https://img.237890.xyz', 'string', '公网访问地址（用于图片URL生成）', 'tgstate'),
 
 -- Telegram 采集配置
 ('telegram_api_id', '', 'string', 'Telegram API ID（从 https://my.telegram.org 获取）', 'telegram'),
