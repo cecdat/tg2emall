@@ -73,13 +73,31 @@ class CacheManager:
             
             # 尝试解析JSON
             try:
-                return json.loads(value)
+                parsed_value = json.loads(value)
+                # 恢复datetime对象
+                return self._restore_datetime_objects(parsed_value)
             except (json.JSONDecodeError, TypeError):
                 # 如果不是JSON，直接返回字符串
                 return value
         except Exception as e:
             logger.error(f"获取缓存失败 {key}: {e}")
             return None
+    
+    def _restore_datetime_objects(self, obj: Any) -> Any:
+        """递归恢复对象中的datetime对象"""
+        if isinstance(obj, dict):
+            return {k: self._restore_datetime_objects(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._restore_datetime_objects(item) for item in obj]
+        elif isinstance(obj, str):
+            # 尝试解析ISO格式的datetime字符串
+            try:
+                from datetime import datetime
+                return datetime.fromisoformat(obj)
+            except (ValueError, TypeError):
+                return obj
+        else:
+            return obj
     
     def set(self, key: str, value: Any, ttl: Optional[Union[int, timedelta]] = None) -> bool:
         """
@@ -97,11 +115,8 @@ class CacheManager:
             return False
             
         try:
-            # 序列化数据
-            if isinstance(value, (dict, list)):
-                serialized_value = json.dumps(value, ensure_ascii=False)
-            else:
-                serialized_value = str(value)
+            # 序列化数据，处理datetime对象
+            serialized_value = self._serialize_value(value)
             
             # 设置TTL
             if ttl is None:
@@ -115,6 +130,28 @@ class CacheManager:
         except Exception as e:
             logger.error(f"设置缓存失败 {key}: {e}")
             return False
+    
+    def _serialize_value(self, value: Any) -> str:
+        """序列化值，处理datetime等特殊类型"""
+        if isinstance(value, (dict, list)):
+            # 递归处理字典和列表中的datetime对象
+            processed_value = self._process_datetime_objects(value)
+            return json.dumps(processed_value, ensure_ascii=False)
+        elif hasattr(value, 'isoformat'):  # datetime对象
+            return value.isoformat()
+        else:
+            return str(value)
+    
+    def _process_datetime_objects(self, obj: Any) -> Any:
+        """递归处理对象中的datetime对象"""
+        if isinstance(obj, dict):
+            return {k: self._process_datetime_objects(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._process_datetime_objects(item) for item in obj]
+        elif hasattr(obj, 'isoformat'):  # datetime对象
+            return obj.isoformat()
+        else:
+            return obj
     
     def delete(self, key: str) -> bool:
         """

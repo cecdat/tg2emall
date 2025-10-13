@@ -68,18 +68,35 @@ signal.signal(signal.SIGTERM, signal_handler)
 async def init_mysql_pool():
     """初始化 MySQL 连接池"""
     global mysql_pool
+    if mysql_pool is not None:
+        return  # 连接池已存在，直接返回
+    
     mysql_config = config["mysql"]
-    mysql_pool = await aiomysql.create_pool(
-        host=mysql_config["host"],
-        port=mysql_config["port"],
-        user=mysql_config["user"],
-        password=mysql_config["password"],
-        db=mysql_config["database"],
-        autocommit=True,
-        minsize=1,
-        maxsize=10
-    )
-    logging.info("MySQL 连接池初始化成功")
+    try:
+        mysql_pool = await aiomysql.create_pool(
+            host=mysql_config["host"],
+            port=mysql_config["port"],
+            user=mysql_config["user"],
+            password=mysql_config["password"],
+            db=mysql_config["database"],
+            autocommit=True,
+            minsize=1,
+            maxsize=10,
+            loop=asyncio.get_event_loop()  # 明确指定事件循环
+        )
+        logging.info("MySQL 连接池初始化成功")
+    except Exception as e:
+        logging.error(f"MySQL 连接池初始化失败: {e}")
+        raise
+
+async def close_mysql_pool():
+    """关闭 MySQL 连接池"""
+    global mysql_pool
+    if mysql_pool is not None:
+        mysql_pool.close()
+        await mysql_pool.wait_closed()
+        mysql_pool = None
+        logging.info("MySQL 连接池已关闭")
 
 class MySQLConnectionManager:
     """异步上下文管理器，用于管理 MySQL 连接"""
@@ -837,17 +854,24 @@ def normalize_channel(line):
     if not line:
         return None
     
+    # 如果包含换行符，只取第一行
+    if '\n' in line:
+        line = line.split('\n')[0].strip()
+    
     if line.startswith('http'):
         return {'url': line}
     
     if line.startswith('@'):
         return {'id': line}
     
-    if line.startswith('-') and line[1:].isdigit():
-        return {'id': int(line)}
-    
-    if line.isdigit():
-        return {'id': int(line)}
+    # 检查是否为纯数字ID（包括负数）
+    try:
+        if line.startswith('-') and line[1:].isdigit():
+            return {'id': int(line)}
+        elif line.isdigit():
+            return {'id': int(line)}
+    except ValueError:
+        pass
     
     return {'id': f"@{line}"}
 

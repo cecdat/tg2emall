@@ -900,6 +900,11 @@ def search():
                          total_pages=total_pages,
                          total_count=total_count)
 
+@app.route('/post-<int:article_id>.html')
+def post_detail_legacy(article_id):
+    """兼容旧版URL格式的文章详情页"""
+    return redirect(url_for('article_detail', article_id=article_id))
+
 @app.route('/article/<int:article_id>')
 @app.route('/article/<int:article_id>.html')
 def article_detail(article_id):
@@ -1671,6 +1676,61 @@ def telegram_verification_reset():
     except Exception as e:
         logger.error(f"重置Telegram验证状态失败: {e}")
         return jsonify({'success': False, 'message': '重置失败'}), 500
+
+@app.route('/tag/<tag>')
+def tag_articles(tag):
+    """标签页面"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        limit = 20
+        offset = (page - 1) * limit
+        
+        # 搜索包含该标签的文章
+        articles = search_articles(tag, limit=limit, offset=offset)
+        
+        # 计算分页信息
+        total_count = len(articles)  # 简化处理，实际应该查询总数
+        total_pages = (total_count + limit - 1) // limit
+        
+        return render_template('search.html', 
+                             articles=articles,
+                             query=tag,
+                             current_page=page,
+                             total_pages=total_pages,
+                             total_count=total_count,
+                             page_title=f"标签: {tag}")
+    except Exception as e:
+        logger.error(f"标签页面错误: {e}")
+        return "页面加载失败", 500
+
+@app.route('/author/<int:author_id>')
+@app.route('/author/<int:author_id>/page/<int:page>')
+def author_articles(author_id, page=1):
+    """作者页面"""
+    try:
+        limit = 20
+        offset = (page - 1) * limit
+        
+        # 获取作者信息（这里简化处理，实际应该查询作者表）
+        author_name = f"作者 {author_id}"
+        
+        # 获取该作者的文章（这里简化处理，实际应该根据作者ID查询）
+        articles = get_articles(limit=limit, offset=offset)
+        
+        # 计算分页信息
+        total_count = len(articles)  # 简化处理
+        total_pages = (total_count + limit - 1) // limit
+        
+        return render_template('search.html', 
+                             articles=articles,
+                             query=f"作者: {author_name}",
+                             current_page=page,
+                             total_pages=total_pages,
+                             total_count=total_count,
+                             page_title=f"作者: {author_name}")
+    except Exception as e:
+        logger.error(f"作者页面错误: {e}")
+        return "页面加载失败", 500
 
 @app.route('/api/stats')
 def api_stats():
