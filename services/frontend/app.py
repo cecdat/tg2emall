@@ -1338,6 +1338,7 @@ def admin_config_update():
                 response = requests.post('http://tg2em-scrape:2003/api/config/refresh', timeout=5)
                 if response.status_code == 200:
                     # 已通知采集服务刷新配置缓存（减少日志输出）
+                    pass
                 else:
                     logger.warning(f"采集服务配置刷新失败: {response.status_code}")
             except Exception as e:
