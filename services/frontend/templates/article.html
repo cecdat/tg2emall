@@ -303,16 +303,25 @@ function copyShareUrl() {
     }, 2000);
 }
 
-// 加载相关文章
+// 加载统计信息
 document.addEventListener('DOMContentLoaded', function() {
-    // 这里可以添加加载相关文章的逻辑
-    // 暂时显示占位内容
-    const relatedContainer = document.getElementById('related-articles');
-    relatedContainer.innerHTML = `
-        <div class="col-12 text-center py-3">
-            <p class="text-muted">暂无相关推荐</p>
-        </div>
-    `;
+    // 加载统计信息
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('total-articles').textContent = data.data.total_articles || 0;
+                document.getElementById('today-articles').textContent = data.data.today_articles || 0;
+                document.getElementById('total-categories').textContent = data.data.total_categories || 0;
+            }
+        })
+        .catch(error => {
+            console.error('加载统计信息失败:', error);
+            // 显示默认值
+            document.getElementById('total-articles').textContent = '0';
+            document.getElementById('today-articles').textContent = '0';
+            document.getElementById('total-categories').textContent = '0';
+        });
 });
 </script>
 {% endblock %}

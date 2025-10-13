@@ -85,10 +85,29 @@ class ServiceController:
             
             # 外部服务通过端口检查
             else:
+                # 对于mysql和frontend，尝试获取进程ID
+                pid = None
+                if service_name == 'mysql':
+                    try:
+                        import subprocess
+                        result = subprocess.run(['pgrep', '-f', 'mysqld'], capture_output=True, text=True)
+                        if result.returncode == 0:
+                            pid = result.stdout.strip().split('\n')[0] if result.stdout.strip() else None
+                    except:
+                        pass
+                elif service_name == 'frontend':
+                    try:
+                        import subprocess
+                        result = subprocess.run(['pgrep', '-f', 'python.*app.py'], capture_output=True, text=True)
+                        if result.returncode == 0:
+                            pid = result.stdout.strip().split('\n')[0] if result.stdout.strip() else None
+                    except:
+                        pass
+                
                 return {
                     'success': True,
                     'status': 'running',  # 假设外部服务运行中
-                    'pid': None,
+                    'pid': pid,
                     'port': None,
                     'message': f'服务 {service_name} 运行中'
                 }

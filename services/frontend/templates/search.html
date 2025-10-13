@@ -42,36 +42,36 @@
                 {% for article in articles %}
                 <div class="result-item card mb-3">
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-12">
-                                <h5 class="card-title">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-2">
                                     <a href="{{ url_for('article_detail', article_id=article.id) }}" 
-                                       class="text-decoration-none">
+                                       class="text-decoration-none text-dark">
                                         {{ article.title }}
                                     </a>
                                 </h5>
-                                <div class="card-text text-muted">
-                                    {{ article.content[:200]|markdown|safe }}{% if article.content|length > 200 %}...{% endif %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <small class="text-muted me-3">
+                                        <i class="fas fa-calendar me-1"></i> {{ article.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </small>
+                                    {% if article.source_channel %}
+                                    <small class="text-info">
+                                        <i class="fas fa-source me-1"></i> {{ article.source_channel }}
+                                    </small>
+                                    {% endif %}
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="meta-info">
-                                        <small class="text-muted me-3">
-                                            <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                        </small>
-                                        {% if article.tags %}
-                                        <div class="tags d-inline">
-                                            {% for tag in article.tags.split(',')[:3] %}
-                                            <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
-                                            {% endfor %}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    <a href="{{ url_for('article_detail', article_id=article.id) }}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        查看详情 <i class="fas fa-arrow-right"></i>
-                                    </a>
+                                {% if article.tags %}
+                                <div class="tags">
+                                    {% for tag in article.tags.split(',')[:5] %}
+                                    <span class="badge bg-light text-dark me-1">{{ tag.strip() }}</span>
+                                    {% endfor %}
                                 </div>
+                                {% endif %}
                             </div>
+                            <a href="{{ url_for('article_detail', article_id=article.id) }}" 
+                               class="btn btn-sm btn-outline-primary ms-3">
+                                查看详情 <i class="fas fa-arrow-right"></i>
+                            </a>
                         </div>
                     </div>
                 </div>

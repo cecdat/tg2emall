@@ -85,98 +85,274 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function startService(serviceName) {
-    fetch(`/admin/services/${serviceName}/start`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    Swal.fire({
+        title: '启动服务',
+        text: `确定要启动 ${serviceName} 服务吗？`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '确定启动',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#28a745'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 显示加载状态
+            Swal.fire({
+                title: '正在启动...',
+                text: '请稍候',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/services/${serviceName}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '启动成功',
+                        text: data.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '启动失败',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '启动失败',
+                    text: '网络错误，请重试'
+                });
+            });
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('服务启动成功');
-            location.reload();
-        } else {
-            alert('服务启动失败: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('服务启动失败');
     });
 }
 
 function stopService(serviceName) {
-    if (confirm('确定要停止这个服务吗？')) {
-        fetch(`/admin/services/${serviceName}/stop`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('服务停止成功');
-                location.reload();
-            } else {
-                alert('服务停止失败: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('服务停止失败');
-        });
-    }
+    Swal.fire({
+        title: '停止服务',
+        text: `确定要停止 ${serviceName} 服务吗？`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '确定停止',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#dc3545'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 显示加载状态
+            Swal.fire({
+                title: '正在停止...',
+                text: '请稍候',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/services/${serviceName}/stop`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '停止成功',
+                        text: data.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '停止失败',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '停止失败',
+                    text: '网络错误，请重试'
+                });
+            });
+        }
+    });
 }
 
 function restartService(serviceName) {
-    if (confirm('确定要重启这个服务吗？')) {
-        fetch(`/admin/services/${serviceName}/restart`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('服务重启成功');
-                location.reload();
-            } else {
-                alert('服务重启失败: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('服务重启失败');
-        });
-    }
+    Swal.fire({
+        title: '重启服务',
+        text: `确定要重启 ${serviceName} 服务吗？`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '确定重启',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#ffc107'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 显示加载状态
+            Swal.fire({
+                title: '正在重启...',
+                text: '请稍候',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/admin/services/${serviceName}/restart`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '重启成功',
+                        text: data.message,
+                        timer: 2000
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '重启失败',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '重启失败',
+                    text: '网络错误，请重试'
+                });
+            });
+        }
+    });
 }
 
 function startScraping() {
-    if (confirm('确定要启动采集任务吗？')) {
-        fetch('/admin/scraping/start', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('采集任务启动成功');
-            } else {
-                alert('采集任务启动失败: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('采集任务启动失败');
-        });
-    }
+    Swal.fire({
+        title: '启动采集任务',
+        text: '确定要启动采集任务吗？这将启动采集服务并执行一次采集。',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '确定启动',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#007bff'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 显示加载状态
+            Swal.fire({
+                title: '正在启动采集服务...',
+                text: '请稍候',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // 尝试启动采集服务
+            fetch('/admin/services/scraper/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 等待2秒后启动采集任务
+                    setTimeout(() => {
+                        Swal.fire({
+                            title: '正在启动采集任务...',
+                            text: '请稍候',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        fetch('/admin/services/scraper/scrape/start', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(taskData => {
+                            if (taskData.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '采集任务启动成功',
+                                    text: taskData.message,
+                                    timer: 3000
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: '采集任务启动失败',
+                                    text: taskData.message
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: '采集任务启动失败',
+                                text: '网络错误，请重试'
+                            });
+                        });
+                    }, 2000);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '采集服务启动失败',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: '采集服务启动失败',
+                    text: '网络错误，请重试'
+                });
+            });
+        }
+    });
 }
 
 function refreshServiceStatus() {

@@ -13,17 +13,39 @@
         margin-bottom: 20px;
         background-color: #f8f9fa;
     }
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
     .config-item {
-        margin-bottom: 15px;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 0;
     }
     .config-item label {
         font-weight: 600;
         color: #495057;
+        margin-bottom: 8px;
+        display: block;
     }
     .config-description {
-        font-size: 0.875rem;
+        font-size: 0.8rem;
         color: #6c757d;
         margin-top: 5px;
+        line-height: 1.4;
+    }
+    .config-key {
+        font-size: 0.75rem;
+        color: #868e96;
+        font-family: 'Courier New', monospace;
+        background: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-bottom: 5px;
+        display: inline-block;
     }
 </style>
 {% endblock %}
@@ -43,41 +65,46 @@
                                     {{ group_name|title }} 配置
                                 </h6>
                                 
-                                {% for config in configs %}
-                                <div class="config-item">
-                                    <label for="{{ config.config_key }}" class="form-label">
-                                        {{ config.description or config.config_key }}
-                                    </label>
-                                    
-                                    {% if config.config_type == 'boolean' %}
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" 
-                                               id="{{ config.config_key }}" 
-                                               name="{{ config.config_key }}"
-                                               value="true"
-                                               {% if config.config_value == 'true' %}checked{% endif %}>
-                                        <label class="form-check-label" for="{{ config.config_key }}">
-                                            {{ config.config_description }}
+                                <div class="config-grid">
+                                    {% for config in configs %}
+                                    <div class="config-item">
+                                        <div class="config-key">{{ config.config_key }}</div>
+                                        <label for="{{ config.config_key }}" class="form-label">
+                                            {{ config.description or config.config_key }}
                                         </label>
+                                        
+                                        {% if config.config_type == 'boolean' %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="{{ config.config_key }}" 
+                                                   name="{{ config.config_key }}"
+                                                   value="true"
+                                                   {% if config.config_value == 'true' %}checked{% endif %}>
+                                            <label class="form-check-label" for="{{ config.config_key }}">
+                                                启用
+                                            </label>
+                                        </div>
+                                        {% elif config.config_type == 'text' %}
+                                        <textarea class="form-control" 
+                                                  id="{{ config.config_key }}" 
+                                                  name="{{ config.config_key }}" 
+                                                  rows="3">{{ config.config_value }}</textarea>
+                                        {% else %}
+                                        <input type="{{ 'number' if config.config_type == 'integer' else 'text' }}" 
+                                               class="form-control" 
+                                               id="{{ config.config_key }}" 
+                                               name="{{ config.config_key }}" 
+                                               value="{{ config.config_value }}">
+                                        {% endif %}
+                                        
+                                        {% if config.config_description %}
+                                        <div class="config-description">
+                                            {{ config.config_description }}
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    {% elif config.config_type == 'text' %}
-                                    <textarea class="form-control" 
-                                              id="{{ config.config_key }}" 
-                                              name="{{ config.config_key }}" 
-                                              rows="3">{{ config.config_value }}</textarea>
-                                    {% else %}
-                                    <input type="{{ 'number' if config.config_type == 'integer' else 'text' }}" 
-                                           class="form-control" 
-                                           id="{{ config.config_key }}" 
-                                           name="{{ config.config_key }}" 
-                                           value="{{ config.config_value }}">
-                                    {% endif %}
-                                    
-                                    <div class="config-description">
-                                        {{ config.config_description }}
-                                    </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
                             </div>
                             {% endfor %}
                             
