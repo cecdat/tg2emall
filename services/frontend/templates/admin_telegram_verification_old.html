@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram 验证 - tg2emall</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .admin-sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .admin-sidebar .nav-link {
+            color: #adb5bd;
+        }
+        .admin-sidebar .nav-link:hover,
+        .admin-sidebar .nav-link.active {
+            color: #fff;
+            background-color: #495057;
+        }
+        .verification-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        .status-waiting {
+            background-color: #ffc107;
+            animation: pulse 2s infinite;
+        }
+        .status-completed {
+            background-color: #28a745;
+        }
+        .status-error {
+            background-color: #dc3545;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .code-input {
+            font-size: 2rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .instruction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        .log-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            padding: 5px 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .refresh-indicator {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid rgba(255,255,255,0);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 admin-sidebar p-0">
+                <div class="p-3">
+                    <h5 class="text-white mb-4">
+                        <i class="fas fa-cogs"></i> 
+                        管理中心
+                    </h5>
+                    <nav class="nav flex-column">
+                        <h6 class="text-light mb-2">主要功能</h6>
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            控制台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_articles') }}">
+                            <i class="fas fa-list me-2"></i>
+                            文章管理
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_config') }}">
+                            <i class="fas fa-cogs me-2"></i>
+                            配置管理
+                        </a>
+                        <a class="nav-link active" href="{{ url_for('telegram_verification') }}">
+                            <i class="fab fa-telegram me-2"></i>
+                            Telegram验证
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_services') }}">
+                            <i class="fas fa-server me-2"></i>
+                            服务管理
+                        </a>
+                        
+                        <h6 class="text-light mt-4 mb-2">安全设置</h6>
+                        <a class="nav-link" href="{{ url_for('admin_password') }}">
+                            <i class="fas fa-key me-2"></i>
+                            密码管理
+                        </a>
+                        
+                        <h6 class="text-light mt-4 mb-2">其他操作</h6>
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-2"></i>
+                            返回前台
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin_logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            退出登录
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="col-md-10 p-4">
+                <!-- 页面标题 -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>
+                            <i class="fab fa-telegram text-primary me-2"></i>
+                            Telegram 验证
+                        </h2>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="/admin">控制台</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="{{ url_for('admin_config') }}">配置管理</a>
+                                </li>
+                                <li class="breadcrumb-item active">Telegram验证</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-success me-3">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ session.username }}
+                        </span>
+                        <small class="text-muted me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </small>
+                        <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 验证状态卡片 -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-info-circle text-info me-2"></i>
+                                    验证状态
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <span class="status-indicator status-waiting" id="statusIndicator"></span>
+                                    <span id="statusText">正在检查验证状态...</span>
+                                </div>
+                                <div class="form-text">
+                                    <strong>说明：</strong>首次登录 Telegram 或重新配置 API 时需要进行手机验证
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-tools text-warning me-2"></i>
+                                    快速操作
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="refreshStatus()">
+                                        <i class="fas fa-sync-alt me-1"></i>
+                                        刷新状态
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetVerification()">
+                                        <i class="fas fa-undo me-1"></i>
+                                        重置验证
+                                    </button>
+                                    <a href="{{ url_for('admin_services') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-server me-1"></i>
+                                        服务管理
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 验证码输入说明 -->
+                <div class="verification-container mb-4" id="verificationArea" style="display: none;">
+                    <div class="instruction-card p-4 mb-4">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <i class="fas fa-terminal fa-3x opacity-75"></i>
+                            </div>
+                            <div class="col">
+                                <h4 class="mb-2">🔐 Telegram 验证码输入</h4>
+                                <p class="mb-0">Telegram 已向您的手机发送了5位数字验证码，请按照下方说明在服务器终端输入验证码。</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle"></i> 验证码输入步骤
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-mobile-alt"></i> 第一步：检查手机短信</h6>
+                                <p class="mb-2">Telegram会向您的手机发送5位数字验证码，请查看短信。</p>
+                                
+                                <h6><i class="fas fa-terminal"></i> 第二步：在服务器终端输入验证码</h6>
+                                <p class="mb-2">在服务器终端执行以下命令：</p>
+                                <div class="bg-dark text-light p-3 rounded mb-3">
+                                    <code>docker attach tg2em-scrape</code>
+                                </div>
+                                
+                                <h6><i class="fas fa-keyboard"></i> 第三步：输入验证码</h6>
+                                <p class="mb-0">当看到验证码提示时，直接输入5位数字并按回车即可。</p>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>重要提示：</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>验证码输入必须在服务器终端进行</li>
+                                    <li>无法通过Web界面输入验证码</li>
+                                    <li>输入完成后按 <kbd>Ctrl+P</kbd> <kbd>Ctrl+Q</kbd> 退出attach模式</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 完成状态显示 -->
+                <div class="verification-container mb-4" id="completedArea" style="display: none;">
+                    <div class="card border-success">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle text-success mb-3" style="font-size: 4rem;"></i>
+                            <h3 class="text-success mb-3">🎉 验证完成！</h3>
+                            <p class="text-muted mb-4">
+                                Telegram 验证已成功完成，系统可以正常采集消息了。
+                            </p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="{{ url_for('admin_services') }}" class="btn btn-success">
+                                    <i class="fas fa-server me-2"></i>
+                                    启动采集服务
+                                </a>
+                                <a href="{{ url_for('admin_config') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    配置管理
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 验证日志 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list-alt text-secondary me-2"></i>
+                                验证日志
+                            </h5>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshLogs()">
+                                <i class="fas fa-sync-alt me-1"></i>
+                                刷新
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="log-container" id="verificationLogs">
+                            <div class="log-entry">正在加载验证日志...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let statusCheckInterval = null;
+        
+        // 页面加载时检查状态
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            
+            // 自动刷新状态（每10秒）
+            statusCheckInterval = setInterval(refreshStatus, 10000);
+        });
+        
+        // 页面卸载时清除定时器
+        window.addEventListener('beforeunload', function() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+        });
+        
+        // 刷新验证状态
+        function refreshStatus() {
+            fetch('/admin/telegram/verification/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateStatusDisplay(data);
+                })
+                .catch(error => {
+                    console.error('获取状态失败:', error);
+                    document.getElementById('statusText').textContent = '状态检查失败';
+                });
+        }
+        
+        // 更新状态显示
+        function updateStatusDisplay(data) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const verificationArea = document.getElementById('verificationArea');
+            const completedArea = document.getElementById('completedArea');
+            
+            if (!data.success) {
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = '状态检查失败';
+                return;
+            }
+            
+            // 根据实际状态判断
+            if (data.status === 'waiting') {
+                // 等待输入验证码
+                statusIndicator.className = 'status-indicator status-waiting';
+                statusText.textContent = data.message || '等待输入验证码';
+                verificationArea.style.display = 'block';
+                if (completedArea) completedArea.style.display = 'none';
+            } else if (data.status === 'submitted') {
+                // 验证码已提交，等待验证
+                statusIndicator.className = 'status-indicator status-waiting';
+                statusText.textContent = data.message || '验证码已提交，等待验证...';
+                verificationArea.style.display = 'none';
+                if (completedArea) completedArea.style.display = 'block';
+            } else if (data.status === 'idle') {
+                // 无需验证或已完成
+                statusIndicator.className = 'status-indicator status-completed';
+                statusText.textContent = data.message || '无需验证';
+                verificationArea.style.display = 'none';
+                if (completedArea) completedArea.style.display = 'block';
+            } else {
+                // 未知状态
+                statusIndicator.className = 'status-indicator status-error';
+                statusText.textContent = data.message || '状态未知';
+                verificationArea.style.display = 'none';
+            }
+            
+            // 同时刷新日志
+            refreshLogs();
+        }
+        
+        // 刷新验证日志
+        function refreshLogs() {
+            fetch('/admin/telegram/verification/logs')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.logs) {
+                        updateLogsDisplay(data.logs);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取日志失败:', error);
+                });
+        }
+        
+        // 更新日志显示
+        function updateLogsDisplay(logs) {
+            const logContainer = document.getElementById('verificationLogs');
+            if (!logContainer) return;
+            
+            if (logs.length === 0) {
+                logContainer.innerHTML = '<div class="log-entry text-muted">暂无日志</div>';
+                return;
+            }
+            
+            logContainer.innerHTML = logs.map(log => {
+                // 高亮关键信息
+                let logClass = 'log-entry';
+                if (log.includes('✅') || log.includes('成功')) {
+                    logClass += ' text-success';
+                } else if (log.includes('❌') || log.includes('失败') || log.includes('ERROR')) {
+                    logClass += ' text-danger';
+                } else if (log.includes('⚠️') || log.includes('警告') || log.includes('WARNING')) {
+                    logClass += ' text-warning';
+                } else if (log.includes('🔐') || log.includes('📱') || log.includes('验证')) {
+                    logClass += ' text-primary';
+                }
+                
+                return `<div class="${logClass}">${escapeHtml(log)}</div>`;
+            }).join('');
+            
+            // 自动滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 删除验证码提交相关的JavaScript代码，因为现在通过终端输入
+        
+        // 重置验证
+        function resetVerification() {
+            if (confirm('确定要重置Telegram验证状态吗？这将清除所有验证信息。')) {
+                fetch('/admin/telegram/verification/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('验证状态已重置');
+                        refreshStatus();
+                    } else {
+                        alert('重置失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('重置失败:', error);
+                    alert('重置失败，请重试');
+                });
+            }
+        }
+        
+        // 重新获取验证码
+        function resendCode() {
+            alert('请在Telegram客户端中重新请求验证码，或检查手机短信');
+        }
+        
+        // 刷新日志
+        function refreshLogs() {
+            document.getElementById('verificationLogs').innerHTML = 
+                '<div class="log-entry">' + new Date().toLocaleString() + ' - 正在检查日志...</div>';
+            
+            // 这里可以添加实际的日志获取逻辑
+            setTimeout(() => {
+                document.getElementById('verificationLogs').innerHTML = `
+                    <div class="log-entry">${new Date().toLocaleString()} - 系统启动，检查Telegram验证状态</div>
+                    <div class="log-entry">${new Date().toLocaleString()} - Telegram客户端初始化</div>
+                    <div class="log-entry text-info">${new Date().toLocaleString()} - 等待验证码输入...</div>
+                `;
+            }, 1000);
+        }
+        
+        // 删除验证码输入相关的JavaScript代码，因为现在通过终端输入
+        // 验证码输入功能已移除，用户需要在服务器终端使用 docker attach tg2em-scrape 命令输入验证码
+        
+        // 初始加载日志
+        refreshLogs();
+    </script>
+</body>
+</html>
