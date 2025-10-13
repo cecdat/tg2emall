@@ -324,6 +324,38 @@ def get_advertisements(position):
         logger.error(f"获取广告位失败: {e}")
         return []
 
+def create_mixed_content(articles, ads):
+    """创建资源列表和广告位的混合内容"""
+    import random
+    
+    # 如果没有广告，直接返回所有资源
+    if not ads:
+        return [{'type': 'article', 'content': article} for article in articles]
+    
+    # 创建混合内容列表
+    mixed_content = []
+    
+    # 将资源转换为字典格式
+    for article in articles:
+        mixed_content.append({'type': 'article', 'content': article})
+    
+    # 随机选择4个位置插入广告
+    if len(mixed_content) >= 4:
+        # 生成4个随机位置（确保不重复且不在开头和结尾）
+        positions = random.sample(range(1, len(mixed_content)), min(4, len(mixed_content) - 1))
+        positions.sort(reverse=True)  # 从后往前插入，避免位置偏移
+        
+        # 随机选择广告
+        selected_ads = random.sample(ads, min(4, len(ads)))
+        
+        # 在随机位置插入广告
+        for i, pos in enumerate(positions):
+            if i < len(selected_ads):
+                ad = selected_ads[i]
+                mixed_content.insert(pos, {'type': 'ad', 'content': ad})
+    
+    return mixed_content
+
 # 注册Jinja2过滤器
 app.jinja_env.filters['markdown'] = render_markdown
 app.jinja_env.filters['extract_image_url'] = extract_image_url
@@ -695,7 +727,7 @@ def index():
     """首页"""
     try:
         # 获取数据
-        articles = get_articles(16, 0)
+        articles = get_articles(20, 0)  # 获取20个资源
         recent_articles = get_recent_articles(5)
         popular_searches = get_popular_searches()
         categories = get_categories()
@@ -703,6 +735,9 @@ def index():
         # 获取广告位
         homepage_middle_ads = get_advertisements('homepage-middle')
         homepage_resources_ads = get_advertisements('homepage-resources')
+        
+        # 处理资源列表和广告位混合显示
+        mixed_content = create_mixed_content(articles, homepage_resources_ads)
         
         # 统计信息
         stats = {
@@ -718,7 +753,7 @@ def index():
                              popular_searches=popular_searches,
                              categories=categories,
                              homepage_middle_ads=homepage_middle_ads,
-                             homepage_resources_ads=homepage_resources_ads,
+                             mixed_content=mixed_content,
                              stats=stats)
     except Exception as e:
         logger.error(f"首页路由处理失败: {e}")
@@ -726,6 +761,10 @@ def index():
         return render_template('index.html', 
                              articles=[], 
                              recent_articles=[],
+                             popular_searches=[],
+                             categories=[],
+                             homepage_middle_ads=[],
+                             mixed_content=[],
                              stats={'total_articles': 0, 'data_available': False})
 
 @app.route('/search')
