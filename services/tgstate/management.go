@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"csz.net/tgstate/conf"
+	"csz.net/tgstate/control"
 	"csz.net/tgstate/utils"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -173,6 +174,9 @@ func (api *ManagementAPI) StartManagementAPI() {
 
 	// 提供实际的图片上传API
 	mux.HandleFunc("/api", api.handleImageUpload)
+
+	// 图片访问路由 - 处理 /d/ 路径的图片请求
+	mux.HandleFunc("/d/", api.handleImageAccess)
 
 	// 密码验证页面
 	mux.HandleFunc("/pwd", api.handlePasswordCheck)
@@ -1250,6 +1254,12 @@ func (api *ManagementAPI) waitForSignal() {
 	}
 
 	fmt.Println("✅ 管理API已关闭")
+}
+
+// handleImageAccess 处理图片访问请求
+func (api *ManagementAPI) handleImageAccess(w http.ResponseWriter, r *http.Request) {
+	// 直接调用control包中的D函数处理图片访问
+	control.D(w, r)
 }
 
 // handleRoot 处理根路径
