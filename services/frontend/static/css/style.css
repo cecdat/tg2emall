@@ -491,7 +491,7 @@ a:hover {
     position: sticky;
     top: 20px;
     max-height: calc(100vh - 40px);
-    overflow-y: auto;
+    overflow-y: visible;
 }
 
 /* 响应式设计 - 移动端取消固定定位 */
@@ -524,10 +524,11 @@ a:hover {
 .resource-card .card-text img {
     max-width: 100%;
     height: auto;
-    max-height: 120px;
-    object-fit: cover;
+    max-height: 150px;
+    object-fit: contain;
     border-radius: 4px;
     margin: 5px 0;
+    display: block;
 }
 
 .resource-card .card-title {
@@ -569,7 +570,17 @@ a:hover {
 .waterfall-item .resource-card {
     height: auto;
     min-height: 280px;
-    max-height: 400px;
+    max-height: 500px;
+}
+
+.waterfall-item .resource-card .card-text img {
+    max-width: 100%;
+    height: auto;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 4px;
+    margin: 5px 0;
+    display: block;
 }
 
 .waterfall-item .ad-card {

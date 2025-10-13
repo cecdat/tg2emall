@@ -959,13 +959,16 @@ def article_detail(article_id):
     # 记录文章点击
     track_article_click(article_id, request)
     
-    recent_articles = get_recent_articles(5)
+    # 获取侧边栏需要的数据
+    popular_articles = get_popular_articles(5)
+    categories = get_categories()
     article_middle_ads = get_advertisements('article-middle')
     article_sidebar_ads = get_advertisements('article-sidebar')
     
     return render_template('article.html', 
                          article=article,
-                         recent_articles=recent_articles,
+                         popular_articles=popular_articles,
+                         categories=categories,
                          article_middle_ads=article_middle_ads,
                          article_sidebar_ads=article_sidebar_ads)
 
