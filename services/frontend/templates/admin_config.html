@@ -67,49 +67,58 @@
                                 
                                 <div class="config-grid">
                                 {% for config in configs %}
-                                <div class="config-item">
-                                        <div class="config-key">{{ config.config_key }}</div>
-                                    <label for="{{ config.config_key }}" class="form-label">
-                                            {% set config_names = {
-                                                'site_name': '网站名称',
-                                                'site_description': '网站描述',
-                                                'site_keywords': '网站关键词',
-                                                'site_author': '网站作者',
-                                                'site_url': '网站地址',
-                                                'site_logo': '网站Logo',
-                                                'seo_title_template': 'SEO标题模板',
-                                                'seo_description_length': 'SEO描述长度',
-                                                'seo_enable_og_tags': '启用Open Graph标签',
-                                                'seo_enable_twitter_cards': '启用Twitter卡片',
-                                                'google_analytics': 'Google Analytics',
-                                                'baidu_tongji': '百度统计',
-                                                'enable_structured_data': '启用结构化数据',
-                                                'admin_username': '管理员用户名',
-                                                'admin_password': '管理员密码',
-                                                'admin_captcha': '管理员验证码',
-                                                'mysql_host': 'MySQL主机',
-                                                'mysql_port': 'MySQL端口',
-                                                'mysql_user': 'MySQL用户名',
-                                                'mysql_password': 'MySQL密码',
-                                                'mysql_database': 'MySQL数据库',
-                                                'redis_host': 'Redis主机',
-                                                'redis_port': 'Redis端口',
-                                                'redis_password': 'Redis密码',
-                                                'redis_db': 'Redis数据库',
-                                                'scraper_interval': '采集间隔',
-                                                'scraper_channels': '采集频道',
-                                                'telegram_api_id': 'Telegram API ID',
-                                                'telegram_api_hash': 'Telegram API Hash',
-                                                'telegram_phone': 'Telegram手机号',
-                                                'telegram_session_string': 'Telegram会话字符串',
-                                                'telegram_verification_required': '需要Telegram验证',
-                                                'telegram_verification_code': 'Telegram验证码',
-                                                'telegram_verification_submitted': 'Telegram验证码已提交',
-                                                'telegram_verification_message': 'Telegram验证消息',
-                                                'telegram_session_valid': 'Telegram会话有效'
-                                            } %}
-                                            {{ config_names.get(config.config_key, config.config_key|replace('_', ' ')|title) }}
-                                    </label>
+                                    <div class="config-item">
+                                        {% set config_names = {
+                                            'site_name': '网站名称',
+                                            'site_description': '网站描述',
+                                            'site_keywords': '网站关键词',
+                                            'site_author': '网站作者',
+                                            'site_url': '网站地址',
+                                            'site_logo': '网站Logo',
+                                            'seo_title_template': 'SEO标题模板',
+                                            'seo_description_length': 'SEO描述长度',
+                                            'seo_enable_og_tags': '启用Open Graph标签',
+                                            'seo_enable_twitter_cards': '启用Twitter卡片',
+                                            'google_analytics': 'Google Analytics',
+                                            'baidu_tongji': '百度统计',
+                                            'enable_structured_data': '启用结构化数据',
+                                            'admin_username': '管理员用户名',
+                                            'admin_password': '管理员密码',
+                                            'admin_captcha': '管理员验证码',
+                                            'mysql_host': 'MySQL主机',
+                                            'mysql_port': 'MySQL端口',
+                                            'mysql_user': 'MySQL用户名',
+                                            'mysql_password': 'MySQL密码',
+                                            'mysql_database': 'MySQL数据库',
+                                            'redis_host': 'Redis主机',
+                                            'redis_port': 'Redis端口',
+                                            'redis_password': 'Redis密码',
+                                            'redis_db': 'Redis数据库',
+                                            'scraper_interval': '采集间隔',
+                                            'scraper_channels': '采集频道',
+                                            'telegram_api_id': 'Telegram API ID',
+                                            'telegram_api_hash': 'Telegram API Hash',
+                                            'telegram_phone': 'Telegram手机号',
+                                            'telegram_session_string': 'Telegram会话字符串',
+                                            'telegram_verification_required': '需要Telegram验证',
+                                            'telegram_verification_code': 'Telegram验证码',
+                                            'telegram_verification_submitted': 'Telegram验证码已提交',
+                                            'telegram_verification_message': 'Telegram验证消息',
+                                            'telegram_session_valid': 'Telegram会话有效',
+                                            'image_quality': '图片质量',
+                                            'image_max_width': '图片最大宽度',
+                                            'image_max_height': '图片最大高度',
+                                            'image_format': '图片格式',
+                                            'image_compression': '图片压缩',
+                                            'scraper_enabled': '启用采集',
+                                            'scraper_max_articles': '最大文章数',
+                                            'scraper_retry_count': '重试次数',
+                                            'scraper_timeout': '超时时间',
+                                            'tgstate_enabled': '启用状态检查',
+                                            'tgstate_interval': '状态检查间隔',
+                                            'tgstate_timeout': '状态检查超时'
+                                        } %}
+                                        <div class="config-key">{{ config_names.get(config.config_key, config.config_key|replace('_', ' ')|title) }}</div>
                                     
                                     {% if config.config_type == 'boolean' %}
                                     <div class="form-check">
@@ -122,11 +131,19 @@
                                                 启用
                                         </label>
                                     </div>
-                                    {% elif config.config_type == 'text' %}
-                                    <textarea class="form-control" 
-                                              id="{{ config.config_key }}" 
-                                              name="{{ config.config_key }}" 
-                                              rows="3">{{ config.config_value }}</textarea>
+                                        {% elif config.config_type == 'text' %}
+                                        {% if config.config_key == 'scraper_channels' %}
+                                        <textarea class="form-control" 
+                                                  id="{{ config.config_key }}" 
+                                                  name="{{ config.config_key }}" 
+                                                  rows="6"
+                                                  placeholder="每行一个频道，支持多种格式：&#10;@channel_name&#10;https://t.me/channel_name&#10;channel_id">{{ config.config_value }}</textarea>
+                                        {% else %}
+                                        <textarea class="form-control" 
+                                                  id="{{ config.config_key }}" 
+                                                  name="{{ config.config_key }}" 
+                                                  rows="3">{{ config.config_value }}</textarea>
+                                        {% endif %}
                                     {% else %}
                                     <input type="{{ 'number' if config.config_type == 'integer' else 'text' }}" 
                                            class="form-control" 

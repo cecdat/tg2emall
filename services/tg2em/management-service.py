@@ -331,6 +331,51 @@ def handle_info():
         'data': info
     })
 
+@app.route('/api/telegram/init', methods=['POST'])
+def handle_telegram_init():
+    """处理Telegram客户端初始化请求"""
+    print("🔐 收到Telegram客户端初始化请求")
+    
+    if not management_service.is_running:
+        print("❌ 采集服务未运行，无法初始化Telegram")
+        return jsonify({
+            'success': False,
+            'message': '采集服务未运行，请先启动采集服务'
+        })
+    
+    try:
+        # 向采集服务发送Telegram初始化请求
+        scraper_url = f"http://localhost:{management_service.config['scraper_port']}/api/telegram/init"
+        
+        print(f"📡 向采集服务发送Telegram初始化请求: {scraper_url}")
+        response = requests.post(scraper_url, timeout=60)
+        print(f"📥 采集服务响应状态码: {response.status_code}")
+        
+        if response.status_code == 200:
+            result = response.json()
+            return jsonify(result)
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'采集服务响应错误: {response.status_code}'
+            })
+            
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'message': '缺少requests模块，请检查依赖安装'
+        })
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'message': '无法连接到采集服务'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Telegram客户端初始化失败: {str(e)}'
+        })
+
 @app.route('/api/scrape/start', methods=['POST'])
 def handle_scrape_start():
     """处理采集任务启动请求（代理到采集服务）"""

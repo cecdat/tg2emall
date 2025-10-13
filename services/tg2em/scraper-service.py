@@ -144,6 +144,36 @@ class ScraperService:
         finally:
             self.is_scraping = False
     
+    async def init_telegram_only(self) -> Dict[str, Any]:
+        """只初始化Telegram客户端，不执行采集任务"""
+        try:
+            if not self.scrape_module:
+                return {
+                    'success': False,
+                    'message': '采集模块未正确加载'
+                }
+            
+            logger.info("🔐 开始初始化Telegram客户端...")
+            
+            # 初始化数据库连接
+            await self.scrape_module.init_mysql_pool()
+            
+            # 初始化并登录 Telegram 客户端
+            await self.scrape_module.init_telegram_client()
+            logger.info("✅ Telegram 客户端初始化成功")
+            
+            return {
+                'success': True,
+                'message': 'Telegram客户端初始化成功'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Telegram客户端初始化失败: {e}")
+            return {
+                'success': False,
+                'message': f'Telegram客户端初始化失败: {str(e)}'
+            }
+
     def stop_scraping(self) -> Dict[str, Any]:
         """停止采集任务"""
         try:
@@ -192,6 +222,64 @@ def handle_config():
         })
     
     return jsonify(scraper_service.get_config())
+
+@app.route('/api/telegram/init', methods=['POST'])
+def handle_telegram_init():
+    """处理Telegram客户端初始化请求"""
+    logger.info("🔐 收到Telegram客户端初始化请求")
+    
+    if not scraper_service:
+        logger.error("❌ 采集服务未初始化")
+        return jsonify({
+            'success': False,
+            'message': '采集服务未初始化'
+        })
+    
+    # 在后台线程中运行异步Telegram初始化
+    import threading
+    
+    def run_telegram_init():
+        logger.info("🔄 Telegram初始化线程启动")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            logger.info("⏳ 开始初始化Telegram客户端...")
+            # 只初始化Telegram客户端，不执行采集任务
+            result = loop.run_until_complete(scraper_service.init_telegram_only())
+            logger.info(f"✅ Telegram初始化结果: {result}")
+        except Exception as e:
+            logger.error(f"❌ Telegram初始化异常: {e}")
+            import traceback
+            logger.error(f"异常堆栈: {traceback.format_exc()}")
+        finally:
+            # 安全关闭事件循环
+            try:
+                # 取消所有待处理的任务
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    task.cancel()
+                
+                # 等待所有任务完成
+                if pending:
+                    loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                
+                loop.close()
+                logger.info("🔄 Telegram初始化线程结束")
+            except Exception as cleanup_error:
+                logger.error(f"❌ 清理事件循环时出错: {cleanup_error}")
+                try:
+                    loop.close()
+                except:
+                    pass
+    
+    thread = threading.Thread(target=run_telegram_init)
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Telegram客户端初始化已启动，请查看日志了解进度'
+    })
 
 @app.route('/api/scraper/start', methods=['POST'])
 def handle_start_scraping():

@@ -78,13 +78,107 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 function refreshArticles() {
     location.reload();
 }
 
 function editArticle(articleId) {
-    window.open(`/admin/articles/${articleId}`, '_blank');
+    // 显示编辑弹窗
+    Swal.fire({
+        title: '编辑文章',
+        html: `
+            <div class="mb-3">
+                <label for="editTitle" class="form-label">标题</label>
+                <input type="text" class="form-control" id="editTitle" placeholder="请输入文章标题">
+            </div>
+            <div class="mb-3">
+                <label for="editContent" class="form-label">内容</label>
+                <textarea class="form-control" id="editContent" rows="10" placeholder="请输入文章内容"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="editTags" class="form-label">标签</label>
+                <input type="text" class="form-control" id="editTags" placeholder="请输入标签，用逗号分隔">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '保存',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#007bff',
+        width: '600px',
+        didOpen: () => {
+            // 加载文章数据
+            loadArticleData(articleId);
+        },
+        preConfirm: () => {
+            const title = document.getElementById('editTitle').value;
+            const content = document.getElementById('editContent').value;
+            const tags = document.getElementById('editTags').value;
+            
+            if (!title.trim()) {
+                Swal.showValidationMessage('请输入文章标题');
+                return false;
+            }
+            
+            return { title, content, tags };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            saveArticle(articleId, result.value);
+        }
+    });
+}
+
+function loadArticleData(articleId) {
+    fetch(`/admin/articles/${articleId}/data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('editTitle').value = data.article.title || '';
+                document.getElementById('editContent').value = data.article.content || '';
+                document.getElementById('editTags').value = data.article.tags || '';
+            }
+        })
+        .catch(error => {
+            console.error('加载文章数据失败:', error);
+        });
+}
+
+function saveArticle(articleId, data) {
+    fetch(`/admin/articles/${articleId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '保存成功',
+                text: '文章已更新',
+                timer: 2000
+            });
+            location.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: '保存失败',
+                text: result.message || '更新文章失败'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: '保存失败',
+            text: '网络错误，请重试'
+        });
+    });
 }
 
 function deleteArticle(articleId) {

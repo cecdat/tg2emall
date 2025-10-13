@@ -1236,13 +1236,39 @@ def admin_article_edit(article_id):
         logger.error(f"编辑文章页面失败: {e}")
         return "加载失败", 500
 
+@app.route('/admin/articles/<int:article_id>/data')
+@login_required
+def admin_article_data(article_id):
+    """获取文章数据（用于弹窗编辑）"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("SELECT id, title, content, tags FROM messages WHERE id = %s", (article_id,))
+            article = cursor.fetchone()
+            
+            if not article:
+                return jsonify({'success': False, 'message': '文章不存在'}), 404
+                
+            return jsonify({'success': True, 'article': article})
+    except Exception as e:
+        logger.error(f"获取文章数据失败: {e}")
+        return jsonify({'success': False, 'message': '获取文章数据失败'}), 500
+
 @app.route('/admin/articles/<int:article_id>', methods=['POST'])
 @login_required
 def admin_article_update(article_id):
     """更新文章"""
     try:
-        title = request.form.get('title')
-        content = request.form.get('content')
+        # 支持JSON和表单数据
+        if request.is_json:
+            data = request.get_json()
+            title = data.get('title')
+            content = data.get('content')
+            tags = data.get('tags')
+        else:
+            title = request.form.get('title')
+            content = request.form.get('content')
+            tags = request.form.get('tags')
         
         if not title or not content:
             return jsonify({'success': False, 'message': '标题和内容不能为空'}), 400
@@ -1251,9 +1277,9 @@ def admin_article_update(article_id):
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE messages 
-                SET title = %s, content = %s 
+                SET title = %s, content = %s, tags = %s
                 WHERE id = %s
-            """, (title, content, article_id))
+            """, (title, content, tags, article_id))
             conn.commit()
             
             # 文章更新成功（减少日志输出）
@@ -1289,14 +1315,20 @@ def admin_config():
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             
-            # 获取所有配置，按分类分组（排除不需要显示的验证参数）
+            # 获取所有配置，按分类分组（排除不需要显示的验证参数和多余的SEO参数）
             cursor.execute("""
                 SELECT * FROM system_config 
                 WHERE config_key NOT IN (
                     'telegram_session_valid',
                     'telegram_verification_code', 
                     'telegram_verification_required',
-                    'telegram_verification_submitted'
+                    'telegram_verification_submitted',
+                    'seo_description_length',
+                    'seo_enable_og_tags',
+                    'seo_enable_twitter_cards',
+                    'google_analytics',
+                    'baidu_tongji',
+                    'enable_structured_data'
                 )
                 ORDER BY category, config_key
             """)
