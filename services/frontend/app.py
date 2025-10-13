@@ -12,6 +12,7 @@ import logging
 import pymysql
 import requests
 import socket
+import markdown
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from contextlib import contextmanager
@@ -255,6 +256,44 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# 配置Markdown渲染
+def render_markdown(text):
+    """渲染Markdown文本为HTML"""
+    if not text:
+        return ""
+    
+    # 配置Markdown扩展
+    md = markdown.Markdown(
+        extensions=[
+            'markdown.extensions.fenced_code',
+            'markdown.extensions.tables',
+            'markdown.extensions.toc',
+            'markdown.extensions.codehilite',
+            'markdown.extensions.nl2br',
+            'markdown.extensions.sane_lists'
+        ],
+        extension_configs={
+            'markdown.extensions.codehilite': {
+                'css_class': 'highlight'
+            }
+        }
+    )
+    
+    # 渲染Markdown
+    html = md.convert(text)
+    
+    # 处理图片，添加响应式样式
+    html = re.sub(
+        r'<img([^>]*?)src="([^"]*?)"([^>]*?)>',
+        r'<img\1src="\2"\3 class="img-fluid rounded shadow" style="max-width: 100%; height: auto; margin: 10px 0;">',
+        html
+    )
+    
+    return html
+
+# 注册Jinja2过滤器
+app.jinja_env.filters['markdown'] = render_markdown
 
 def analyze_visit_source(user_agent, referrer, page_path):
     """分析访问来源"""

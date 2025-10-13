@@ -49,7 +49,7 @@
             <!-- 文章正文 -->
             <div class="article-body">
                 <div class="content-text">
-                    {{ article.content|replace('\n', '<br>')|safe }}
+                    {{ article.content|markdown|safe }}
                 </div>
             </div>
 
