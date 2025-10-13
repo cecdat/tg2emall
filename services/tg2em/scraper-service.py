@@ -145,7 +145,7 @@ class ScraperService:
             self.is_scraping = False
     
     async def init_telegram_only(self) -> Dict[str, Any]:
-        """只初始化Telegram客户端，不执行采集任务"""
+        """初始化Telegram客户端并自动开始采集任务"""
         try:
             if not self.scrape_module:
                 return {
@@ -162,9 +162,24 @@ class ScraperService:
             await self.scrape_module.init_telegram_client()
             logger.info("✅ Telegram 客户端初始化成功")
             
+            # 初始化完成后自动开始采集任务
+            logger.info("🚀 开始执行采集任务...")
+            await self.scrape_module.scrape_channel()
+            
+            # 启动定时采集任务
+            logger.info("🔄 启动定时采集任务...")
+            await self.scrape_module.run_periodic_scraper()
+            
+            self.last_scrape_time = datetime.now()
+            self.scrape_count += 1
+            
+            logger.info("✅ 采集任务完成")
+            
             return {
                 'success': True,
-                'message': 'Telegram客户端初始化成功'
+                'message': 'Telegram客户端初始化成功，采集任务已开始',
+                'scrape_time': self.last_scrape_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'scrape_count': self.scrape_count
             }
             
         except Exception as e:

@@ -1548,11 +1548,11 @@ def admin_telegram_init(service_name):
         
         # 调用采集管理服务的API
         import requests
-        # 先尝试启动采集服务，这会自动初始化Telegram客户端
-        start_url = 'http://tg2em-scrape:2003/api/management/start'
+        # 调用Telegram初始化API
+        init_url = 'http://tg2em-scrape:2003/api/telegram/init'
         
         try:
-            response = requests.post(start_url, timeout=60)
+            response = requests.post(init_url, timeout=60)
             result = response.json()
             
             if result.get('success'):

@@ -159,9 +159,32 @@ class ScraperManagementService:
             
             print(f"✅ 采集服务启动成功，PID: {self.scraper_process.pid}")
             
+            # 等待服务启动后自动初始化Telegram
+            import threading
+            import time
+            
+            def auto_init_telegram():
+                time.sleep(5)  # 等待5秒让服务完全启动
+                try:
+                    print("🔐 自动初始化Telegram客户端...")
+                    scraper_url = f"http://localhost:{self.config['scraper_port']}/api/telegram/init"
+                    response = requests.post(scraper_url, timeout=60)
+                    if response.status_code == 200:
+                        result = response.json()
+                        print(f"✅ Telegram初始化结果: {result}")
+                    else:
+                        print(f"❌ Telegram初始化失败: {response.status_code}")
+                except Exception as e:
+                    print(f"❌ 自动初始化Telegram失败: {e}")
+            
+            # 在后台线程中执行自动初始化
+            init_thread = threading.Thread(target=auto_init_telegram)
+            init_thread.daemon = True
+            init_thread.start()
+            
             return {
                 'success': True,
-                'message': '采集服务启动成功',
+                'message': '采集服务启动成功，正在自动初始化Telegram客户端...',
                 'pid': self.scraper_process.pid
             }
             
