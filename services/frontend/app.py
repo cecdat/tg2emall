@@ -610,9 +610,32 @@ def login_required(f):
 @app.context_processor
 def inject_template_vars():
     """注入模板变量"""
-    return {
-        'current_time': datetime.now()
-    }
+    try:
+        # 获取SEO配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT config_key, config_value 
+                FROM system_config 
+                WHERE category = 'seo'
+            """)
+            seo_configs = cursor.fetchall()
+            
+            # 转换为字典格式
+            seo_config = {}
+            for config in seo_configs:
+                seo_config[config['config_key']] = config['config_value']
+            
+            return {
+                'current_time': datetime.now(),
+                'seo_config': seo_config
+            }
+    except Exception as e:
+        logger.error(f"加载SEO配置失败: {e}")
+        return {
+            'current_time': datetime.now(),
+            'seo_config': {}
+        }
 
 # 数据库配置
 DB_CONFIG = {
@@ -1116,21 +1139,50 @@ def admin_login():
         password = request.form.get('password')
         captcha = request.form.get('captcha')
         
-        # 验证验证码
-        if captcha != '2025':
-            logger.warning(f"管理员登录失败: 验证码错误 - {username}")
-            return render_template('admin_login.html', error='验证码错误')
-        
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session['logged_in'] = True
-            session['username'] = username
-            session['login_time'] = datetime.now()
-            session['login_ip'] = request.remote_addr
-            # 管理员登录成功（减少日志输出）
-            return redirect(url_for('admin_index'))
-        else:
-            logger.warning(f"管理员登录失败: 用户名或密码错误 - {username}")
-            return render_template('admin_login.html', error='用户名或密码错误')
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor(pymysql.cursors.DictCursor)
+                
+                # 获取验证码配置
+                cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'admin_captcha'")
+                captcha_result = cursor.fetchone()
+                expected_captcha = captcha_result['config_value'] if captcha_result else '2025'
+                
+                # 验证验证码
+                if captcha != expected_captcha:
+                    logger.warning(f"管理员登录失败: 验证码错误 - {username}")
+                    return render_template('admin_login.html', error='验证码错误')
+                
+                # 获取密码配置
+                cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'admin_password'")
+                password_result = cursor.fetchone()
+                
+                # 验证用户名和密码
+                if username == ADMIN_USERNAME:
+                    if password_result and password_result['config_value']:
+                        # 使用数据库中的密码（bcrypt哈希）
+                        import bcrypt
+                        if bcrypt.checkpw(password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
+                            session['logged_in'] = True
+                            session['username'] = username
+                            session['login_time'] = datetime.now()
+                            session['login_ip'] = request.remote_addr
+                            return redirect(url_for('admin_index'))
+                    else:
+                        # 如果数据库中没有密码，使用环境变量密码
+                        if password == ADMIN_PASSWORD:
+                            session['logged_in'] = True
+                            session['username'] = username
+                            session['login_time'] = datetime.now()
+                            session['login_ip'] = request.remote_addr
+                            return redirect(url_for('admin_index'))
+                
+                logger.warning(f"管理员登录失败: 用户名或密码错误 - {username}")
+                return render_template('admin_login.html', error='用户名或密码错误')
+                
+        except Exception as e:
+            logger.error(f"登录验证失败: {e}")
+            return render_template('admin_login.html', error='登录验证失败，请重试')
     
     return render_template('admin_login.html')
 
@@ -2109,8 +2161,20 @@ def admin_password_change():
             return jsonify({'success': False, 'message': '新密码长度至少6位'})
         
         # 验证当前密码
-        if current_password != ADMIN_PASSWORD:
-            return jsonify({'success': False, 'message': '当前密码错误'})
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'admin_password'")
+            password_result = cursor.fetchone()
+            
+            if password_result and password_result['config_value']:
+                # 使用数据库中的密码（bcrypt哈希）
+                import bcrypt
+                if not bcrypt.checkpw(current_password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
+                    return jsonify({'success': False, 'message': '当前密码错误'})
+            else:
+                # 如果数据库中没有密码，使用环境变量密码
+                if current_password != ADMIN_PASSWORD:
+                    return jsonify({'success': False, 'message': '当前密码错误'})
         
         # 更新环境变量和数据库配置
         with get_db_connection() as conn:
