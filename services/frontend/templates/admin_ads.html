@@ -83,7 +83,6 @@
                 <!-- 广告位列表 -->
                 <div class="card">
                     <div class="card-body">
-                        {% if advertisements %}
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -97,43 +96,15 @@
                                         <th>操作</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {% for ad in advertisements %}
+                                <tbody id="adsTableBody">
                                     <tr>
-                                        <td>{{ ad.id }}</td>
-                                        <td>
-                                            <span class="badge bg-info">{{ ad.position }}</span>
-                                        </td>
-                                        <td>{{ ad.title or '无标题' }}</td>
-                                        <td>
-                                            {% if ad.is_active %}
-                                            <span class="badge bg-success">活跃</span>
-                                            {% else %}
-                                            <span class="badge bg-secondary">未激活</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ ad.click_count or 0 }}</td>
-                                        <td>{{ ad.created_at.strftime('%Y-%m-%d %H:%M') if ad.created_at else '未知' }}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editAd({{ ad.id }})">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAd({{ ad.id }})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                        <td colspan="7" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>加载中...
                                         </td>
                                     </tr>
-                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                        {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-ad fa-3x text-muted mb-3"></i>
-                            <h5 class="text-muted">暂无广告位</h5>
-                            <p class="text-muted">点击上方按钮创建第一个广告位</p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -188,6 +159,81 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+// 页面加载时获取广告位数据
+document.addEventListener('DOMContentLoaded', function() {
+    loadAdsData();
+});
+
+function loadAdsData() {
+    fetch('/api/admin/ads')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateAdsTable(data.data);
+            } else {
+                console.error('获取广告位数据失败:', data.message);
+                showError('获取广告位数据失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('网络错误，请重试');
+        });
+}
+
+function updateAdsTable(ads) {
+    const tbody = document.querySelector('#adsTableBody');
+    if (!tbody) return;
+    
+    if (ads.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted">
+                    <i class="fas fa-inbox me-2"></i>暂无广告位数据
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = ads.map(ad => `
+        <tr>
+            <td>${ad.id}</td>
+            <td>
+                <span class="badge bg-info">${ad.position}</span>
+            </td>
+            <td>${ad.name || '无标题'}</td>
+            <td>
+                ${ad.is_active ? 
+                    '<span class="badge bg-success">活跃</span>' : 
+                    '<span class="badge bg-secondary">未激活</span>'
+                }
+            </td>
+            <td>-</td>
+            <td>${ad.created_at ? new Date(ad.created_at).toLocaleString('zh-CN') : '未知'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editAd(${ad.id})" title="编辑">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-${ad.is_active ? 'warning' : 'success'} me-1" onclick="toggleAdStatus(${ad.id})" title="${ad.is_active ? '禁用' : '启用'}">
+                    <i class="fas fa-${ad.is_active ? 'pause' : 'play'}"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAd(${ad.id})" title="删除">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function showError(message) {
+    Swal.fire({
+        icon: 'error',
+        title: '错误',
+        text: message
+    });
+}
+
 function createAd() {
     window.open('/admin/ads/create', '_blank');
 }
@@ -218,7 +264,7 @@ function deleteAd(adId) {
             .then(data => {
                 if (data.success) {
                     Swal.fire('删除成功!', '', 'success').then(() => {
-                        location.reload();
+                        loadAdsData(); // 重新加载数据而不是刷新页面
                     });
                 } else {
                     Swal.fire('删除失败!', data.message, 'error');
@@ -230,6 +276,33 @@ function deleteAd(adId) {
             });
         }
     });
+}
+
+function toggleAdStatus(adId) {
+    fetch(`/admin/ads/${adId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('状态切换成功!', '', 'success').then(() => {
+                loadAdsData(); // 重新加载数据
+            });
+        } else {
+            Swal.fire('状态切换失败!', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('状态切换失败!', '网络错误', 'error');
+    });
+}
+
+function refreshServiceStatus() {
+    loadAdsData();
 }
 </script>
 {% endblock %}

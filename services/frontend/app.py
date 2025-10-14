@@ -2182,6 +2182,32 @@ def admin_captcha_change():
 
 # ==================== 广告位管理 ====================
 
+@app.route('/api/admin/ads')
+@login_required
+def api_admin_ads():
+    """获取广告位列表API"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("""
+                SELECT id, name, position, ad_code, is_active, sort_order, created_at, updated_at
+                FROM advertisements 
+                ORDER BY sort_order ASC, created_at DESC
+            """)
+            ads = cursor.fetchall()
+            
+        return jsonify({
+            'success': True,
+            'data': ads
+        })
+        
+    except Exception as e:
+        logger.error(f"获取广告位列表失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'获取广告位列表失败: {str(e)}'
+        })
+
 @app.route('/admin/ads')
 @login_required
 def admin_ads():
