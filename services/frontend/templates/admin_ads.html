@@ -34,35 +34,27 @@
 {% block content %}
                 <!-- 统计信息 -->
                 <div class="row mb-4">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card stats-card">
                             <div class="card-body text-center">
-                                <h4 class="text-primary">{{ total_ads or 0 }}</h4>
+                                <h4 class="text-primary" id="totalAds">-</h4>
                                 <small class="text-muted">总广告位</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card stats-card">
                             <div class="card-body text-center">
-                                <h4 class="text-success">{{ active_ads or 0 }}</h4>
+                                <h4 class="text-success" id="activeAds">-</h4>
                                 <small class="text-muted">活跃广告</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card stats-card">
                             <div class="card-body text-center">
-                                <h4 class="text-warning">{{ inactive_ads or 0 }}</h4>
+                                <h4 class="text-warning" id="inactiveAds">-</h4>
                                 <small class="text-muted">未激活</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card stats-card">
-                            <div class="card-body text-center">
-                                <h4 class="text-info">{{ total_clicks or 0 }}</h4>
-                                <small class="text-muted">总点击量</small>
                             </div>
                         </div>
                     </div>
@@ -91,14 +83,13 @@
                                         <th>位置</th>
                                         <th>标题</th>
                                         <th>状态</th>
-                                        <th>点击量</th>
                                         <th>创建时间</th>
                                         <th>操作</th>
                                     </tr>
                                 </thead>
                                 <tbody id="adsTableBody">
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted">
+                                        <td colspan="6" class="text-center text-muted">
                                             <i class="fas fa-spinner fa-spin me-2"></i>加载中...
                                         </td>
                                     </tr>
@@ -185,10 +176,13 @@ function updateAdsTable(ads) {
     const tbody = document.querySelector('#adsTableBody');
     if (!tbody) return;
     
+    // 更新统计数据
+    updateStats(ads);
+    
     if (ads.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center text-muted">
+                <td colspan="6" class="text-center text-muted">
                     <i class="fas fa-inbox me-2"></i>暂无广告位数据
                 </td>
             </tr>
@@ -209,7 +203,6 @@ function updateAdsTable(ads) {
                     '<span class="badge bg-secondary">未激活</span>'
                 }
             </td>
-            <td>-</td>
             <td>${ad.created_at ? new Date(ad.created_at).toLocaleString('zh-CN') : '未知'}</td>
             <td>
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editAd(${ad.id})" title="编辑">
@@ -224,6 +217,16 @@ function updateAdsTable(ads) {
             </td>
         </tr>
     `).join('');
+}
+
+function updateStats(ads) {
+    const totalAds = ads.length;
+    const activeAds = ads.filter(ad => ad.is_active).length;
+    const inactiveAds = totalAds - activeAds;
+    
+    document.getElementById('totalAds').textContent = totalAds;
+    document.getElementById('activeAds').textContent = activeAds;
+    document.getElementById('inactiveAds').textContent = inactiveAds;
 }
 
 function showError(message) {
