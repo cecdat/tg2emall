@@ -849,18 +849,18 @@ def log_search(query, results_count):
 
 @cache_search_results(ttl=CacheTTL.MEDIUM)
 def search_articles(query, limit=10, offset=0):
-    """搜索文章"""
+    """搜索文章（只搜索标题）"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             sql = """
                 SELECT * FROM messages 
-                WHERE (title LIKE %s OR content LIKE %s OR tags LIKE %s)
+                WHERE title LIKE %s
                 ORDER BY created_at DESC 
                 LIMIT %s OFFSET %s
             """
             search_term = f"%{query}%"
-            cursor.execute(sql, (search_term, search_term, search_term, limit, offset))
+            cursor.execute(sql, (search_term, limit, offset))
             articles = cursor.fetchall()
             return articles
     except Exception as e:
@@ -868,16 +868,16 @@ def search_articles(query, limit=10, offset=0):
         return []
 
 def count_search_results(query):
-    """统计搜索结果数量"""
+    """统计搜索结果数量（只搜索标题）"""
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor(pymysql.cursors.DictCursor)
             sql = """
                 SELECT COUNT(*) as count FROM messages 
-                WHERE (title LIKE %s OR content LIKE %s OR tags LIKE %s)
+                WHERE title LIKE %s
             """
             search_term = f"%{query}%"
-            cursor.execute(sql, (search_term, search_term, search_term))
+            cursor.execute(sql, (search_term,))
             result = cursor.fetchone()
             return result['count']
     except Exception as e:
