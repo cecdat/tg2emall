@@ -124,19 +124,19 @@
     <script>
     // 获取Bing每日壁纸
     function loadBingWallpaper() {
-        // 使用Bing每日壁纸API
-        const bingApiUrl = 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN';
-        
-        fetch(bingApiUrl)
+        // 使用后端API避免CORS问题
+        fetch('/api/bing-wallpaper')
             .then(response => response.json())
             .then(data => {
-                if (data.images && data.images[0]) {
-                    const imageUrl = 'https://www.bing.com' + data.images[0].url;
-                    document.documentElement.style.setProperty('--bing-wallpaper', `url('${imageUrl}')`);
+                if (data.success && data.imageUrl) {
+                    document.documentElement.style.setProperty('--bing-wallpaper', `url('${data.imageUrl}')`);
+                    console.log('Bing壁纸加载成功:', data.title);
+                } else {
+                    console.log('Bing壁纸加载失败，使用默认米色背景');
                 }
             })
             .catch(error => {
-                console.log('Bing壁纸加载失败，使用默认渐变背景');
+                console.log('Bing壁纸加载失败，使用默认米色背景:', error);
             });
     }
     

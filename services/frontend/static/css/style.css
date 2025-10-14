@@ -756,7 +756,7 @@ a:hover {
 
 /* Bing每日壁纸背景 */
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #f5f5dc 0%, #e6e6d3 100%);
     background-attachment: fixed;
     min-height: 100vh;
     position: relative;
@@ -770,7 +770,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: var(--bing-wallpaper, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+    background-image: var(--bing-wallpaper, linear-gradient(135deg, #f5f5dc 0%, #e6e6d3 100%));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -792,7 +792,7 @@ body::before {
 
 /* 深色模式样式 */
 .dark-theme {
-    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    background: linear-gradient(135deg, #3a3a2e 0%, #2d2d20 100%);
     color: #e0e0e0;
 }
 
@@ -804,7 +804,7 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: var(--bing-wallpaper, linear-gradient(135deg, #2d3748 0%, #1a202c 100%));
+    background-image: var(--bing-wallpaper, linear-gradient(135deg, #3a3a2e 0%, #2d2d20 100%));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

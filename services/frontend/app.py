@@ -1131,6 +1131,41 @@ def ads_txt():
 """
         return default_content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
+@app.route('/api/bing-wallpaper')
+def bing_wallpaper():
+    """获取Bing每日壁纸API"""
+    try:
+        # 使用Bing每日壁纸API
+        bing_api_url = 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN'
+        
+        response = requests.get(bing_api_url, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        
+        if data.get('images') and len(data['images']) > 0:
+            image_info = data['images'][0]
+            image_url = f"https://www.bing.com{image_info['url']}"
+            
+            return jsonify({
+                'success': True,
+                'imageUrl': image_url,
+                'title': image_info.get('title', ''),
+                'copyright': image_info.get('copyright', '')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'No image data available'
+            })
+            
+    except Exception as e:
+        logger.error(f"获取Bing壁纸失败: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
 @app.route('/dm', methods=['GET', 'POST'])
 def admin_login():
     """管理员登录"""
