@@ -67,7 +67,7 @@
                                 
                                 <div class="config-grid">
                                 {% for config in configs %}
-                                    <div class="config-item">
+                                <div class="config-item">
                                         {% set config_names = {
                                             'site_name': '网站名称',
                                             'site_description': '网站描述',
@@ -124,7 +124,8 @@
                                             'scraper_timeout': '超时时间',
                                             'tgstate_enabled': '启用状态检查',
                                             'tgstate_interval': '状态检查间隔',
-                                            'tgstate_timeout': '状态检查超时'
+                                            'tgstate_timeout': '状态检查超时',
+                                            'ads_txt_content': 'ads.txt文件内容'
                                         } %}
                                         <div class="config-key">{{ config_names.get(config.config_key, config.config_key|replace('_', ' ')|title) }}</div>
                                     
@@ -146,6 +147,12 @@
                                                   name="{{ config.config_key }}" 
                                                   rows="6"
                                                   placeholder="每行一个频道，支持多种格式：&#10;@channel_name&#10;https://t.me/channel_name&#10;channel_id">{{ config.config_value }}</textarea>
+                                        {% elif config.config_key == 'ads_txt_content' %}
+                                        <textarea class="form-control" 
+                                                  id="{{ config.config_key }}" 
+                                                  name="{{ config.config_key }}" 
+                                                  rows="10"
+                                                  placeholder="输入ads.txt文件内容，用于Google广告授权&#10;格式示例：&#10;google.com, pub-YOUR_PUBLISHER_ID, DIRECT, f08c47fec0942fa0&#10;facebook.com, YOUR_FACEBOOK_PLACEMENT_ID, DIRECT, c3e20eee3f780d68">{{ config.config_value }}</textarea>
                                         {% else %}
                                         <textarea class="form-control" 
                                                   id="{{ config.config_key }}" 

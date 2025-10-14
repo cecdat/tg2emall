@@ -1064,6 +1064,50 @@ def api_article_detail(article_id):
 
 # 移除分类功能
 
+@app.route('/ads.txt')
+def ads_txt():
+    """Google广告ads.txt文件"""
+    try:
+        # 从数据库获取广告配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # 获取ads.txt配置
+            cursor.execute("""
+                SELECT config_value FROM system_config 
+                WHERE config_key = 'ads_txt_content'
+            """)
+            result = cursor.fetchone()
+            
+            if result and result['config_value']:
+                ads_content = result['config_value']
+            else:
+                # 默认ads.txt内容
+                ads_content = """# ads.txt file for tg2emall
+# This file is used to authorize digital sellers to sell your inventory
+# For more information, visit: https://iabtechlab.com/ads-txt/
+
+# Google AdSense (请替换为您的实际Publisher ID)
+# google.com, pub-YOUR_PUBLISHER_ID, DIRECT, f08c47fec0942fa0
+
+# Facebook Audience Network (请替换为您的实际Placement ID)
+# facebook.com, YOUR_FACEBOOK_PLACEMENT_ID, DIRECT, c3e20eee3f780d68
+
+# 添加其他授权的数字销售商
+# 格式: 域名, 销售商ID, 关系类型, 认证机构ID
+"""
+        
+        return ads_content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+        
+    except Exception as e:
+        logger.error(f"获取ads.txt配置失败: {e}")
+        # 返回默认内容
+        default_content = """# ads.txt file for tg2emall
+# Configuration error, using default content
+# Please configure ads.txt content in admin panel
+"""
+        return default_content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+
 @app.route('/dm', methods=['GET', 'POST'])
 def admin_login():
     """管理员登录"""
