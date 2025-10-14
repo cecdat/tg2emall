@@ -488,6 +488,45 @@ a:hover {
     overflow-y: visible;
 }
 
+/* 侧边栏毛玻璃效果 */
+.sticky-sidebar .card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* 侧边栏卡片头部毛玻璃效果 */
+.sticky-sidebar .card-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px 16px 0 0;
+}
+
+/* 侧边栏列表项毛玻璃效果 */
+.sticky-sidebar .list-group-item {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+
+.sticky-sidebar .list-group-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
 /* 响应式设计 - 移动端取消固定定位 */
 @media (max-width: 768px) {
     .sticky-sidebar {
@@ -860,6 +899,115 @@ body::before {
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     color: #e0e0e0;
+}
+
+/* 暗黑模式侧边栏毛玻璃效果 */
+.dark-theme .sticky-sidebar .card {
+    background: rgba(45, 45, 45, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .sticky-sidebar .card-header {
+    background: rgba(45, 45, 45, 0.2);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px 16px 0 0;
+}
+
+.dark-theme .sticky-sidebar .list-group-item {
+    background: rgba(45, 45, 45, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+    color: #e0e0e0;
+}
+
+.dark-theme .sticky-sidebar .list-group-item:hover {
+    background: rgba(45, 45, 45, 0.2);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    color: #e0e0e0;
+}
+
+/* 侧边栏链接毛玻璃效果 */
+.sticky-sidebar .list-group-item a {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.sticky-sidebar .list-group-item a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: translateX(4px);
+    color: var(--bs-primary);
+}
+
+/* 侧边栏标签毛玻璃效果 */
+.sticky-sidebar .badge {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    transition: all 0.3s ease;
+}
+
+.sticky-sidebar .badge:hover {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transform: scale(1.05);
+}
+
+/* 暗黑模式侧边栏链接和标签 */
+.dark-theme .sticky-sidebar .list-group-item a {
+    background: rgba(45, 45, 45, 0.1);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: #e0e0e0;
+}
+
+.dark-theme .sticky-sidebar .list-group-item a:hover {
+    background: rgba(45, 45, 45, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+}
+
+.dark-theme .sticky-sidebar .badge {
+    background: rgba(45, 45, 45, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
+.dark-theme .sticky-sidebar .badge:hover {
+    background: rgba(45, 45, 45, 0.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
 }
 
 .dark-theme .card-header {
