@@ -1157,22 +1157,41 @@ def admin_login():
                 cursor.execute("SELECT config_value FROM system_config WHERE config_key = 'admin_password'")
                 password_result = cursor.fetchone()
                 
+                # 调试信息：记录密码格式
+                if password_result and password_result['config_value']:
+                    stored_password = password_result['config_value']
+                    logger.info(f"数据库密码格式检测: 长度={len(stored_password)}, 前缀={stored_password[:10]}...")
+                else:
+                    logger.info("数据库中没有存储密码，使用环境变量密码")
+                
                 # 验证用户名和密码
                 if username == ADMIN_USERNAME:
                     if password_result and password_result['config_value']:
-                        # 使用数据库中的密码（bcrypt哈希）
-                        try:
-                            import bcrypt
-                            if bcrypt.checkpw(password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
-                                session['logged_in'] = True
-                                session['username'] = username
-                                session['login_time'] = datetime.now()
-                                session['login_ip'] = request.remote_addr
-                                return redirect(url_for('admin_index'))
-                        except ImportError:
-                            # 如果bcrypt不可用，使用明文密码比较（仅用于开发环境）
-                            logger.warning("bcrypt模块不可用，使用明文密码验证（仅开发环境）")
-                            if password == password_result['config_value']:
+                        stored_password = password_result['config_value']
+                        
+                        # 检测密码格式：bcrypt哈希通常以$2b$开头
+                        if stored_password.startswith('$2b$') or stored_password.startswith('$2a$') or stored_password.startswith('$2y$'):
+                            # 使用bcrypt验证哈希密码
+                            try:
+                                import bcrypt
+                                if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
+                                    session['logged_in'] = True
+                                    session['username'] = username
+                                    session['login_time'] = datetime.now()
+                                    session['login_ip'] = request.remote_addr
+                                    return redirect(url_for('admin_index'))
+                            except (ImportError, ValueError) as e:
+                                logger.error(f"bcrypt验证失败: {e}")
+                                # 如果bcrypt验证失败，尝试明文比较
+                                if password == stored_password:
+                                    session['logged_in'] = True
+                                    session['username'] = username
+                                    session['login_time'] = datetime.now()
+                                    session['login_ip'] = request.remote_addr
+                                    return redirect(url_for('admin_index'))
+                        else:
+                            # 明文密码比较
+                            if password == stored_password:
                                 session['logged_in'] = True
                                 session['username'] = username
                                 session['login_time'] = datetime.now()
@@ -2177,15 +2196,23 @@ def admin_password_change():
             password_result = cursor.fetchone()
             
             if password_result and password_result['config_value']:
-                # 使用数据库中的密码（bcrypt哈希）
-                try:
-                    import bcrypt
-                    if not bcrypt.checkpw(current_password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
-                        return jsonify({'success': False, 'message': '当前密码错误'})
-                except ImportError:
-                    # 如果bcrypt不可用，使用明文密码比较（仅用于开发环境）
-                    logger.warning("bcrypt模块不可用，使用明文密码验证（仅开发环境）")
-                    if current_password != password_result['config_value']:
+                stored_password = password_result['config_value']
+                
+                # 检测密码格式：bcrypt哈希通常以$2b$开头
+                if stored_password.startswith('$2b$') or stored_password.startswith('$2a$') or stored_password.startswith('$2y$'):
+                    # 使用bcrypt验证哈希密码
+                    try:
+                        import bcrypt
+                        if not bcrypt.checkpw(current_password.encode('utf-8'), stored_password.encode('utf-8')):
+                            return jsonify({'success': False, 'message': '当前密码错误'})
+                    except (ImportError, ValueError) as e:
+                        logger.error(f"bcrypt验证失败: {e}")
+                        # 如果bcrypt验证失败，尝试明文比较
+                        if current_password != stored_password:
+                            return jsonify({'success': False, 'message': '当前密码错误'})
+                else:
+                    # 明文密码比较
+                    if current_password != stored_password:
                         return jsonify({'success': False, 'message': '当前密码错误'})
             else:
                 # 如果数据库中没有密码，使用环境变量密码
