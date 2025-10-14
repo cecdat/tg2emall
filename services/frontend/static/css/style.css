@@ -461,7 +461,7 @@ a:hover {
 .sticky-sidebar {
     position: sticky;
     top: 20px;
-    max-height: calc(100vh - 40px);
+    max-height: none;
     overflow-y: visible;
 }
 
@@ -685,6 +685,16 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    background-color: #0d6efd;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.floating-search .btn:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    color: #fff;
 }
 
 /* 搜索框原始位置检测 */
@@ -931,4 +941,49 @@ a:hover {
     background-color: #0b5ed7;
     border-color: #0a58ca;
     color: #fff;
+}
+
+/* 文章详情页标签颜色样式 */
+.tag-badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.8em;
+    border-radius: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.tag-badge:nth-child(1) { background-color: #e3f2fd; color: #1976d2; }
+.tag-badge:nth-child(2) { background-color: #f3e5f5; color: #7b1fa2; }
+.tag-badge:nth-child(3) { background-color: #e8f5e8; color: #388e3c; }
+.tag-badge:nth-child(4) { background-color: #fff3e0; color: #f57c00; }
+.tag-badge:nth-child(5) { background-color: #fce4ec; color: #c2185b; }
+.tag-badge:nth-child(6) { background-color: #e0f2f1; color: #00695c; }
+.tag-badge:nth-child(7) { background-color: #f1f8e9; color: #689f38; }
+.tag-badge:nth-child(8) { background-color: #e8eaf6; color: #3f51b5; }
+.tag-badge:nth-child(9) { background-color: #fff8e1; color: #ff8f00; }
+.tag-badge:nth-child(10) { background-color: #f9fbe7; color: #827717; }
+
+/* 暗黑模式下的标签颜色 */
+.dark-theme .tag-badge:nth-child(1) { background-color: #1e3a8a; color: #93c5fd; }
+.dark-theme .tag-badge:nth-child(2) { background-color: #581c87; color: #c084fc; }
+.dark-theme .tag-badge:nth-child(3) { background-color: #14532d; color: #86efac; }
+.dark-theme .tag-badge:nth-child(4) { background-color: #9a3412; color: #fed7aa; }
+.dark-theme .tag-badge:nth-child(5) { background-color: #831843; color: #f9a8d4; }
+.dark-theme .tag-badge:nth-child(6) { background-color: #134e4a; color: #5eead4; }
+.dark-theme .tag-badge:nth-child(7) { background-color: #365314; color: #bef264; }
+.dark-theme .tag-badge:nth-child(8) { background-color: #312e81; color: #a5b4fc; }
+.dark-theme .tag-badge:nth-child(9) { background-color: #92400e; color: #fde68a; }
+.dark-theme .tag-badge:nth-child(10) { background-color: #3f3f16; color: #e6ff4a; }
+
+/* 文章元信息样式 */
+.article-meta .meta-info {
+    margin-top: 1rem;
+}
+
+.article-meta .publish-time {
+    font-size: 0.9rem;
+}
+
+.article-meta .tags {
+    margin-top: 0.5rem;
 }
