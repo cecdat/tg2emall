@@ -17,19 +17,17 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from typing import Dict, Any
 
-# 导入日志配置模块
-import sys
-sys.path.append('/app')
+# 设置日志格式
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
-try:
-    # 尝试使用完整日志配置（支持轮转）
-    from log_config import setup_service_logging
-    logger = setup_service_logging('scraper')
-except Exception as e:
-    # 如果完整日志配置失败，使用简化配置
-    print(f"警告: 无法使用完整日志配置: {e}")
-    from simple_log_config import setup_simple_logging
-    logger = setup_simple_logging('scraper')
+# 创建logger
+logger = logging.getLogger('scraper')
 
 app = Flask(__name__)
 
