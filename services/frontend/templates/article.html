@@ -19,6 +19,16 @@
                             <span class="text-muted">
                                 <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%Y年%m月%d日 %H:%M') }}
                             </span>
+                            {% if article.sort_id %}
+                            <span class="badge bg-primary ms-2" style="font-size: 0.7rem;">
+                                {% if article.sort_id == 1 %}夸克网盘
+                                {% elif article.sort_id == 2 %}阿里云盘
+                                {% elif article.sort_id == 3 %}百度网盘
+                                {% elif article.sort_id == 4 %}移动云盘
+                                {% else %}其他网盘
+                                {% endif %}
+                            </span>
+                            {% endif %}
                         </div>
                         {% if article.tags %}
                         <div class="tags">
@@ -234,7 +244,7 @@
                            <div class="mb-1">
                                {% for tag in article.tags.split(',')[:2] %}
                                    {% if tag.strip() %}
-                                   <span class="badge bg-secondary me-1" style="font-size: 0.7rem;">{{ tag.strip() }}</span>
+                                   <span class="badge tag-color me-1" style="font-size: 0.7rem;">{{ tag.strip() }}</span>
                                    {% endif %}
                                {% endfor %}
                            </div>

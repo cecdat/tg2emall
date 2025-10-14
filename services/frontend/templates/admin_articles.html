@@ -41,7 +41,7 @@
                                             {% if article.tags %}
                                                 {% for tag in article.tags.split(',')[:3] %}
                                                     {% if tag.strip() %}
-                                                    <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                                    <span class="badge tag-color me-1">{{ tag.strip() }}</span>
                                                     {% endif %}
                                                 {% endfor %}
                                             {% else %}

@@ -82,6 +82,16 @@
                                     <a href="{{ url_for('article_detail', article_id=item.content.id) }}" class="text-decoration-none">
                                         {{ item.content.title[:50] }}{% if item.content.title|length > 50 %}...{% endif %}
                                     </a>
+                                    {% if item.content.sort_id %}
+                                    <span class="badge bg-primary ms-2" style="font-size: 0.7rem;">
+                                        {% if item.content.sort_id == 1 %}夸克网盘
+                                        {% elif item.content.sort_id == 2 %}阿里云盘
+                                        {% elif item.content.sort_id == 3 %}百度网盘
+                                        {% elif item.content.sort_id == 4 %}移动云盘
+                                        {% else %}其他网盘
+                                        {% endif %}
+                                    </span>
+                                    {% endif %}
                                 </h5>
                                 <div class="card-text text-muted content-preview">
                                     {{ item.content.content|content_preview|safe }}
@@ -95,7 +105,7 @@
                                         <div class="tags">
                                             {% for tag in item.content.tags.split(',')[:3] %}
                                                 {% if tag.strip() %}
-                                                <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                                <span class="badge tag-color me-1">{{ tag.strip() }}</span>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
@@ -265,7 +275,7 @@
                             <div class="mb-1">
                                 {% for tag in article.tags.split(',')[:2] %}
                                     {% if tag.strip() %}
-                                    <span class="badge bg-secondary me-1" style="font-size: 0.7rem;">{{ tag.strip() }}</span>
+                                    <span class="badge tag-color me-1" style="font-size: 0.7rem;">{{ tag.strip() }}</span>
                                     {% endif %}
                                 {% endfor %}
                             </div>
@@ -394,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${item.content.tags ? `
                                     <div class="tags">
                                         ${item.content.tags.split(',').slice(0, 3).filter(tag => tag.trim()).map(tag => 
-                                            `<span class="badge bg-secondary me-1">${tag.trim()}</span>`
+                                            `<span class="badge tag-color me-1">${tag.trim()}</span>`
                                         ).join('')}
                                     </div>
                                 ` : ''}
