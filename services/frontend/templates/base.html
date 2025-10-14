@@ -30,11 +30,9 @@
     {% endif %}
     
     <!-- 网站图标 -->
-    {% if seo_config.site_favicon %}
-    <link rel="icon" type="image/x-icon" href="{{ seo_config.site_favicon }}">
-    {% else %}
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/icon.ico') }}">
-    {% endif %}
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='img/icon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon.ico') }}">
     
     <!-- 结构化数据 -->
     <script type="application/ld+json">
