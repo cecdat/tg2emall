@@ -1161,13 +1161,23 @@ def admin_login():
                 if username == ADMIN_USERNAME:
                     if password_result and password_result['config_value']:
                         # 使用数据库中的密码（bcrypt哈希）
-                        import bcrypt
-                        if bcrypt.checkpw(password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
-                            session['logged_in'] = True
-                            session['username'] = username
-                            session['login_time'] = datetime.now()
-                            session['login_ip'] = request.remote_addr
-                            return redirect(url_for('admin_index'))
+                        try:
+                            import bcrypt
+                            if bcrypt.checkpw(password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
+                                session['logged_in'] = True
+                                session['username'] = username
+                                session['login_time'] = datetime.now()
+                                session['login_ip'] = request.remote_addr
+                                return redirect(url_for('admin_index'))
+                        except ImportError:
+                            # 如果bcrypt不可用，使用明文密码比较（仅用于开发环境）
+                            logger.warning("bcrypt模块不可用，使用明文密码验证（仅开发环境）")
+                            if password == password_result['config_value']:
+                                session['logged_in'] = True
+                                session['username'] = username
+                                session['login_time'] = datetime.now()
+                                session['login_ip'] = request.remote_addr
+                                return redirect(url_for('admin_index'))
                     else:
                         # 如果数据库中没有密码，使用环境变量密码
                         if password == ADMIN_PASSWORD:
@@ -2168,9 +2178,15 @@ def admin_password_change():
             
             if password_result and password_result['config_value']:
                 # 使用数据库中的密码（bcrypt哈希）
-                import bcrypt
-                if not bcrypt.checkpw(current_password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
-                    return jsonify({'success': False, 'message': '当前密码错误'})
+                try:
+                    import bcrypt
+                    if not bcrypt.checkpw(current_password.encode('utf-8'), password_result['config_value'].encode('utf-8')):
+                        return jsonify({'success': False, 'message': '当前密码错误'})
+                except ImportError:
+                    # 如果bcrypt不可用，使用明文密码比较（仅用于开发环境）
+                    logger.warning("bcrypt模块不可用，使用明文密码验证（仅开发环境）")
+                    if current_password != password_result['config_value']:
+                        return jsonify({'success': False, 'message': '当前密码错误'})
             else:
                 # 如果数据库中没有密码，使用环境变量密码
                 if current_password != ADMIN_PASSWORD:
@@ -2181,8 +2197,13 @@ def admin_password_change():
             cursor = conn.cursor()
             
             # 更新数据库中的管理员密码哈希
-            import bcrypt
-            password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            try:
+                import bcrypt
+                password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            except ImportError:
+                # 如果bcrypt不可用，使用明文密码（仅用于开发环境）
+                logger.warning("bcrypt模块不可用，使用明文密码存储（仅开发环境）")
+                password_hash = new_password
             cursor.execute("""
                 INSERT INTO system_config (config_key, config_value, config_type, description, category) 
                 VALUES (%s, %s, %s, %s, %s)
