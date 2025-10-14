@@ -989,16 +989,30 @@ a:hover {
 .tag-badge:nth-child(10), .badge.tag-color:nth-child(10) { background-color: #f9fbe7; color: #827717; }
 
 /* 暗黑模式下的标签颜色 */
-.dark-theme .tag-badge:nth-child(1), .dark-theme .badge.tag-color:nth-child(1) { background-color: #1e3a8a; color: #93c5fd; }
-.dark-theme .tag-badge:nth-child(2), .dark-theme .badge.tag-color:nth-child(2) { background-color: #581c87; color: #c084fc; }
-.dark-theme .tag-badge:nth-child(3), .dark-theme .badge.tag-color:nth-child(3) { background-color: #14532d; color: #86efac; }
-.dark-theme .tag-badge:nth-child(4), .dark-theme .badge.tag-color:nth-child(4) { background-color: #9a3412; color: #fed7aa; }
-.dark-theme .tag-badge:nth-child(5), .dark-theme .badge.tag-color:nth-child(5) { background-color: #831843; color: #f9a8d4; }
-.dark-theme .tag-badge:nth-child(6), .dark-theme .badge.tag-color:nth-child(6) { background-color: #134e4a; color: #5eead4; }
-.dark-theme .tag-badge:nth-child(7), .dark-theme .badge.tag-color:nth-child(7) { background-color: #365314; color: #bef264; }
-.dark-theme .tag-badge:nth-child(8), .dark-theme .badge.tag-color:nth-child(8) { background-color: #312e81; color: #a5b4fc; }
-.dark-theme .tag-badge:nth-child(9), .dark-theme .badge.tag-color:nth-child(9) { background-color: #92400e; color: #fde68a; }
-.dark-theme .tag-badge:nth-child(10), .dark-theme .badge.tag-color:nth-child(10) { background-color: #3f3f16; color: #e6ff4a; }
+.dark-theme .tag-badge:nth-child(1), .dark-theme .badge.tag-color:nth-child(1) { background-color: #1e3a8a !important; color: #93c5fd !important; }
+.dark-theme .tag-badge:nth-child(2), .dark-theme .badge.tag-color:nth-child(2) { background-color: #581c87 !important; color: #c084fc !important; }
+.dark-theme .tag-badge:nth-child(3), .dark-theme .badge.tag-color:nth-child(3) { background-color: #14532d !important; color: #86efac !important; }
+.dark-theme .tag-badge:nth-child(4), .dark-theme .badge.tag-color:nth-child(4) { background-color: #9a3412 !important; color: #fed7aa !important; }
+.dark-theme .tag-badge:nth-child(5), .dark-theme .badge.tag-color:nth-child(5) { background-color: #831843 !important; color: #f9a8d4 !important; }
+.dark-theme .tag-badge:nth-child(6), .dark-theme .badge.tag-color:nth-child(6) { background-color: #134e4a !important; color: #5eead4 !important; }
+.dark-theme .tag-badge:nth-child(7), .dark-theme .badge.tag-color:nth-child(7) { background-color: #365314 !important; color: #bef264 !important; }
+.dark-theme .tag-badge:nth-child(8), .dark-theme .badge.tag-color:nth-child(8) { background-color: #312e81 !important; color: #a5b4fc !important; }
+.dark-theme .tag-badge:nth-child(9), .dark-theme .badge.tag-color:nth-child(9) { background-color: #92400e !important; color: #fde68a !important; }
+.dark-theme .tag-badge:nth-child(10), .dark-theme .badge.tag-color:nth-child(10) { background-color: #3f3f16 !important; color: #e6ff4a !important; }
+
+/* 搜索结果页面标签颜色强制覆盖 */
+.dark-theme .result-item .badge.tag-color:nth-child(1) { background-color: #1e3a8a !important; color: #93c5fd !important; }
+.dark-theme .result-item .badge.tag-color:nth-child(2) { background-color: #581c87 !important; color: #c084fc !important; }
+.dark-theme .result-item .badge.tag-color:nth-child(3) { background-color: #14532d !important; color: #86efac !important; }
+.dark-theme .result-item .badge.tag-color:nth-child(4) { background-color: #9a3412 !important; color: #fed7aa !important; }
+.dark-theme .result-item .badge.tag-color:nth-child(5) { background-color: #831843 !important; color: #f9a8d4 !important; }
+
+/* 右侧边栏标签颜色强制覆盖 */
+.dark-theme .card .badge.tag-color:nth-child(1) { background-color: #1e3a8a !important; color: #93c5fd !important; }
+.dark-theme .card .badge.tag-color:nth-child(2) { background-color: #581c87 !important; color: #c084fc !important; }
+.dark-theme .card .badge.tag-color:nth-child(3) { background-color: #14532d !important; color: #86efac !important; }
+.dark-theme .card .badge.tag-color:nth-child(4) { background-color: #9a3412 !important; color: #fed7aa !important; }
+.dark-theme .card .badge.tag-color:nth-child(5) { background-color: #831843 !important; color: #f9a8d4 !important; }
 
 
 /* 文章元信息样式 */
