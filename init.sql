@@ -60,7 +60,14 @@ INSERT INTO `system_config` (`config_key`, `config_value`, `config_type`, `descr
 ('admin_captcha', '2025', 'string', '管理员验证码', 'admin'),
 
 -- 广告配置
-('ads_txt_content', '', 'text', 'ads.txt文件内容，用于Google广告授权', 'ads');
+('ads_txt_content', '', 'string', 'ads.txt文件内容，用于Google广告授权', 'ads'),
+
+-- SEO配置（核心参数）
+('site_name', 'tg2emall', 'string', '网站的名称，用于页面标题和SEO', 'seo'),
+('site_description', '专业的Telegram资源采集与分享平台', 'string', '网站的简短描述，用于meta description', 'seo'),
+('site_keywords', 'telegram,资源,采集,分享,网盘,下载', 'string', '网站的关键词，用逗号分隔，用于SEO优化', 'seo'),
+('site_author', 'tg2emall团队', 'string', '网站的作者信息', 'seo'),
+('seo_title_template', '{title} - {site_name}', 'string', '页面标题的模板格式，{title}为页面标题，{site_name}为网站名称', 'seo');
 
 -- --------------------------------------------------------
 -- 表的结构 `services_status` - 服务状态表
@@ -206,7 +213,7 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
 CREATE TABLE IF NOT EXISTS `advertisements` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '广告名称',
-  `position` enum('search_list','article_detail','both') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '广告位置',
+  `position` enum('search_list','article_detail','both','homepage-middle','homepage-resources','article-middle','article-sidebar','home-banner','sidebar') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '广告位置',
   `ad_code` longtext COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '广告代码',
   `is_active` tinyint(1) DEFAULT 1 COMMENT '是否启用',
   `sort_order` int(11) DEFAULT 0 COMMENT '排序',
