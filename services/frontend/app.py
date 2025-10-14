@@ -1304,7 +1304,12 @@ def admin_articles():
             
             # 分页参数
             page = request.args.get('page', 1, type=int)
-            per_page = 20
+            per_page = request.args.get('per_page', 15, type=int)
+            
+            # 限制每页显示条数选项
+            if per_page not in [15, 20, 50]:
+                per_page = 15
+                
             offset = (page - 1) * per_page
             
             # 获取文章列表（分页）
