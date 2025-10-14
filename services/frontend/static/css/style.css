@@ -173,6 +173,29 @@ body {
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* 搜索结果链接样式 */
+.result-item .card-title a {
+    color: inherit;
+    transition: color 0.3s ease;
+}
+
+.result-item .card-title a:hover {
+    color: #0d6efd;
+}
+
+/* 暗黑模式下的搜索结果样式 */
+.dark-theme .result-item:hover {
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .result-item .card-title a {
+    color: #e0e0e0;
+}
+
+.dark-theme .result-item .card-title a:hover {
+    color: #0d6efd;
+}
+
 /* 统计信息样式 */
 .stat-item {
     text-align: center;
