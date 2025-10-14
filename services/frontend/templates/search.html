@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}搜索结果 - tg2emall{% endblock %}
+{% block title %}搜索结果 - {{ seo_config.site_name|default('tg2emall') }}{% endblock %}
 
 {% block content %}
 <div class="row">

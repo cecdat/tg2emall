@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}tg2emall - Telegram 资源分享平台{% endblock %}
+{% block title %}{{ seo_config.site_name|default('tg2emall') }} - {{ seo_config.site_description|default('Telegram 资源分享平台') }}{% endblock %}
 
 {% block content %}
 <!-- 悬浮搜索框 -->

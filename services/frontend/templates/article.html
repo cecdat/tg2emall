@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ article.title }} - tg2emall{% endblock %}
+{% block title %}{{ article.title }} - {{ seo_config.site_name|default('tg2emall') }}{% endblock %}
 
 {% block description %}{{ article.content[:160] }}{% endblock %}
 
@@ -270,6 +270,96 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 美化文章内容中的下载链接 */
+.content-text a[href*="http"] {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 4px 2px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.content-text a[href*="http"]:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.content-text a[href*="http"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    color: white !important;
+}
+
+.content-text a[href*="http"]:hover:before {
+    left: 100%;
+}
+
+.content-text a[href*="http"]:after {
+    content: '🔗';
+    margin-left: 6px;
+    font-size: 0.8rem;
+}
+
+/* 特殊网盘链接样式 */
+.content-text a[href*="quark"] {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.content-text a[href*="aliyundrive"] {
+    background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+    box-shadow: 0 2px 8px rgba(0, 210, 255, 0.3);
+}
+
+.content-text a[href*="baidu"] {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+.content-text a[href*="cloud.189"] {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #333 !important;
+    box-shadow: 0 2px 8px rgba(168, 237, 234, 0.3);
+}
+
+/* 暗色模式适配 */
+.dark-theme .content-text a[href*="http"] {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    box-shadow: 0 2px 8px rgba(74, 85, 104, 0.3);
+}
+
+.dark-theme .content-text a[href*="http"]:hover {
+    box-shadow: 0 4px 15px rgba(74, 85, 104, 0.4);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .content-text a[href*="http"] {
+        display: block;
+        margin: 8px 0;
+        text-align: center;
+        padding: 12px 16px;
+    }
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
