@@ -238,11 +238,21 @@ body {
 /* 导航栏样式 */
 .navbar {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+    min-height: auto;
 }
 
 .navbar-brand {
     font-weight: 700;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
+    padding: 0.25rem 0;
+    line-height: 1.2;
+}
+
+.navbar-brand .navbar-text {
+    font-size: 0.7rem;
+    margin-top: 1px;
+    line-height: 1.1;
 }
 
 /* 页脚样式 */
@@ -712,6 +722,8 @@ a:hover {
     z-index: 1000;
     transform: translateX(100%);
     transition: all 0.3s ease-in-out;
+    opacity: 0;
+    visibility: hidden;
 }
 
 .floating-search .search-container {
@@ -726,6 +738,8 @@ a:hover {
 
 .floating-search.show {
     transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
 }
 
 .floating-search .search-form {

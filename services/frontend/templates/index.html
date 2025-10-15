@@ -434,9 +434,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!searchOriginal || !floatingSearch) return;
         
         const searchOriginalRect = searchOriginal.getBoundingClientRect();
-        const isSearchVisible = searchOriginalRect.top >= 0 && searchOriginalRect.bottom <= window.innerHeight;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
-        if (!isSearchVisible) {
+        // 当原始搜索框滚动出视口顶部时显示悬浮搜索框
+        if (searchOriginalRect.bottom < 0) {
             floatingSearch.classList.add('show');
         } else {
             floatingSearch.classList.remove('show');
