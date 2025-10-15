@@ -831,25 +831,21 @@ body::before {
 
 /* 毛玻璃背景下的文字颜色优化 */
 .container, .container-fluid {
-    color: #2c3e50;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+    color: #000000;
 }
 
 .container h1, .container h2, .container h3, 
 .container h4, .container h5, .container h6 {
-    color: #1a252f;
-    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+    color: #000000;
     font-weight: 600;
 }
 
 .container .lead {
-    color: #34495e;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+    color: #000000;
 }
 
 .container .text-muted {
-    color: #5a6c7d !important;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+    color: #666666 !important;
 }
 
 /* 深色模式样式 */
@@ -889,25 +885,21 @@ body::before {
 
 /* 暗黑模式毛玻璃背景下的文字颜色优化 */
 .dark-theme .container, .dark-theme .container-fluid {
-    color: #e8f4f8;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    color: #ffffff;
 }
 
 .dark-theme .container h1, .dark-theme .container h2, .dark-theme .container h3, 
 .dark-theme .container h4, .dark-theme .container h5, .dark-theme .container h6 {
     color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
     font-weight: 600;
 }
 
 .dark-theme .container .lead {
-    color: #d1e7dd;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    color: #ffffff;
 }
 
 .dark-theme .container .text-muted {
-    color: #a8b2ba !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    color: #cccccc !important;
 }
 
 /* 毛玻璃效果导航栏 */
@@ -939,26 +931,22 @@ body::before {
 
 /* 卡片内文字颜色优化 */
 .card {
-    color: #2c3e50;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    color: #000000;
 }
 
 .card h1, .card h2, .card h3, 
 .card h4, .card h5, .card h6 {
-    color: #1a252f;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+    color: #000000;
     font-weight: 600;
 }
 
 .card .card-title {
-    color: #1a252f;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+    color: #000000;
     font-weight: 600;
 }
 
 .card .card-text {
-    color: #34495e;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+    color: #000000;
 }
 
 .dark-theme .card {
@@ -968,26 +956,22 @@ body::before {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    color: #e8f4f8;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    color: #ffffff;
 }
 
 .dark-theme .card h1, .dark-theme .card h2, .dark-theme .card h3, 
 .dark-theme .card h4, .dark-theme .card h5, .dark-theme .card h6 {
     color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     font-weight: 600;
 }
 
 .dark-theme .card .card-title {
     color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
     font-weight: 600;
 }
 
 .dark-theme .card .card-text {
-    color: #d1e7dd;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    color: #ffffff;
 }
 
 /* 暗黑模式侧边栏毛玻璃效果 */
@@ -1109,8 +1093,7 @@ body::before {
     padding: 20px 30px;
     margin: 20px 0;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
-    color: #1a252f;
+    color: #000000;
     font-weight: 700;
     letter-spacing: 1px;
     transition: all 0.3s ease;
@@ -1127,7 +1110,6 @@ body::before {
 
 .display-4 .fas {
     color: #28a745;
-    text-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
     margin-right: 15px;
     font-size: 0.9em;
 }
@@ -1142,7 +1124,6 @@ body::before {
     padding: 20px 30px;
     margin: 20px 0;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
     color: #ffffff;
     font-weight: 700;
     letter-spacing: 1px;
@@ -1160,7 +1141,6 @@ body::before {
 
 .dark-theme .display-4 .fas {
     color: #4caf50;
-    text-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
     margin-right: 15px;
     font-size: 0.9em;
 }
