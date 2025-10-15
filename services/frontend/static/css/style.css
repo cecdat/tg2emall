@@ -746,6 +746,7 @@ a:hover {
     pointer-events: none;
     width: 300px;
     max-width: 90vw;
+    display: block;
 }
 
 .floating-search .search-container {
@@ -759,10 +760,11 @@ a:hover {
 }
 
 .floating-search.show {
-    transform: translateX(0);
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    display: block !important;
 }
 
 .floating-search .search-form {
