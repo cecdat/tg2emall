@@ -54,6 +54,62 @@ class ThemeManager {
     }
 }
 
+// 悬浮搜索框管理
+class FloatingSearchManager {
+    constructor() {
+        this.floatingSearch = document.getElementById('floating-search');
+        this.originalSearch = document.getElementById('search-original');
+        this.isVisible = false;
+        this.init();
+    }
+
+    init() {
+        if (!this.floatingSearch || !this.originalSearch) return;
+        
+        this.bindEvents();
+        this.checkVisibility();
+    }
+
+    bindEvents() {
+        // 监听滚动事件
+        window.addEventListener('scroll', Utils.debounce(() => {
+            this.checkVisibility();
+        }, 100));
+
+        // 监听窗口大小变化
+        window.addEventListener('resize', Utils.debounce(() => {
+            this.checkVisibility();
+        }, 100));
+    }
+
+    checkVisibility() {
+        if (!this.originalSearch) return;
+
+        const rect = this.originalSearch.getBoundingClientRect();
+        const isOutOfView = rect.bottom < 0;
+
+        if (isOutOfView && !this.isVisible) {
+            this.showFloatingSearch();
+        } else if (!isOutOfView && this.isVisible) {
+            this.hideFloatingSearch();
+        }
+    }
+
+    showFloatingSearch() {
+        if (this.floatingSearch) {
+            this.floatingSearch.classList.add('show');
+            this.isVisible = true;
+        }
+    }
+
+    hideFloatingSearch() {
+        if (this.floatingSearch) {
+            this.floatingSearch.classList.remove('show');
+            this.isVisible = false;
+        }
+    }
+}
+
 // 搜索功能
 class SearchManager {
     constructor() {
@@ -260,6 +316,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化搜索管理器
     new SearchManager();
+
+    // 初始化悬浮搜索框管理器
+    new FloatingSearchManager();
 
     // 初始化图片懒加载
     new LazyLoader();
