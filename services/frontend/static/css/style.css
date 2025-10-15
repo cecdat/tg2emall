@@ -1423,3 +1423,34 @@ body::before {
 .article-meta .tags {
     margin-top: 0.5rem;
 }
+
+/* 文章更新时间字体颜色 */
+.waterfall-item .resource-card .card-footer small {
+    color: #000000 !important;
+    font-size: 0.75rem !important;
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* 暗黑模式下文章更新时间字体颜色 */
+.dark-theme .waterfall-item .resource-card .card-footer small {
+    color: #ffffff !important;
+}
+
+/* 侧边栏统计信息字体颜色 */
+.card .card-header h5 {
+    color: #000000 !important;
+}
+
+.card .card-body small {
+    color: #000000 !important;
+}
+
+/* 暗黑模式下侧边栏统计信息字体颜色 */
+.dark-theme .card .card-header h5 {
+    color: #ffffff !important;
+}
+
+.dark-theme .card .card-body small {
+    color: #ffffff !important;
+}
