@@ -316,13 +316,13 @@ footer {
 
 /* 链接样式 */
 a {
-    color: var(--bs-primary);
+    color: #28a745;
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
 a:hover {
-    color: var(--bs-primary);
+    color: #1e7e34;
     text-decoration: underline;
 }
 
@@ -346,8 +346,8 @@ a:hover {
 }
 
 .form-control:focus {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
 /* Markdown内容样式 */
@@ -402,7 +402,7 @@ a:hover {
 }
 
 .content-text blockquote {
-    border-left: 4px solid var(--bs-primary);
+    border-left: 4px solid #28a745;
     padding-left: 1rem;
     margin: 1rem 0;
     color: var(--bs-secondary);
@@ -461,7 +461,7 @@ a:hover {
 }
 
 .content-text th {
-    background-color: var(--bs-primary);
+    background-color: #28a745;
     color: white;
     font-weight: 600;
 }
@@ -471,12 +471,12 @@ a:hover {
 }
 
 .content-text a {
-    color: var(--bs-primary);
+    color: #28a745;
     text-decoration: underline;
 }
 
 .content-text a:hover {
-    color: var(--bs-primary);
+    color: #1e7e34;
     text-decoration: none;
 }
 
@@ -1047,7 +1047,7 @@ body::before {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     transform: translateX(4px);
-    color: var(--bs-primary);
+    color: #28a745;
 }
 
 /* 侧边栏标签毛玻璃效果 */
@@ -1126,8 +1126,8 @@ body::before {
 }
 
 .display-4 .fas {
-    color: var(--bs-primary);
-    text-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+    color: #28a745;
+    text-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
     margin-right: 15px;
     font-size: 0.9em;
 }
@@ -1159,8 +1159,8 @@ body::before {
 }
 
 .dark-theme .display-4 .fas {
-    color: #64b5f6;
-    text-shadow: 0 2px 4px rgba(100, 181, 246, 0.3);
+    color: #4caf50;
+    text-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
     margin-right: 15px;
     font-size: 0.9em;
 }
