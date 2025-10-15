@@ -437,7 +437,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         
         // 当原始搜索框滚动出视口顶部时显示悬浮搜索框
-        if (searchOriginalRect.bottom < 0) {
+        // 使用更宽松的条件，当搜索框顶部滚动出视口时就显示悬浮搜索框
+        if (searchOriginalRect.top < -50) {
             floatingSearch.classList.add('show');
         } else {
             floatingSearch.classList.remove('show');
