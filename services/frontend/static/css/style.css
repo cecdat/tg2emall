@@ -180,7 +180,7 @@ body {
 }
 
 .result-item .card-title a:hover {
-    color: #0d6efd;
+    color: #28a745;
 }
 
 /* 暗黑模式下的搜索结果样式 */
@@ -189,11 +189,11 @@ body {
 }
 
 .dark-theme .result-item .card-title a {
-    color: #e0e0e0;
+    color: #ffffff;
 }
 
 .dark-theme .result-item .card-title a:hover {
-    color: #0d6efd;
+    color: #4caf50;
 }
 
 /* 统计信息样式 */
@@ -568,6 +568,16 @@ a:hover {
     font-size: 1rem;
     line-height: 1.3;
     margin-bottom: 0.75rem;
+}
+
+.resource-card .card-title a {
+    color: #000000;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.resource-card .card-title a:hover {
+    color: #28a745;
 }
 
 .resource-card .card-footer {
@@ -972,6 +982,17 @@ body::before {
 
 .dark-theme .card .card-text {
     color: #ffffff;
+}
+
+/* 暗黑模式资源卡片标题链接 */
+.dark-theme .resource-card .card-title a {
+    color: #ffffff;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.dark-theme .resource-card .card-title a:hover {
+    color: #4caf50;
 }
 
 /* 暗黑模式侧边栏毛玻璃效果 */
