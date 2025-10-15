@@ -430,35 +430,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const floatingSearch = document.getElementById('floating-search');
     const searchOriginal = document.getElementById('search-original');
     
-    console.log('悬浮搜索框元素:', floatingSearch);
-    console.log('原始搜索框元素:', searchOriginal);
-    
     function handleScroll() {
-        if (!searchOriginal || !floatingSearch) {
-            console.log('元素未找到');
-            return;
-        }
+        if (!searchOriginal || !floatingSearch) return;
         
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const searchOriginalTop = searchOriginal.offsetTop;
         
-        console.log('滚动位置:', scrollTop, '搜索框位置:', searchOriginalTop);
-        
-        // 当滚动超过搜索框位置100px时显示悬浮搜索框
-        if (scrollTop > searchOriginalTop + 100) {
+        // 当滚动超过搜索框位置200px时显示悬浮搜索框
+        if (scrollTop > searchOriginalTop + 200) {
             floatingSearch.classList.add('show');
-            console.log('显示悬浮搜索框');
         } else {
             floatingSearch.classList.remove('show');
-            console.log('隐藏悬浮搜索框');
-        }
-    }
-
-    // 测试功能：立即显示悬浮搜索框
-    function testShowFloatingSearch() {
-        if (floatingSearch) {
-            floatingSearch.classList.add('show');
-            console.log('测试：强制显示悬浮搜索框');
         }
     }
 
@@ -468,8 +450,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化检查
     setTimeout(handleScroll, 100);
     
-    // 测试：2秒后强制显示
-    setTimeout(testShowFloatingSearch, 2000);
+    // 测试：立即显示悬浮搜索框
+    if (floatingSearch) {
+        setTimeout(() => {
+            floatingSearch.classList.add('show');
+            console.log('测试：显示悬浮搜索框');
+        }, 1000);
+    }
 });
 </script>
 {% endblock %}
