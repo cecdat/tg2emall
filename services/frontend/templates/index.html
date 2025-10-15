@@ -431,17 +431,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchOriginal = document.getElementById('search-original');
     
     function handleScroll() {
-        if (!searchOriginal || !floatingSearch) return;
+        if (!searchOriginal || !floatingSearch) {
+            console.log('悬浮搜索框元素未找到');
+            return;
+        }
         
-        const searchOriginalRect = searchOriginal.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const searchOriginalTop = searchOriginal.offsetTop;
         
-        // 当原始搜索框滚动出视口顶部时显示悬浮搜索框
-        // 使用更宽松的条件，当搜索框顶部滚动出视口时就显示悬浮搜索框
-        if (searchOriginalRect.top < -50) {
+        console.log('滚动位置:', scrollTop, '搜索框位置:', searchOriginalTop);
+        
+        // 当滚动超过搜索框位置100px时显示悬浮搜索框
+        if (scrollTop > searchOriginalTop + 100) {
             floatingSearch.classList.add('show');
+            console.log('显示悬浮搜索框');
         } else {
             floatingSearch.classList.remove('show');
+            console.log('隐藏悬浮搜索框');
         }
     }
 
@@ -449,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', handleScroll);
     
     // 初始化检查
-    handleScroll();
+    setTimeout(handleScroll, 100);
 });
 </script>
 {% endblock %}
