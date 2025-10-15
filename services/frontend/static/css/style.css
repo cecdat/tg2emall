@@ -45,7 +45,7 @@ body {
 
 /* 导航栏样式 - 保持毛玻璃效果 */
 .navbar {
-    background: rgba(13, 110, 253, 0.9) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -60,6 +60,7 @@ body {
 
 .navbar-brand .navbar-text {
     margin-top: 1px;
+    font-size: 0.7rem !important;
 }
 
 /* 导航链接颜色 - 强制覆盖 */
@@ -74,7 +75,7 @@ body {
 
 /* 暗黑模式导航栏 */
 .dark-theme .navbar {
-    background: rgba(13, 110, 253, 0.8) !important;
+    background: rgba(45, 45, 45, 0.2) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -456,6 +457,15 @@ footer {
 
 .resource-card .card-title a:hover {
     color: #28a745;
+}
+
+/* 暗黑模式下文章标题颜色 */
+.dark-theme .resource-card .card-title a {
+    color: #ffffff !important;
+}
+
+.dark-theme .resource-card .card-title a:hover {
+    color: #4caf50 !important;
 }
 
 .resource-card .card-footer {
