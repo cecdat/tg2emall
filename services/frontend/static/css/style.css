@@ -735,7 +735,7 @@ a:hover {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1000;
+    z-index: 9999;
     transform: translateX(100%);
     transition: all 0.3s ease-in-out;
     opacity: 0;
@@ -755,10 +755,10 @@ a:hover {
 }
 
 .floating-search.show {
-    transform: translateX(0);
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
 }
 
 .floating-search .search-form {

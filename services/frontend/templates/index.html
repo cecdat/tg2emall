@@ -444,10 +444,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // 当滚动超过搜索框位置100px时显示悬浮搜索框
         if (scrollTop > searchOriginalTop + 100) {
             floatingSearch.classList.add('show');
-            console.log('显示悬浮搜索框');
+            console.log('显示悬浮搜索框，当前类名:', floatingSearch.className);
+            console.log('悬浮搜索框样式:', window.getComputedStyle(floatingSearch).transform);
         } else {
             floatingSearch.classList.remove('show');
-            console.log('隐藏悬浮搜索框');
+            console.log('隐藏悬浮搜索框，当前类名:', floatingSearch.className);
         }
     }
 
