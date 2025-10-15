@@ -58,8 +58,8 @@
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-share-alt"></i> tg2emall
+            <a class="navbar-brand" href="{{ url_for('index') }}" style="color: #ffffff;">
+                <i class="fas fa-share-alt"></i> {{ seo_config.site_name|default('tg2emall') }}
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -67,6 +67,9 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-text me-3" style="color: #ffffff;">
+                    {{ seo_config.site_description|default('Telegram 频道资源分享平台') }}
+                </div>
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">
