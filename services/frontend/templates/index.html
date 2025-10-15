@@ -446,9 +446,20 @@ document.addEventListener('DOMContentLoaded', function() {
             floatingSearch.classList.add('show');
             console.log('显示悬浮搜索框，当前类名:', floatingSearch.className);
             console.log('悬浮搜索框样式:', window.getComputedStyle(floatingSearch).transform);
+            console.log('悬浮搜索框位置:', floatingSearch.getBoundingClientRect());
         } else {
             floatingSearch.classList.remove('show');
             console.log('隐藏悬浮搜索框，当前类名:', floatingSearch.className);
+        }
+    }
+
+    // 测试功能：立即显示悬浮搜索框
+    function testFloatingSearch() {
+        if (floatingSearch) {
+            floatingSearch.classList.add('show');
+            console.log('测试：强制显示悬浮搜索框');
+            console.log('悬浮搜索框位置:', floatingSearch.getBoundingClientRect());
+            console.log('悬浮搜索框样式:', window.getComputedStyle(floatingSearch));
         }
     }
 
@@ -457,6 +468,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化检查
     setTimeout(handleScroll, 100);
+    
+    // 测试：3秒后强制显示悬浮搜索框
+    setTimeout(testFloatingSearch, 3000);
 });
 </script>
 {% endblock %}

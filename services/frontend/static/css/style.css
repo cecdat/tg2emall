@@ -271,6 +271,21 @@ body {
     min-height: auto !important;
 }
 
+/* 更具体的选择器覆盖Bootstrap */
+.navbar.navbar-expand-lg.navbar-dark.bg-primary {
+    padding: 0.5rem 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* 覆盖Bootstrap的默认navbar样式 */
+.navbar {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    min-height: auto !important;
+    height: auto !important;
+}
+
 /* 页脚样式 */
 footer {
     background-color: var(--bs-footer-bg) !important;
@@ -742,6 +757,8 @@ a:hover {
     visibility: hidden;
     pointer-events: none;
     display: block !important;
+    width: 300px;
+    max-width: 90vw;
 }
 
 .floating-search .search-container {
