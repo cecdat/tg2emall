@@ -130,13 +130,10 @@
             .then(data => {
                 if (data.success && data.imageUrl) {
                     document.documentElement.style.setProperty('--bing-wallpaper', `url('${data.imageUrl}')`);
-                    console.log('Bing壁纸加载成功:', data.title);
-                } else {
-                    console.log('Bing壁纸加载失败，使用默认米色背景');
                 }
             })
             .catch(error => {
-                console.log('Bing壁纸加载失败，使用默认米色背景:', error);
+                // 静默处理错误，使用默认背景
             });
     }
     
