@@ -431,16 +431,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchOriginal = document.getElementById('search-original');
     
     function handleScroll() {
-        if (!searchOriginal || !floatingSearch) return;
+        if (!searchOriginal || !floatingSearch) {
+            console.log('搜索框元素未找到:', { searchOriginal, floatingSearch });
+            return;
+        }
         
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const searchOriginalTop = searchOriginal.offsetTop;
         
+        console.log('滚动检测:', { scrollTop, searchOriginalTop, shouldShow: scrollTop > searchOriginalTop + 100 });
+        
         // 当滚动超过搜索框位置100px时显示悬浮搜索框
         if (scrollTop > searchOriginalTop + 100) {
             floatingSearch.classList.add('show');
+            console.log('显示悬浮搜索框');
         } else {
             floatingSearch.classList.remove('show');
+            console.log('隐藏悬浮搜索框');
         }
     }
 

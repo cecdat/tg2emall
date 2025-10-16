@@ -41,51 +41,11 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     transition: background-color 0.3s ease, color 0.3s ease;
-    background: linear-gradient(135deg, #f5f5dc 0%, #e6e6d3 100%);
-    background-attachment: fixed;
-    min-height: 100vh;
-    position: relative;
-}
-
-/* Bing壁纸背景层 */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: var(--bing-wallpaper, linear-gradient(135deg, #f5f5dc 0%, #e6e6d3 100%));
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    z-index: -1;
-}
-
-/* 暗黑模式全局样式 */
-.dark-theme {
-    background: linear-gradient(135deg, #3a3a2e 0%, #2d2d20 100%);
-    color: #e0e0e0;
-}
-
-.dark-theme::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: var(--bing-wallpaper, linear-gradient(135deg, #3a3a2e 0%, #2d2d20 100%));
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    z-index: -1;
-    filter: brightness(0.7);
 }
 
 /* 导航栏样式 - 保持毛玻璃效果 */
 .navbar {
-    background: rgba(255, 255, 255, 0.1) !important; /* 使用半透明白色背景 */
+    background: rgba(255, 255, 255, 0.1) !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -699,68 +659,4 @@ footer {
 
 .article-meta .tags {
     margin-top: 0.5rem;
-}
-
-/* 毛玻璃效果容器 */
-.container, .container-fluid {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
-    margin-bottom: 20px;
-    padding: 30px;
-}
-
-/* 毛玻璃背景下的文字颜色优化 */
-.container, .container-fluid {
-    color: #000000;
-}
-
-.container h1, .container h2, .container h3, 
-.container h4, .container h5, .container h6 {
-    color: #000000;
-    font-weight: 600;
-}
-
-.container .lead {
-    color: #000000;
-}
-
-.container .text-muted {
-    color: #666666 !important;
-}
-
-/* 暗黑模式毛玻璃效果容器 */
-.dark-theme .container, .dark-theme .container-fluid {
-    background: rgba(45, 45, 45, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    margin-top: 20px;
-    margin-bottom: 20px;
-    padding: 30px;
-}
-
-/* 暗黑模式毛玻璃背景下的文字颜色优化 */
-.dark-theme .container, .dark-theme .container-fluid {
-    color: #ffffff;
-}
-
-.dark-theme .container h1, .dark-theme .container h2, .dark-theme .container h3, 
-.dark-theme .container h4, .dark-theme .container h5, .dark-theme .container h6 {
-    color: #ffffff;
-    font-weight: 600;
-}
-
-.dark-theme .container .lead {
-    color: #ffffff;
-}
-
-.dark-theme .container .text-muted {
-    color: #cccccc !important;
 }
